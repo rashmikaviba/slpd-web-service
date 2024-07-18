@@ -10,7 +10,7 @@ const storage: StorageEngine = multer.diskStorage({
         let type = req.query.type as string;
         let uploadPath = 'src/uploads/';
 
-        if (!helperUtil.isValueInEnum(type, WellKnownUploadType)) {
+        if (!helperUtil.isValueInEnum(WellKnownUploadType, Number(type))) {
             return cb(new BadRequestError('Invalid upload type'), '');
         }
 

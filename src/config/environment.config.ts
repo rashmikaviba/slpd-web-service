@@ -13,4 +13,5 @@ export const envConfig = {
     MONGO_URL: process.env.MONGO_URL,
     JWT_SECRET: process.env.JWT_SECRET,
     SALT_ROUNDS: process.env.SALT_ROUNDS,
+    BASE_URL: process.env.BASE_URL,
 };

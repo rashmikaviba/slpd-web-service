@@ -1,11 +1,12 @@
 import { StatusCodes } from 'http-status-codes';
 import { NextFunction, Request, Response } from 'express';
 import InternalServerError from '../error/internalServer.error';
-import CustomResponse from '../util/commonResponse';
+import CommonResponse from '../util/commonResponse';
 import logger from '../util/logger.util';
 
 const errorHandlerMiddleware = async (
     err: any,
+    req: Request,
     res: Response,
     next: NextFunction
 ) => {
@@ -19,7 +20,7 @@ const errorHandlerMiddleware = async (
         err instanceof InternalServerError ||
         customError.statusCode === StatusCodes.INTERNAL_SERVER_ERROR
     ) {
-        customError.message = 'Something went wrong!';
+        customError.message = err.message || 'Something went wrong!';
     }
 
     if (err.name === 'ValidationError') {
@@ -41,7 +42,7 @@ const errorHandlerMiddleware = async (
         customError.statusCode = StatusCodes.NOT_FOUND;
     }
 
-    return CustomResponse(
+    return CommonResponse(
         res,
         false,
         customError.statusCode,
