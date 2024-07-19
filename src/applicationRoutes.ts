@@ -5,6 +5,7 @@ const applicationRoutes = {
         base: '/common',
         getAllGenders: '/genders',
     },
+
     store: {
         base: '/store',
         uploadFile: '/upload',
