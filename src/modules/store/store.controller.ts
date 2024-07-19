@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 
 import CommonResponse from '../../util/commonResponse';
-import helperUtil from '../../util/helper.util';
 
 import BadRequestError from '../../error/badRequest.error';
 import { envConfig } from '../../config/environment.config';
