@@ -3,8 +3,8 @@ import { StatusCodes } from 'http-status-codes';
 
 import CommonResponse from '../../util/commonResponse';
 
-import BadRequestError from '../../error/badRequest.error';
 import { envConfig } from '../../config/environment.config';
+import BadRequestError from '../../error/BadRequestError';
 
 const UploadFile = async (req: Request, res: Response) => {
     const file = req.file;

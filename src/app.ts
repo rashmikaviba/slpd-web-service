@@ -6,12 +6,12 @@ require('express-async-errors');
 import { envConfig } from './config/environment.config';
 import { connectDB } from './config/database.config';
 
-import errorHandlerMiddleware from './middleware/error.middleware';
 import mapping from './mapping';
 
 // Import errors
-import NotFoundError from './error/notFound.error';
 import constants from './constant';
+import errorHandlerMiddleware from './middleware/error.middleware';
+import NotFoundError from './error/NotFoundError';
 
 const app: Express = express();
 

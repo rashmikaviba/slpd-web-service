@@ -6,7 +6,7 @@ import { StatusCodes } from 'http-status-codes';
 
 // Get All Active Genders
 const GetAllGenders = async (req: Request, res: Response) => {
-    const genders = commonService.findAllGendersByStatusIn([
+    const genders = await commonService.findAllGendersByStatusIn([
         WellKnownStatus.ACTIVE,
     ]);
 

@@ -7,7 +7,7 @@ db.identityTypes.drop();
 db.companyInfo.drop();
 
 // Insert master data for gender
-db.gender.insertMany([
+db.genders.insertMany([
     {
         _id: 1,
         name: 'Male',
@@ -25,7 +25,7 @@ db.gender.insertMany([
 ]);
 
 // Insert master data for identity type
-db.identityType.insertMany([
+db.identityTypes.insertMany([
     {
         _id: 1,
         type: 'Passport',
@@ -50,7 +50,7 @@ const year = currentTimestamp.getFullYear();
 const month = currentTimestamp.getMonth() + 1;
 const workingDate = new Date(year, month, 1);
 // Insert master data for company info
-db.companyInfo.insertMany([
+db.companyInfos.insertMany([
     {
         _id: 1,
         name: 'Sri Lanka Personal Drivers',

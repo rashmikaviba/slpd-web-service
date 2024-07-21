@@ -3,7 +3,7 @@ import constants from './constant';
 const applicationRoutes = {
     common: {
         base: '/common',
-        getAllGenders: '/genders',
+        getAllGenders: '/gender',
     },
 
     store: {
