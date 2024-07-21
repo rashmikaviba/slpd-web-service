@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import applicationRoutes from './applicationRoutes';
 import StoreRouter from './modules/store/store.route';
-import CommonRouter from './modules/common/common.route';
+import CommonRouter from './modules/common/route/common.route';
 
 const router = Router();
 

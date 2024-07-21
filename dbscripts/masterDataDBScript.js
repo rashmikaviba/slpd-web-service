@@ -5,6 +5,7 @@ const currentTimestamp = new Date();
 db.genders.drop();
 db.identityTypes.drop();
 db.companyInfo.drop();
+db.companyWorkingInfos.drop();
 
 // Insert master data for gender
 db.genders.insertMany([
@@ -50,12 +51,8 @@ const year = currentTimestamp.getFullYear();
 const month = currentTimestamp.getMonth() + 1;
 const workingDate = new Date(year, month, 1);
 // Insert master data for company info
-db.companyInfos.insertMany([
+db.companyWorkingInfos.insertMany([
     {
-        _id: 1,
-        name: 'Sri Lanka Personal Drivers',
-        address: 'Colombo 07',
-        image: 'https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png',
         workingYear: year,
         workingMonth: month,
         workingDate: workingDate,

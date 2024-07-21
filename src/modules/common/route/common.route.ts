@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import applicationRoutes from '../../applicationRoutes';
+import applicationRoutes from '../../../applicationRoutes';
 
-import { GetAllGenders } from './common.controller';
+import { GetAllGenders } from '../controller/common.controller';
 
 const CommonRouter = Router();
 

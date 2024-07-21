@@ -1,4 +1,4 @@
-import Gender from './model/gender.model';
+import Gender from '../model/gender.model';
 
 // get All genders by status in
 const findAllGendersByStatusIn = async (status: number[]) => {
