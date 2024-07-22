@@ -20,7 +20,6 @@ const findAllByType = async (
         },
         auditType,
     });
-    ``;
 };
 
 export default {
