@@ -58,6 +58,10 @@ const userSchema = new mongoose.Schema(
             },
         },
 
+        profileImageUrl: {
+            type: String,
+        },
+
         // Identity Information
         nic: {
             type: String,
