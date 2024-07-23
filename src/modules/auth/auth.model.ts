@@ -28,6 +28,16 @@ const authSchema = new mongoose.Schema(
             required: [true, 'Status is required'],
             default: WellKnownStatus.ACTIVE,
         },
+
+        createdBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+        },
+
+        updatedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+        },
     },
     {
         timestamps: true,

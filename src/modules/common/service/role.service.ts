@@ -1,3 +1,4 @@
+import { WellKnownStatus } from '../../../util/enums/well-known-status.enum';
 import Role from '../model/role.model';
 
 const findAllByStatusIn = async (status: number[]) => {
@@ -8,4 +9,8 @@ const findByIdAndStatus = async (id: string, status: number) => {
     return await Role.findOne({ _id: id, status });
 };
 
-export default { findAllByStatusIn, findByIdAndStatus };
+const findByCustomId = async (id: string) => {
+    return await Role.findOne({ id: id, status: WellKnownStatus.ACTIVE });
+};
+
+export default { findAllByStatusIn, findByIdAndStatus, findByCustomId };

@@ -25,8 +25,15 @@ const errorHandlerMiddleware = async (
     }
 
     if (err.name === 'ValidationError') {
+        let validatorArr: any[] = [];
+        let errorMessage = 'Validation Error: ';
+
+        Object.values(err.errors).forEach((error: any) => {
+            validatorArr.push(error.message);
+        });
+
         customError.statusCode = StatusCodes.BAD_REQUEST;
-        customError.message = err.errors[0];
+        customError.message = validatorArr[0];
     }
 
     if (err.code && err.code === 11000) {

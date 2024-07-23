@@ -8,7 +8,7 @@ db.roles.drop();
 // Insert master data for roles
 db.roles.insertMany([
     {
-        _id: 1,
+        id: 1,
         name: 'Super Admin',
         status: 1,
         modules: [],
@@ -16,7 +16,7 @@ db.roles.insertMany([
         updatedAt: currentTimestamp,
     },
     {
-        _id: 2,
+        id: 2,
         name: 'Admin',
         status: 1,
         modules: [],
@@ -24,7 +24,7 @@ db.roles.insertMany([
         updatedAt: currentTimestamp,
     },
     {
-        _id: 3,
+        id: 3,
         name: 'Driver',
         status: 1,
         modules: [],

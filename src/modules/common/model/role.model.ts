@@ -3,6 +3,10 @@ import { WellKnownStatus } from '../../../util/enums/well-known-status.enum';
 
 const roleSchema = new mongoose.Schema(
     {
+        id: {
+            type: Number,
+            required: [true, 'Id is required'],
+        },
         name: {
             type: String,
             required: [true, 'Name is required'],
