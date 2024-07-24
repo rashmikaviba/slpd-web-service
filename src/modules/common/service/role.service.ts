@@ -13,4 +13,19 @@ const findByCustomId = async (id: string) => {
     return await Role.findOne({ id: id, status: WellKnownStatus.ACTIVE });
 };
 
-export default { findAllByStatusIn, findByIdAndStatus, findByCustomId };
+// pass _id as string array
+const findIdsByCustomIds = async (ids: string[]) => {
+    const roles = await Role.find({
+        id: { $in: ids },
+        status: WellKnownStatus.ACTIVE,
+    }).select('_id');
+
+    return roles?.map((role) => role._id.toString()) || [];
+};
+
+export default {
+    findAllByStatusIn,
+    findByIdAndStatus,
+    findByCustomId,
+    findIdsByCustomIds,
+};

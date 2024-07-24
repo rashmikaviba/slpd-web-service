@@ -14,7 +14,7 @@ import BadRequestError from '../../error/BadRequestError';
 import CommonResponse from '../../util/commonResponse';
 import { StatusCodes } from 'http-status-codes';
 
-const SaveUser = async (req: Request, res: Response) => {
+const saveUser = async (req: Request, res: Response) => {
     const {
         fullName,
         userName,
@@ -41,6 +41,7 @@ const SaveUser = async (req: Request, res: Response) => {
         languages,
         role,
     } = req.body;
+    const userAuth: any = req.auth;
 
     // validate userName
     const existingUsers = await userService.validateUserData(1, userName);
@@ -100,17 +101,20 @@ const SaveUser = async (req: Request, res: Response) => {
             basicSalary,
             leaveCount,
             languages,
-            role: roleData._id,
+            createdBy: userAuth.id,
+            updatedBy: userAuth.id,
         });
 
         // Create Auth
-        let password = userName + '123';
-        const hashedPassword = await passwordHashUtil.hashPassword(password);
+        const hashedPassword = await passwordHashUtil.hashPassword('12345');
 
         const auth = new Auth({
             userName,
             password: hashedPassword,
             user: user._id,
+            role: roleData._id,
+            createdBy: userAuth.id,
+            updatedBy: userAuth.id,
         });
 
         createdUser = await userService.Save(user, session);
@@ -137,4 +141,57 @@ const SaveUser = async (req: Request, res: Response) => {
     );
 };
 
-export { SaveUser };
+// Update user by user id
+const updateUser = async (req: Request, res: Response) => {};
+
+// block user by user id
+const blockUser = async (req: Request, res: Response) => {
+    const userId = req.params.id;
+    const userAuth: any = req.auth;
+
+    let auth = await authService.findByUserId(userId);
+
+    if (!auth) throw new BadRequestError('User not found!');
+
+    if (auth.isBlocked) throw new BadRequestError('User already blocked!');
+
+    auth.isBlocked = true;
+    auth.updatedBy = userAuth.id;
+
+    await authService.save(auth, null);
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        'User blocked successfully!',
+        null
+    );
+};
+
+// unblock user by user id
+const unblockUser = async (req: Request, res: Response) => {
+    const userId = req.params.id;
+    const userAuth: any = req.auth;
+
+    let auth = await authService.findByUserId(userId);
+
+    if (!auth) throw new BadRequestError('User not found!');
+
+    if (!auth.isBlocked) throw new BadRequestError('User already unblocked!');
+
+    auth.isBlocked = false;
+    auth.updatedBy = userAuth.id;
+
+    await authService.save(auth, null);
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        'User unblocked successfully!',
+        null
+    );
+};
+
+export { saveUser, blockUser, unblockUser, updateUser };

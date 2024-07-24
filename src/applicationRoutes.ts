@@ -19,12 +19,14 @@ const applicationRoutes = {
         getAll: '/',
         getById: '/:id',
         update: '/:id',
+        blockUser: '/block/:id',
+        unblockUser: '/unblock/:id',
     },
 
     auth: {
         base: '/auth',
         login: '/login',
-        resetPassword: '/resetPassword',
+        resetPassword: '/resetPassword/:id',
         changePassword: '/changePassword',
     },
 };

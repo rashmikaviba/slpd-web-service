@@ -23,6 +23,11 @@ const authSchema = new mongoose.Schema(
             ref: 'User',
         },
 
+        role: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Role',
+        },
+
         status: {
             type: Number,
             required: [true, 'Status is required'],

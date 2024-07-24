@@ -135,17 +135,7 @@ const userSchema = new mongoose.Schema(
             type: [String],
         },
 
-        isBlocked: {
-            type: Boolean,
-            default: false,
-        },
-
         // Information for Admin
-        role: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Role',
-        },
-
         status: {
             type: Number,
             required: [true, 'Status is required'],

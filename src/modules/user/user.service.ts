@@ -31,4 +31,11 @@ const validateUserData = async (type: number, data: string): Promise<any[]> => {
     }
 };
 
-export default { Save, validateUserData };
+const findById = async (id: string) => {
+    return await User.findOne({
+        _id: id,
+        status: WellKnownStatus.ACTIVE,
+    });
+};
+
+export default { Save, validateUserData, findById };
