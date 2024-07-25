@@ -135,6 +135,11 @@ const userSchema = new mongoose.Schema(
             type: [String],
         },
 
+        role: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Role',
+        },
+
         // Information for Admin
         status: {
             type: Number,

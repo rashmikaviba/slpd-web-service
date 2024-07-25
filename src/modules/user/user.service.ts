@@ -31,6 +31,35 @@ const validateUserData = async (type: number, data: string): Promise<any[]> => {
     }
 };
 
+const validateUserDataForUpdate = async (
+    type: number,
+    data: string,
+    id: string
+) => {
+    switch (type) {
+        case 1:
+            return await User.find({
+                userName: data,
+                _id: { $ne: id },
+                status: WellKnownStatus.ACTIVE,
+            }).exec();
+        case 2:
+            return await User.find({
+                email: data,
+                _id: { $ne: id },
+                status: WellKnownStatus.ACTIVE,
+            }).exec();
+        case 3:
+            return await User.find({
+                nic: data,
+                _id: { $ne: id },
+                status: WellKnownStatus.ACTIVE,
+            }).exec();
+        default:
+            return [];
+    }
+};
+
 const findById = async (id: string) => {
     return await User.findOne({
         _id: id,
@@ -38,4 +67,65 @@ const findById = async (id: string) => {
     });
 };
 
-export default { Save, validateUserData, findById };
+const findByIdWithGenderRole = async (id: string) => {
+    return await User.findOne({
+        _id: id,
+        status: WellKnownStatus.ACTIVE,
+    }).populate([
+        {
+            path: 'gender',
+            select: '_id name id',
+        },
+        {
+            path: 'role',
+            select: '_id name id',
+        },
+        {
+            path: 'createdBy',
+            select: '_id fullName',
+        },
+        {
+            path: 'updatedBy',
+            select: '_id fullName',
+        },
+    ]);
+};
+
+const findAll = async () => {
+    return await User.find({
+        status: WellKnownStatus.ACTIVE,
+    });
+};
+
+const findAllWithGenderRole = async () => {
+    return await User.find({
+        status: WellKnownStatus.ACTIVE,
+    }).populate([
+        {
+            path: 'gender',
+            select: '_id name id',
+        },
+        {
+            path: 'role',
+            select: '_id name id',
+        },
+        {
+            path: 'createdBy',
+            select: '_id fullName',
+        },
+        {
+            path: 'updatedBy',
+            select: '_id fullName',
+        },
+    ]);
+};
+
+export default {
+    Save,
+    validateUserData,
+    validateUserDataForUpdate,
+    findById,
+    findByIdWithGenderRole,
+    findAll,
+    findAllWithGenderRole,
+};

@@ -2,6 +2,8 @@ import { Router } from 'express';
 import applicationRoutes from '../../applicationRoutes';
 import {
     blockUser,
+    getAllUsers,
+    getUserById,
     saveUser,
     unblockUser,
     updateUser,
@@ -33,6 +35,18 @@ UserRouter.put(
     applicationRoutes.user.unblockUser,
     authMiddleware.authorize([constants.USER.ROLES.SUPERADMIN]),
     unblockUser
+);
+
+UserRouter.get(
+    applicationRoutes.user.getAll,
+    authMiddleware.authorize(),
+    getAllUsers
+);
+
+UserRouter.get(
+    applicationRoutes.user.getById,
+    authMiddleware.authorize(),
+    getUserById
 );
 
 export default UserRouter;
