@@ -3,10 +3,6 @@ import { WellKnownLeaveStatus } from '../../util/enums/well-known-leave-status.e
 
 const leaveSchema = new mongoose.Schema(
     {
-        // General Information for Leave -  Start Date, End Date, date count, Reason, Status appliedUser
-        // Information for Admin - Status, Created By, Updated By
-        // approve and reject information - Approve By, Approve Date, Reject By, Reject Date, Reject Reason
-
         // General Information
         startDate: {
             type: Date,
@@ -26,6 +22,7 @@ const leaveSchema = new mongoose.Schema(
         reason: {
             type: String,
             required: [true, 'Reason is required'],
+            maxlength: [500, 'Reason cannot be more than 200 characters'],
         },
 
         status: {
@@ -60,6 +57,7 @@ const leaveSchema = new mongoose.Schema(
 
         rejectReason: {
             type: String,
+            maxlength: [500, 'Reason cannot be more than 200 characters'],
         },
 
         createdBy: {
