@@ -27,6 +27,7 @@ const userModelToUserResponseDto = (user: any): UserResponseDto => {
         basicSalary: user.basicSalary,
         leaveCount: user.leaveCount,
         languages: user.languages,
+        isBlackListed: user.isBlock ? true : false,
         role: user.role.id,
         roleName: user.role.name,
         createdBy: user.createdBy?._id,

@@ -64,11 +64,11 @@ const authorize = (rolesArray: any = []) => {
             // }
 
             if (rolesArray.length) {
-                const roleIds = await roleService.findIdsByCustomIds(
-                    rolesArray
-                );
+                // const roleIds = await roleService.findIdsByCustomIds(
+                //     rolesArray
+                // );
 
-                if (!roleIds.includes(payload.role)) {
+                if (!rolesArray.includes(payload.role)) {
                     return next(
                         new ForbiddenError(
                             `You're unauthorized to access this resource!`

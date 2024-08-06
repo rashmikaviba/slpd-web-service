@@ -7,6 +7,8 @@ import {
     saveUser,
     unblockUser,
     updateUser,
+    checkUserName,
+    deleteUser,
 } from './user.controller';
 import authMiddleware from '../../middleware/auth.middleware';
 import constants from '../../constant';
@@ -38,8 +40,14 @@ UserRouter.put(
 );
 
 UserRouter.get(
+    applicationRoutes.user.validateUser,
+    authMiddleware.authorize([constants.USER.ROLES.SUPERADMIN]),
+    checkUserName
+);
+
+UserRouter.get(
     applicationRoutes.user.getAll,
-    authMiddleware.authorize(),
+    authMiddleware.authorize([constants.USER.ROLES.SUPERADMIN]),
     getAllUsers
 );
 
@@ -47,6 +55,12 @@ UserRouter.get(
     applicationRoutes.user.getById,
     authMiddleware.authorize(),
     getUserById
+);
+
+UserRouter.delete(
+    applicationRoutes.user.deleteById,
+    authMiddleware.authorize([constants.USER.ROLES.SUPERADMIN]),
+    deleteUser
 );
 
 export default UserRouter;

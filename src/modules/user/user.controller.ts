@@ -16,6 +16,7 @@ import CommonResponse from '../../util/commonResponse';
 import { StatusCodes } from 'http-status-codes';
 import UserResponseDto from './dto/userResponseDto';
 import NotFoundError from '../../error/NotFoundError';
+import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
 
 const saveUser = async (req: Request, res: Response) => {
     const {
@@ -335,11 +336,16 @@ const unblockUser = async (req: Request, res: Response) => {
 
 const getAllUsers = async (req: Request, res: Response) => {
     let response: any[] = [];
+    const userAuth: any = req.auth;
     const users = await userService.findAllWithGenderRole();
 
+    let filteredUsers = users.filter(
+        (user) => user._id.toString() !== userAuth?.id
+    );
+
     // map user to user response dto
-    if (users.length > 0) {
-        response = userUtil.userModelToUserResponseDtos(users);
+    if (filteredUsers.length > 0) {
+        response = userUtil.userModelToUserResponseDtos(filteredUsers);
     }
 
     CommonResponse(res, true, StatusCodes.OK, '', response);
@@ -361,6 +367,107 @@ const getUserById = async (req: Request, res: Response) => {
     CommonResponse(res, true, StatusCodes.OK, '', response);
 };
 
+const checkUserName = async (req: Request, res: Response) => {
+    const userId = req.query.id as string;
+    const userName = req.query.userName as string;
+    const email = req.query.email as string;
+    const nic = req.query.nic as string;
+
+    let result = true;
+    let message = '';
+
+    if (userId) {
+        const existingUsers = await userService.validateUserDataForUpdate(
+            1,
+            userName,
+            userId
+        );
+        const existingEmails = await userService.validateUserDataForUpdate(
+            2,
+            email,
+            userId
+        );
+        const existingNics = await userService.validateUserDataForUpdate(
+            3,
+            nic,
+            userId
+        );
+
+        if (existingUsers.length > 0) {
+            result = false;
+            message = 'Username already exists, please try another username!';
+        } else if (existingEmails.length > 0) {
+            result = false;
+            message = 'Email already exists, please try another email!';
+        } else if (existingNics.length > 0) {
+            result = false;
+            message = 'NIC already exists, please try another NIC!';
+        }
+    } else {
+        const existingUsers = await userService.validateUserData(1, userName);
+        const existingEmails = await userService.validateUserData(2, email);
+        const existingNics = await userService.validateUserData(3, nic);
+
+        if (existingUsers.length > 0) {
+            result = false;
+            message = 'Username already exists, please try another username!';
+        } else if (existingEmails.length > 0) {
+            result = false;
+            message = 'Email already exists, please try another email!';
+        } else if (existingNics.length > 0) {
+            result = false;
+            message = 'NIC already exists, please try another NIC!';
+        }
+    }
+
+    CommonResponse(res, true, StatusCodes.OK, message, result);
+};
+
+const deleteUser = async (req: Request, res: Response) => {
+    const userId = req.params.id;
+    const userAuth: any = req.auth;
+
+    let auth: any = await authService.findByUserId(userId);
+    let user: any = await userService.findById(userId);
+
+    if (!auth || !user) throw new NotFoundError('User not found!');
+
+    const session = await startSession();
+
+    try {
+        //start transaction in session
+        session.startTransaction();
+
+        auth.status = WellKnownStatus.DELETED;
+        auth.updatedBy = userAuth.id;
+
+        user.status = WellKnownStatus.DELETED;
+        user.updatedBy = userAuth.id;
+
+        await userService.Save(user, session);
+
+        await authService.save(auth, session);
+
+        //commit transaction
+        await session.commitTransaction();
+    } catch (e) {
+        //abort transaction
+        await session.abortTransaction();
+        throw e;
+    } finally {
+        //end session
+        session.endSession();
+    }
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        'User deleted successfully!',
+        null
+    );
+};
+
 export {
     saveUser,
     blockUser,
@@ -368,4 +475,6 @@ export {
     updateUser,
     getAllUsers,
     getUserById,
+    checkUserName,
+    deleteUser,
 };

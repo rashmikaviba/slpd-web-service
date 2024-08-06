@@ -1,4 +1,5 @@
 import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
+import Auth from '../auth/auth.model';
 import User from './user.model';
 
 const Save = async (user: any, session: any) => {
@@ -98,26 +99,42 @@ const findAll = async () => {
 };
 
 const findAllWithGenderRole = async () => {
-    return await User.find({
+    let users = await User.find({
         status: WellKnownStatus.ACTIVE,
-    }).populate([
-        {
-            path: 'gender',
-            select: '_id name id',
-        },
-        {
-            path: 'role',
-            select: '_id name id',
-        },
-        {
-            path: 'createdBy',
-            select: '_id fullName',
-        },
-        {
-            path: 'updatedBy',
-            select: '_id fullName',
-        },
-    ]);
+    })
+        .populate([
+            {
+                path: 'gender',
+                select: '_id name id',
+            },
+            {
+                path: 'role',
+                select: '_id name id',
+            },
+            {
+                path: 'createdBy',
+                select: '_id fullName',
+            },
+            {
+                path: 'updatedBy',
+                select: '_id fullName',
+            },
+        ])
+        .sort({ createdAt: -1 });
+
+    if (users.length > 0) {
+        for (let index = 0; index < users.length; index++) {
+            let element: any = users[index];
+            let auth: any = await Auth.findOne({
+                user: element._id,
+                status: WellKnownStatus.ACTIVE,
+            });
+
+            element.isBlock = auth.isBlocked;
+        }
+    }
+
+    return users;
 };
 
 export default {

@@ -28,7 +28,7 @@ const userLogin = async (req: Request, res: Response) => {
     const response = {
         token: token,
         user: existAuth?.user,
-        role: existAuth.role?.name,
+        role: existAuth.role?.id,
         modules: [],
     };
 
@@ -55,7 +55,7 @@ const resetPassword = async (req: Request, res: Response) => {
         res,
         true,
         StatusCodes.OK,
-        'Password reset successful!',
+        'User password reset successfully as default password!',
         null
     );
 };

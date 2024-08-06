@@ -14,18 +14,18 @@ const findByCustomId = async (id: string) => {
 };
 
 // pass _id as string array
-const findIdsByCustomIds = async (ids: string[]) => {
-    const roles = await Role.find({
-        id: { $in: ids },
-        status: WellKnownStatus.ACTIVE,
-    }).select('_id');
+// const findIdsByCustomIds = async (ids: string[]) => {
+//     const roles = await Role.find({
+//         id: { $in: ids },
+//         status: WellKnownStatus.ACTIVE,
+//     }).select('id');
 
-    return roles?.map((role) => role._id.toString()) || [];
-};
+//     return roles?.map((role) => role._id.toString()) || [];
+// };
 
 export default {
     findAllByStatusIn,
     findByIdAndStatus,
     findByCustomId,
-    findIdsByCustomIds,
+    // findIdsByCustomIds,
 };

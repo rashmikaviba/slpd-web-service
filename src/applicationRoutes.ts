@@ -19,8 +19,10 @@ const applicationRoutes = {
         getAll: '/',
         getById: '/:id',
         update: '/:id',
+        deleteById: '/:id',
         blockUser: '/block/:id',
         unblockUser: '/unblock/:id',
+        validateUser: '/validateUser',
     },
 
     auth: {

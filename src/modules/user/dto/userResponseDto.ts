@@ -183,6 +183,7 @@ interface UserResponseDto {
     languages: string[];
     role: string;
     roleName: string;
+    isBlackListed: boolean;
     createdBy: string;
     createdUser: string;
     updatedBy: string;
