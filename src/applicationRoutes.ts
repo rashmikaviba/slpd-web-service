@@ -30,6 +30,7 @@ const applicationRoutes = {
         login: '/login',
         resetPassword: '/resetPassword/:id',
         changePassword: '/changePassword',
+        refreshAuth: '/refreshAuth',
     },
 
     leave: {

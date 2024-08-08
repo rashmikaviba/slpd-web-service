@@ -5,6 +5,7 @@ import passwordHashUtil from '../../util/passwordHash.util';
 import jwtUtil from '../../util/jwt.util';
 import CommonResponse from '../../util/commonResponse';
 import { StatusCodes } from 'http-status-codes';
+import UnauthorizedError from '../../error/UnauthorizedError';
 
 const userLogin = async (req: Request, res: Response) => {
     const { userName, password } = req.body;
@@ -90,4 +91,30 @@ const changePassword = async (req: Request, res: Response) => {
     );
 };
 
-export { userLogin, resetPassword, changePassword };
+const refreshUserAuth = async (req: Request, res: Response) => {
+    const userAuth: any = req.auth;
+    const { password } = req.body;
+
+    let auth = await authService.findById(userAuth.authId);
+
+    if (!auth) throw new UnauthorizedError('Invalid authentication request!');
+
+    const isPasswordMatch: boolean = await passwordHashUtil.comparePassword(
+        password,
+        auth.password
+    );
+
+    if (!isPasswordMatch) throw new BadRequestError('Invalid password!');
+
+    const token = jwtUtil.generateToken(auth);
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        'Session refresh successful!',
+        token
+    );
+};
+
+export { userLogin, resetPassword, changePassword, refreshUserAuth };
