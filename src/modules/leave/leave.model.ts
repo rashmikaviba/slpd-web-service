@@ -22,7 +22,7 @@ const leaveSchema = new mongoose.Schema(
         reason: {
             type: String,
             required: [true, 'Reason is required'],
-            maxlength: [500, 'Reason cannot be more than 200 characters'],
+            maxlength: [500, 'Reason cannot be more than 500 characters'],
         },
 
         status: {
@@ -44,6 +44,11 @@ const leaveSchema = new mongoose.Schema(
 
         approveDate: {
             type: Date,
+        },
+
+        approveRemark: {
+            type: String,
+            maxlength: [500, 'Remark cannot be more than 200 characters'],
         },
 
         rejectBy: {
