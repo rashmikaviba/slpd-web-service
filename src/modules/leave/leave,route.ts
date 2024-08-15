@@ -8,13 +8,10 @@ import {
     getLeaveById,
     approveLeave,
     rejectLeave,
+    getLeaveCount,
 } from './leave.controller';
 
 const LeaveRouter = Router();
-
-//     approveLeave: '/approve/:id', // approve leave by id for super admin
-//     rejectLeave: '/reject/:id', // reject leave by id for super admin
-//     getLeaveCount: '/count', // get leave count for admin
 
 LeaveRouter.post(
     applicationRoutes.leave.applyLeave,
@@ -47,6 +44,12 @@ LeaveRouter.put(
     applicationRoutes.leave.rejectLeave,
     authMiddleware.authorize(constants.USER.ROLES.SUPERADMIN),
     rejectLeave
+);
+
+LeaveRouter.get(
+    applicationRoutes.leave.getLeaveCount,
+    authMiddleware.authorize(),
+    getLeaveCount
 );
 
 export default LeaveRouter;

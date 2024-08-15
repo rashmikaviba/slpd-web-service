@@ -13,6 +13,7 @@ import companyWorkingInfoService from '../common/service/companyWorkingInfo.serv
 import { WellKnownLeaveStatus } from '../../util/enums/well-known-leave-status.enum';
 import leaveUtil from './leave.util';
 import NotFoundError from '../../error/NotFoundError';
+import LeaveCountResponseDto from './dto/leaveCountResponseDto';
 
 const applyLeave = async (req: Request, res: Response) => {
     const auth = req.auth;
@@ -339,4 +340,112 @@ const rejectLeave = async (req: Request, res: Response) => {
     );
 };
 
-export { applyLeave, getAllLeaves, getLeaveById, approveLeave, rejectLeave };
+const getLeaveCount = async (req: Request, res: Response) => {
+    const auth: any = req.auth;
+
+    const activeCompanyInfo: any =
+        await companyWorkingInfoService.getCompanyWorkingInfo();
+
+    if (!activeCompanyInfo) {
+        throw new BadRequestError('Company not found!');
+    }
+    let response: LeaveCountResponseDto;
+    let approveLeaveCount: number = 0;
+    let rejectLeaveCount: number = 0;
+    let pendingLeaveCount: number = 0;
+    let remainingLeaveCount: number = 0;
+
+    switch (auth.role) {
+        case constants.USER.ROLES.ADMIN:
+            approveLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
+                auth.id,
+                activeCompanyInfo.workingYear,
+                [WellKnownLeaveStatus.APPROVED]
+            );
+
+            rejectLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
+                auth.id,
+                activeCompanyInfo.workingYear,
+                [WellKnownLeaveStatus.REJECTED]
+            );
+
+            pendingLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
+                auth.id,
+                activeCompanyInfo.workingYear,
+                [WellKnownLeaveStatus.PENDING]
+            );
+
+            const admin: any = await userService.findById(auth.id);
+
+            const leaveCountForYear =
+                await leaveService.getTotalLeaveDaysFromYear(
+                    auth.id,
+                    activeCompanyInfo.workingYear
+                );
+
+            remainingLeaveCount = admin.leaveCount - leaveCountForYear;
+
+            break;
+
+        case constants.USER.ROLES.DRIVER:
+            approveLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
+                auth.id,
+                activeCompanyInfo.workingYear,
+                [WellKnownLeaveStatus.APPROVED]
+            );
+
+            rejectLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
+                auth.id,
+                activeCompanyInfo.workingYear,
+                [WellKnownLeaveStatus.REJECTED]
+            );
+
+            pendingLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
+                auth.id,
+                activeCompanyInfo.workingYear,
+                [WellKnownLeaveStatus.PENDING]
+            );
+            break;
+
+        case constants.USER.ROLES.SUPERADMIN:
+            approveLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
+                '',
+                activeCompanyInfo.workingYear,
+                [WellKnownLeaveStatus.APPROVED]
+            );
+
+            rejectLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
+                '',
+                activeCompanyInfo.workingYear,
+                [WellKnownLeaveStatus.REJECTED]
+            );
+
+            pendingLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
+                '',
+                activeCompanyInfo.workingYear,
+                [WellKnownLeaveStatus.PENDING]
+            );
+            break;
+
+        default:
+            break;
+    }
+
+    response = {
+        approveLeaveCount,
+        rejectLeaveCount,
+        pendingLeaveCount,
+        remainingLeaveCount,
+    };
+
+    CommonResponse(res, true, StatusCodes.OK, '', response);
+};
+
+export {
+    applyLeave,
+    getAllLeaves,
+    getLeaveById,
+    approveLeave,
+    rejectLeave,
+    getLeaveCount,
+};

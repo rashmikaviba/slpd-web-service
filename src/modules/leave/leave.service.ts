@@ -104,10 +104,40 @@ const findByIdAndStatusIn = async (id: string, status: number[]) => {
     }).populate('appliedUser approveBy rejectBy createdBy updatedBy');
 };
 
+const countByYearUserIdAndStatusIn = async (
+    userId: string,
+    year: number,
+    status: number[]
+) => {
+    if (userId) {
+        return (
+            (await Leave.countDocuments({
+                appliedUser: userId,
+                status: { $in: status },
+                $or: [
+                    { startDate: { $gte: new Date(year, 0, 1) } },
+                    { endDate: { $lte: new Date(year, 11, 31) } },
+                ],
+            })) || 0
+        );
+    } else {
+        return (
+            (await Leave.countDocuments({
+                status: { $in: status },
+                $or: [
+                    { startDate: { $gte: new Date(year, 0, 1) } },
+                    { endDate: { $lte: new Date(year, 11, 31) } },
+                ],
+            })) || 0
+        );
+    }
+};
+
 export default {
     checkUserAlreadyApplied,
     save,
     getTotalLeaveDaysFromYear,
     findAllByUserIdYearAndStatus,
     findByIdAndStatusIn,
+    countByYearUserIdAndStatusIn,
 };
