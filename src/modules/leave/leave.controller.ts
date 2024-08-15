@@ -8,6 +8,10 @@ import Leave from './leave.model';
 import { StatusCodes } from 'http-status-codes';
 import CommonResponse from '../../util/commonResponse';
 import userService from '../user/user.service';
+import LeaveResponseDto from './dto/leaveResponseDto';
+import companyWorkingInfoService from '../common/service/companyWorkingInfo.service';
+import { WellKnownLeaveStatus } from '../../util/enums/well-known-leave-status.enum';
+import leaveUtil from './leave.util';
 
 const applyLeave = async (req: Request, res: Response) => {
     const auth = req.auth;
@@ -130,4 +134,69 @@ const applyAdminLeave = async (
     return leaveService.save(newLeave, session);
 };
 
-export { applyLeave };
+const getAllLeaves = async (req: Request, res: Response) => {
+    const auth: any = req.auth;
+    const userId = auth.id;
+
+    let response: LeaveResponseDto[] = [];
+
+    const activeCompanyInfo: any =
+        await companyWorkingInfoService.getCompanyWorkingInfo();
+
+    if (!activeCompanyInfo) {
+        throw new BadRequestError('No active company information found!');
+    }
+
+    switch (auth.role) {
+        case constants.USER.ROLES.DRIVER:
+            const DriverLeaves =
+                await leaveService.findAllByUserIdYearAndStatus(
+                    userId,
+                    activeCompanyInfo.workingYear,
+                    [
+                        WellKnownLeaveStatus.APPROVED,
+                        WellKnownLeaveStatus.REJECTED,
+                        WellKnownLeaveStatus.PENDING,
+                    ]
+                );
+
+            response = leaveUtil.leaveModelToLeaveResponseDtos(DriverLeaves);
+            break;
+
+        case constants.USER.ROLES.ADMIN:
+            const adminLeaves = await leaveService.findAllByUserIdYearAndStatus(
+                userId,
+                activeCompanyInfo.workingYear,
+                [
+                    WellKnownLeaveStatus.APPROVED,
+                    WellKnownLeaveStatus.REJECTED,
+                    WellKnownLeaveStatus.PENDING,
+                ]
+            );
+
+            response = leaveUtil.leaveModelToLeaveResponseDtos(adminLeaves);
+            break;
+
+        case constants.USER.ROLES.SUPERADMIN:
+            const superAdminLeaves =
+                await leaveService.findAllByUserIdYearAndStatus(
+                    '',
+                    activeCompanyInfo.workingYear,
+                    [
+                        WellKnownLeaveStatus.APPROVED,
+                        WellKnownLeaveStatus.REJECTED,
+                        WellKnownLeaveStatus.PENDING,
+                    ]
+                );
+
+            response =
+                leaveUtil.leaveModelToLeaveResponseDtos(superAdminLeaves);
+            break;
+        default:
+            break;
+    }
+
+    CommonResponse(res, true, StatusCodes.OK, '', response);
+};
+
+export { applyLeave, getAllLeaves };

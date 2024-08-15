@@ -62,4 +62,43 @@ const getTotalLeaveDaysFromYear = async (userId: string, year: number) => {
 
     return totalLeaveCount;
 };
-export default { checkUserAlreadyApplied, save, getTotalLeaveDaysFromYear };
+
+const findAllByUserIdYearAndStatus = async (
+    userId: string,
+    year: number,
+    status: number[]
+) => {
+    if (userId) {
+        return (await Leave.find({
+            appliedUser: userId,
+            $or: [
+                { startDate: { $gte: new Date(year, 0, 1) } },
+                { endDate: { $lte: new Date(year, 11, 31) } },
+            ],
+            status: { $in: status },
+        })
+            .sort({ status: 1 })
+            .populate(
+                'appliedUser approveBy rejectBy createdBy updatedBy'
+            )) as any[];
+    } else {
+        return (await Leave.find({
+            $or: [
+                { startDate: { $gte: new Date(year, 0, 1) } },
+                { endDate: { $lte: new Date(year, 11, 31) } },
+            ],
+            status: { $in: status },
+        })
+            .sort({ status: 1 })
+            .populate(
+                'appliedUser approveBy rejectBy createdBy updatedBy'
+            )) as any[];
+    }
+};
+
+export default {
+    checkUserAlreadyApplied,
+    save,
+    getTotalLeaveDaysFromYear,
+    findAllByUserIdYearAndStatus,
+};
