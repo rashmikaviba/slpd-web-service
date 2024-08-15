@@ -48,7 +48,7 @@ const leaveSchema = new mongoose.Schema(
 
         approveRemark: {
             type: String,
-            maxlength: [500, 'Remark cannot be more than 200 characters'],
+            maxlength: [500, 'Remark cannot be more than 500 characters'],
         },
 
         rejectBy: {
@@ -62,7 +62,7 @@ const leaveSchema = new mongoose.Schema(
 
         rejectReason: {
             type: String,
-            maxlength: [500, 'Reason cannot be more than 200 characters'],
+            maxlength: [500, 'Reason cannot be more than 500 characters'],
         },
 
         createdBy: {

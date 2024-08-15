@@ -2,19 +2,19 @@ import { Router } from 'express';
 import applicationRoutes from '../../applicationRoutes';
 import authMiddleware from '../../middleware/auth.middleware';
 import constants from '../../constant';
-import { applyLeave, getAllLeaves } from './leave.controller';
+import {
+    applyLeave,
+    getAllLeaves,
+    getLeaveById,
+    approveLeave,
+    rejectLeave,
+} from './leave.controller';
 
 const LeaveRouter = Router();
 
-// leave: {
-//     base: '/leave',
-//     getAllLeaves: '/', // get all leaves for super admin
-//     getLeaveById: '/:id', // get leave by id
-//     applyLeave: '/apply', // apply leave for user
 //     approveLeave: '/approve/:id', // approve leave by id for super admin
 //     rejectLeave: '/reject/:id', // reject leave by id for super admin
 //     getLeaveCount: '/count', // get leave count for admin
-// },
 
 LeaveRouter.post(
     applicationRoutes.leave.applyLeave,
@@ -30,4 +30,23 @@ LeaveRouter.get(
     authMiddleware.authorize(),
     getAllLeaves
 );
+
+LeaveRouter.get(
+    applicationRoutes.leave.getLeaveById,
+    authMiddleware.authorize(),
+    getLeaveById
+);
+
+LeaveRouter.put(
+    applicationRoutes.leave.approveLeave,
+    authMiddleware.authorize(constants.USER.ROLES.SUPERADMIN),
+    approveLeave
+);
+
+LeaveRouter.put(
+    applicationRoutes.leave.rejectLeave,
+    authMiddleware.authorize(constants.USER.ROLES.SUPERADMIN),
+    rejectLeave
+);
+
 export default LeaveRouter;

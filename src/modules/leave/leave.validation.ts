@@ -22,4 +22,12 @@ const leaveSchema = Joi.object({
     }),
 });
 
-export default { leaveSchema };
+const approveRejectLeaveSchema = Joi.object({
+    remark: Joi.string().min(0).max(500).required().messages({
+        'any.required': 'Remark is required',
+        'string.base': 'Remark is invalid',
+        'string.max': 'Remark cannot be more than 500 characters',
+    }),
+});
+
+export default { leaveSchema, approveRejectLeaveSchema };

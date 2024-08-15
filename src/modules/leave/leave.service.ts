@@ -53,6 +53,7 @@ const getTotalLeaveDaysFromYear = async (userId: string, year: number) => {
             { startDate: { $gte: new Date(year, 0, 1) } },
             { endDate: { $lte: new Date(year, 11, 31) } },
         ],
+        status: WellKnownLeaveStatus.APPROVED,
     });
 
     let totalLeaveCount = 0;
@@ -96,9 +97,17 @@ const findAllByUserIdYearAndStatus = async (
     }
 };
 
+const findByIdAndStatusIn = async (id: string, status: number[]) => {
+    return await Leave.findOne({
+        _id: id,
+        status: { $in: status },
+    }).populate('appliedUser approveBy rejectBy createdBy updatedBy');
+};
+
 export default {
     checkUserAlreadyApplied,
     save,
     getTotalLeaveDaysFromYear,
     findAllByUserIdYearAndStatus,
+    findByIdAndStatusIn,
 };

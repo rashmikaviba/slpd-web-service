@@ -12,6 +12,7 @@ import LeaveResponseDto from './dto/leaveResponseDto';
 import companyWorkingInfoService from '../common/service/companyWorkingInfo.service';
 import { WellKnownLeaveStatus } from '../../util/enums/well-known-leave-status.enum';
 import leaveUtil from './leave.util';
+import NotFoundError from '../../error/NotFoundError';
 
 const applyLeave = async (req: Request, res: Response) => {
     const auth = req.auth;
@@ -199,4 +200,143 @@ const getAllLeaves = async (req: Request, res: Response) => {
     CommonResponse(res, true, StatusCodes.OK, '', response);
 };
 
-export { applyLeave, getAllLeaves };
+const getLeaveById = async (req: Request, res: Response) => {
+    const leaveId = req.params.id;
+
+    const leave = await leaveService.findByIdAndStatusIn(leaveId, [
+        WellKnownLeaveStatus.APPROVED,
+        WellKnownLeaveStatus.REJECTED,
+        WellKnownLeaveStatus.PENDING,
+    ]);
+
+    if (!leave) throw new NotFoundError('Leave not found!');
+
+    const response = leaveUtil.leaveModelToLeaveResponseDto(leave);
+
+    CommonResponse(res, true, StatusCodes.OK, '', response);
+};
+
+const approveLeave = async (req: Request, res: Response) => {
+    const { remark } = req.body;
+    const leaveId = req.params.id;
+    const userAuth: any = req.auth;
+
+    // Validate request body
+    const { error } = leaveValidation.approveRejectLeaveSchema.validate(
+        req.body
+    );
+
+    if (error) {
+        throw new BadRequestError(error.message);
+    }
+
+    const leave: any = await leaveService.findByIdAndStatusIn(leaveId, [
+        WellKnownLeaveStatus.PENDING,
+    ]);
+
+    if (!leave) throw new NotFoundError('Leave not found!');
+
+    const appliedUser: any = await userService.findByIdWithGenderRole(
+        leave?.appliedUser?._id
+    );
+
+    if (appliedUser?.role?.id === constants.USER.ROLES.ADMIN) {
+        const fromYear = new Date(leave?.startDate).getFullYear();
+        const leaveCountForYear = await leaveService.getTotalLeaveDaysFromYear(
+            appliedUser._id,
+            fromYear
+        );
+
+        if (leaveCountForYear + leave?.dateCount > appliedUser.leaveCount) {
+            throw new BadRequestError(
+                `This user have exceeded the leave limit for ${fromYear} year!`
+            );
+        }
+    }
+
+    const session = await startSession();
+    let leaveUpdate = null;
+    try {
+        session.startTransaction();
+
+        leaveUpdate = {
+            ...leave,
+            status: WellKnownLeaveStatus.APPROVED,
+            approveBy: userAuth.id,
+            updatedBy: userAuth.id,
+            approveDate: new Date(),
+            approveRemark: remark,
+        };
+
+        await leaveService.save(leaveUpdate, session);
+
+        await session.commitTransaction();
+    } catch (error) {
+        await session.abortTransaction();
+        throw error;
+    } finally {
+        session.endSession();
+    }
+
+    return CommonResponse(
+        res,
+        true,
+        StatusCodes.CREATED,
+        'Leave approved successfully!',
+        leaveUpdate
+    );
+};
+
+const rejectLeave = async (req: Request, res: Response) => {
+    const { remark } = req.body;
+    const leaveId = req.params.id;
+    const userAuth: any = req.auth;
+
+    const { error } = leaveValidation.approveRejectLeaveSchema.validate(
+        req.body
+    );
+
+    if (error) {
+        throw new BadRequestError(error.message);
+    }
+
+    const leave: any = await leaveService.findByIdAndStatusIn(leaveId, [
+        WellKnownLeaveStatus.PENDING,
+    ]);
+
+    if (!leave) throw new NotFoundError('Leave not found!');
+
+    const session = await startSession();
+    let leaveUpdate = null;
+    try {
+        session.startTransaction();
+
+        leaveUpdate = {
+            ...leave,
+            status: WellKnownLeaveStatus.REJECTED,
+            rejectBy: userAuth.id,
+            updatedBy: userAuth.id,
+            rejectDate: new Date(),
+            rejectReason: remark,
+        };
+
+        await leaveService.save(leaveUpdate, session);
+
+        await session.commitTransaction();
+    } catch (error) {
+        await session.abortTransaction();
+        throw error;
+    } finally {
+        session.endSession();
+    }
+
+    return CommonResponse(
+        res,
+        true,
+        StatusCodes.CREATED,
+        'Leave rejected successfully!',
+        leaveUpdate
+    );
+};
+
+export { applyLeave, getAllLeaves, getLeaveById, approveLeave, rejectLeave };
