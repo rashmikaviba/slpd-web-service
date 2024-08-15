@@ -340,6 +340,46 @@ const rejectLeave = async (req: Request, res: Response) => {
     );
 };
 
+const cancelLeave = async (req: Request, res: Response) => {
+    const leaveId = req.params.id;
+    const userAuth: any = req.auth;
+
+    const leave: any = await leaveService.findByIdAndStatusIn(leaveId, [
+        WellKnownLeaveStatus.PENDING,
+    ]);
+
+    if (!leave) throw new NotFoundError('Leave not found!');
+
+    const session = await startSession();
+    let leaveUpdate = null;
+    try {
+        session.startTransaction();
+
+        leaveUpdate = {
+            ...leave,
+            status: WellKnownLeaveStatus.CANCELLED,
+            updatedBy: userAuth.id,
+        };
+
+        await leaveService.save(leaveUpdate, session);
+
+        await session.commitTransaction();
+    } catch (error) {
+        await session.abortTransaction();
+        throw error;
+    } finally {
+        session.endSession();
+    }
+
+    return CommonResponse(
+        res,
+        true,
+        StatusCodes.CREATED,
+        'Leave cancelled successfully!',
+        leaveUpdate
+    );
+};
+
 const getLeaveCount = async (req: Request, res: Response) => {
     const auth: any = req.auth;
 
@@ -448,4 +488,5 @@ export {
     approveLeave,
     rejectLeave,
     getLeaveCount,
+    cancelLeave,
 };

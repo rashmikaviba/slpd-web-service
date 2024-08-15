@@ -9,6 +9,7 @@ import {
     approveLeave,
     rejectLeave,
     getLeaveCount,
+    cancelLeave,
 } from './leave.controller';
 
 const LeaveRouter = Router();
@@ -44,6 +45,12 @@ LeaveRouter.put(
     applicationRoutes.leave.rejectLeave,
     authMiddleware.authorize(constants.USER.ROLES.SUPERADMIN),
     rejectLeave
+);
+
+LeaveRouter.put(
+    applicationRoutes.leave.cancelLeave,
+    authMiddleware.authorize(),
+    cancelLeave
 );
 
 LeaveRouter.get(

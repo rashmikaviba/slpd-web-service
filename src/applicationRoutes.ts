@@ -40,6 +40,7 @@ const applicationRoutes = {
         applyLeave: '/apply', // apply leave for user
         getAllUserLeave: '/user', // get all leaves for user
         approveLeave: '/approve/:id', // approve leave by id for super admin
+        cancelLeave: '/cancel/:id', // cancel leave by id
         rejectLeave: '/reject/:id', // reject leave by id for super admin
         getLeaveCount: '/count', // get leave count for admin
     },
