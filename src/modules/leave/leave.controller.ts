@@ -260,16 +260,13 @@ const approveLeave = async (req: Request, res: Response) => {
     try {
         session.startTransaction();
 
-        leaveUpdate = {
-            ...leave,
-            status: WellKnownLeaveStatus.APPROVED,
-            approveBy: userAuth.id,
-            updatedBy: userAuth.id,
-            approveDate: new Date(),
-            approveRemark: remark,
-        };
+        leave.status = WellKnownLeaveStatus.APPROVED;
+        leave.approveBy = userAuth.id;
+        leave.updatedBy = userAuth.id;
+        leave.approveDate = new Date();
+        leave.approveRemark = remark;
 
-        await leaveService.save(leaveUpdate, session);
+        leaveUpdate = await leaveService.save(leave, session);
 
         await session.commitTransaction();
     } catch (error) {
@@ -284,7 +281,7 @@ const approveLeave = async (req: Request, res: Response) => {
         true,
         StatusCodes.CREATED,
         'Leave approved successfully!',
-        leaveUpdate
+        leaveUtil.leaveModelToLeaveResponseDto(leaveUpdate)
     );
 };
 
@@ -312,16 +309,13 @@ const rejectLeave = async (req: Request, res: Response) => {
     try {
         session.startTransaction();
 
-        leaveUpdate = {
-            ...leave,
-            status: WellKnownLeaveStatus.REJECTED,
-            rejectBy: userAuth.id,
-            updatedBy: userAuth.id,
-            rejectDate: new Date(),
-            rejectReason: remark,
-        };
+        leave.status = WellKnownLeaveStatus.REJECTED;
+        leave.rejectBy = userAuth.id;
+        leave.updatedBy = userAuth.id;
+        leave.rejectDate = new Date();
+        leave.rejectReason = remark;
 
-        await leaveService.save(leaveUpdate, session);
+        leaveUpdate = await leaveService.save(leave, session);
 
         await session.commitTransaction();
     } catch (error) {
@@ -336,7 +330,7 @@ const rejectLeave = async (req: Request, res: Response) => {
         true,
         StatusCodes.CREATED,
         'Leave rejected successfully!',
-        leaveUpdate
+        leaveUtil.leaveModelToLeaveResponseDto(leaveUpdate)
     );
 };
 
@@ -355,13 +349,10 @@ const cancelLeave = async (req: Request, res: Response) => {
     try {
         session.startTransaction();
 
-        leaveUpdate = {
-            ...leave,
-            status: WellKnownLeaveStatus.CANCELLED,
-            updatedBy: userAuth.id,
-        };
+        leave.status = WellKnownLeaveStatus.CANCELLED;
+        leave.updatedBy = userAuth.id;
 
-        await leaveService.save(leaveUpdate, session);
+        leaveUpdate = await leaveService.save(leave, session);
 
         await session.commitTransaction();
     } catch (error) {
@@ -376,7 +367,7 @@ const cancelLeave = async (req: Request, res: Response) => {
         true,
         StatusCodes.CREATED,
         'Leave cancelled successfully!',
-        leaveUpdate
+        leaveUtil.leaveModelToLeaveResponseDto(leaveUpdate)
     );
 };
 

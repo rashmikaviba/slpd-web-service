@@ -53,7 +53,7 @@ LeaveRouter.put(
     cancelLeave
 );
 
-LeaveRouter.get(
+LeaveRouter.post(
     applicationRoutes.leave.getLeaveCount,
     authMiddleware.authorize(),
     getLeaveCount

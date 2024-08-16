@@ -6,6 +6,12 @@ import jwtUtil from '../../util/jwt.util';
 import CommonResponse from '../../util/commonResponse';
 import { StatusCodes } from 'http-status-codes';
 import UnauthorizedError from '../../error/UnauthorizedError';
+import {
+    adminMenu,
+    driverMenu,
+    superAdminMenu,
+} from '../../util/data/menudata';
+import constants from '../../constant';
 
 const userLogin = async (req: Request, res: Response) => {
     const { userName, password } = req.body;
@@ -26,14 +32,37 @@ const userLogin = async (req: Request, res: Response) => {
 
     const token = jwtUtil.generateToken(existAuth);
 
+    let modules = [];
+
     const response = {
         token: token,
         user: existAuth?.user,
         role: existAuth.role?.id,
-        modules: [],
+        modules: filterModules(existAuth),
+        moduleIds: filterModules(existAuth).map((module) => module.id),
     };
 
     CommonResponse(res, true, StatusCodes.OK, 'Login Successful!', response);
+};
+
+const filterModules = (userAuth: any): any[] => {
+    let modules: any[] = [];
+
+    switch (userAuth.role?.id) {
+        case constants.USER.ROLES.SUPERADMIN:
+            modules = superAdminMenu;
+            break;
+        case constants.USER.ROLES.ADMIN:
+            modules = adminMenu;
+            break;
+        case constants.USER.ROLES.DRIVER:
+            modules = driverMenu;
+            break;
+        default:
+            break;
+    }
+
+    return modules;
 };
 
 // reset password to default password as  123

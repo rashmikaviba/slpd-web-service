@@ -42,7 +42,7 @@ const applicationRoutes = {
         approveLeave: '/approve/:id', // approve leave by id for super admin
         cancelLeave: '/cancel/:id', // cancel leave by id
         rejectLeave: '/reject/:id', // reject leave by id for super admin
-        getLeaveCount: '/count', // get leave count for admin
+        getLeaveCount: '/leaveCount', // get leave count for admin
     },
 };
 
