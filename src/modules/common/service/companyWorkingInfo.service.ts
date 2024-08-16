@@ -10,9 +10,12 @@ const getCompanyWorkingInfo = async () => {
         .populate('createdBy updatedBy');
 };
 
-const save = async (data: any) => {
-    let toSave = new companyWorkingInfo(data);
-    return await toSave.save();
+const save = async (data: any, session: any) => {
+    if (session) {
+        return await data.save({ session });
+    } else {
+        return await data.save();
+    }
 };
 
 export default { getCompanyWorkingInfo, save };

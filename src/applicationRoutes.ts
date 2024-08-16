@@ -44,6 +44,12 @@ const applicationRoutes = {
         rejectLeave: '/reject/:id', // reject leave by id for super admin
         getLeaveCount: '/leaveCount', // get leave count for admin
     },
+
+    monthAudit: {
+        base: '/monthAudit',
+        getPendingLeaves: '/pendingLeaves',
+        createNewMonth: '/createNewMonth',
+    },
 };
 
 export default applicationRoutes;

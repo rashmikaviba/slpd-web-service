@@ -9,6 +9,11 @@ export const superAdminMenu = [
         name: 'Super Admin Leave Management',
         status: 1,
     },
+    {
+        id: 3,
+        name: 'Month Audit',
+        status: 1,
+    },
 ];
 
 export const adminMenu = [

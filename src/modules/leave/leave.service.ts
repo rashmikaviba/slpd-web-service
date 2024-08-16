@@ -133,6 +133,36 @@ const countByYearUserIdAndStatusIn = async (
     }
 };
 
+const countByMonthYearUserIdAndStatusIn = async (
+    userId: string,
+    year: number,
+    month: number,
+    status: number[]
+) => {
+    if (userId) {
+        return (
+            (await Leave.countDocuments({
+                appliedUser: userId,
+                status: { $in: status },
+                $or: [
+                    { startDate: { $gte: new Date(year, month, 1) } },
+                    { endDate: { $lte: new Date(year, month, 31) } },
+                ],
+            })) || 0
+        );
+    } else {
+        return (
+            (await Leave.countDocuments({
+                status: { $in: status },
+                $or: [
+                    { startDate: { $gte: new Date(year, month, 1) } },
+                    { endDate: { $lte: new Date(year, month, 31) } },
+                ],
+            })) || 0
+        );
+    }
+};
+
 export default {
     checkUserAlreadyApplied,
     save,
@@ -140,4 +170,5 @@ export default {
     findAllByUserIdYearAndStatus,
     findByIdAndStatusIn,
     countByYearUserIdAndStatusIn,
+    countByMonthYearUserIdAndStatusIn,
 };

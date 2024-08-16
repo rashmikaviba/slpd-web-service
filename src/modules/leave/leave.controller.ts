@@ -439,23 +439,29 @@ const getLeaveCount = async (req: Request, res: Response) => {
             break;
 
         case constants.USER.ROLES.SUPERADMIN:
-            approveLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
-                '',
-                activeCompanyInfo.workingYear,
-                [WellKnownLeaveStatus.APPROVED]
-            );
+            approveLeaveCount =
+                await leaveService.countByMonthYearUserIdAndStatusIn(
+                    '',
+                    activeCompanyInfo.workingYear,
+                    activeCompanyInfo.workingMonth,
+                    [WellKnownLeaveStatus.APPROVED]
+                );
 
-            rejectLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
-                '',
-                activeCompanyInfo.workingYear,
-                [WellKnownLeaveStatus.REJECTED]
-            );
+            rejectLeaveCount =
+                await leaveService.countByMonthYearUserIdAndStatusIn(
+                    '',
+                    activeCompanyInfo.workingYear,
+                    activeCompanyInfo.workingMonth,
+                    [WellKnownLeaveStatus.REJECTED]
+                );
 
-            pendingLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
-                '',
-                activeCompanyInfo.workingYear,
-                [WellKnownLeaveStatus.PENDING]
-            );
+            pendingLeaveCount =
+                await leaveService.countByMonthYearUserIdAndStatusIn(
+                    '',
+                    activeCompanyInfo.workingYear,
+                    activeCompanyInfo.workingMonth,
+                    [WellKnownLeaveStatus.PENDING]
+                );
             break;
 
         default:
