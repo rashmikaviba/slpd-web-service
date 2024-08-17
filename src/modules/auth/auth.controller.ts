@@ -12,11 +12,14 @@ import {
     superAdminMenu,
 } from '../../util/data/menudata';
 import constants from '../../constant';
+import companyWorkingInfoService from '../common/service/companyWorkingInfo.service';
 
 const userLogin = async (req: Request, res: Response) => {
     const { userName, password } = req.body;
 
     const existAuth: any = await authService.findByUserName(userName);
+
+    const workingInfo = await companyWorkingInfoService.getCompanyWorkingInfo();
 
     if (!existAuth) throw new BadRequestError('Invalid username!');
 
@@ -40,6 +43,9 @@ const userLogin = async (req: Request, res: Response) => {
         role: existAuth.role?.id,
         modules: filterModules(existAuth),
         moduleIds: filterModules(existAuth).map((module) => module.id),
+        workingMonth: workingInfo?.workingMonth,
+        workingYear: workingInfo?.workingYear,
+        workingDate: workingInfo?.workingDate,
     };
 
     CommonResponse(res, true, StatusCodes.OK, 'Login Successful!', response);

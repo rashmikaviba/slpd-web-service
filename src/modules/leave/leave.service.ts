@@ -163,6 +163,20 @@ const countByMonthYearUserIdAndStatusIn = async (
     }
 };
 
+const findAllLeavesByMonthYearAndStatusIn = async (
+    year: number,
+    month: number,
+    status: number[]
+) => {
+    return (await Leave.find({
+        status: { $in: status },
+        $or: [
+            { startDate: { $gte: new Date(year, month, 1) } },
+            { endDate: { $lte: new Date(year, month, 31) } },
+        ],
+    })) as any[];
+};
+
 export default {
     checkUserAlreadyApplied,
     save,
@@ -171,4 +185,5 @@ export default {
     findByIdAndStatusIn,
     countByYearUserIdAndStatusIn,
     countByMonthYearUserIdAndStatusIn,
+    findAllLeavesByMonthYearAndStatusIn,
 };

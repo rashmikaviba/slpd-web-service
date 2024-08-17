@@ -23,6 +23,7 @@ const leaveModelToLeaveResponseDto = (leave: any): LeaveResponseDto => {
         rejectedUser: leave.rejectBy?.fullName || '',
         rejectDate: leave.rejectDate || null,
         rejectReason: leave.rejectReason || '',
+        isMonthEndDone: leave.isMonthEndDone ? true : false,
         createdBy: leave.createdBy?._id,
         createdUser: leave.createdBy?.fullName || '',
         updatedBy: leave.updatedBy?._id,

@@ -12,6 +12,7 @@ interface LeaveResponseDto {
     approvedUser: string;
     approveDate: Date;
     approveRemark: string;
+    isMonthEndDone: boolean;
     rejectBy: string;
     rejectedUser: string;
     rejectDate: Date;

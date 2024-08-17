@@ -70,6 +70,11 @@ const leaveSchema = new mongoose.Schema(
             ref: 'User',
         },
 
+        isMonthEndDone: {
+            type: Boolean,
+            default: false,
+        },
+
         updatedBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',

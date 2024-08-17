@@ -14,6 +14,11 @@ export const superAdminMenu = [
         name: 'Month Audit',
         status: 1,
     },
+    {
+        id: 4,
+        name: 'Super Admin Dashboard',
+        status: 1,
+    },
 ];
 
 export const adminMenu = [

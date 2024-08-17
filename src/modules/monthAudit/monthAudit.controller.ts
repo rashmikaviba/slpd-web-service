@@ -5,17 +5,25 @@ import companyWorkingInfoService from '../common/service/companyWorkingInfo.serv
 import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
 import monthAudit from './monthAudit.model';
 import monthAuditService from './monthAudit.service';
+import leaveService from '../leave/leave.service';
+import { WellKnownLeaveStatus } from '../../util/enums/well-known-leave-status.enum';
 
 const createNewDate = async (req: Request, res: Response) => {
     const auth: any = req.auth;
     const { month, year } = req.body;
 
+    let lastCompanyInfo: any =
+        await companyWorkingInfoService.getCompanyWorkingInfo();
+
     const session = await startSession();
     try {
         session.startTransaction();
 
-        let lastCompanyInfo: any =
-            await companyWorkingInfoService.getCompanyWorkingInfo();
+        await monthEndDoneForLeave(
+            lastCompanyInfo.workingMonth,
+            lastCompanyInfo.workingYear,
+            session
+        );
 
         if (lastCompanyInfo) {
             lastCompanyInfo.status = WellKnownStatus.DELETED;
@@ -47,6 +55,29 @@ const createNewDate = async (req: Request, res: Response) => {
         throw error;
     } finally {
         session.endSession();
+    }
+};
+
+const monthEndDoneForLeave = async (
+    currMonth: number,
+    currYear: number,
+    session: any
+) => {
+    const leaves: any[] =
+        await leaveService.findAllLeavesByMonthYearAndStatusIn(
+            currYear,
+            currMonth,
+            [
+                WellKnownLeaveStatus.APPROVED,
+                WellKnownLeaveStatus.REJECTED,
+                WellKnownLeaveStatus.PENDING,
+                WellKnownLeaveStatus.CANCELLED,
+            ]
+        );
+
+    for (const leave of leaves) {
+        leave.isMonthEndDone = true;
+        await leaveService.save(leave, session);
     }
 };
 
