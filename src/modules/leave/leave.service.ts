@@ -21,6 +21,28 @@ const checkUserAlreadyApplied = async (
     return overlappingLeaves.length > 0;
 };
 
+const checkUserAlreadyAppliedForUpdate = async (
+    userId: string,
+    leaveId: string,
+    fromDate: Date,
+    toDate: Date
+): Promise<Boolean> => {
+    const overlappingLeaves = await Leave.find({
+        appliedUser: userId,
+        _id: { $ne: leaveId },
+        status: {
+            $in: [WellKnownLeaveStatus.PENDING, WellKnownLeaveStatus.APPROVED],
+        },
+        $or: [
+            { startDate: { $lte: toDate }, endDate: { $gte: fromDate } }, // Leave starts before the `toDate` and ends after the `fromDate`
+            { startDate: { $gte: fromDate, $lte: toDate } }, // Leave starts within the date range
+            { endDate: { $gte: fromDate, $lte: toDate } }, // Leave ends within the date range
+        ],
+    });
+
+    return overlappingLeaves.length > 0;
+};
+
 const save = async (leave: any, session: any) => {
     if (session) {
         return await leave.save({ session });
@@ -28,23 +50,6 @@ const save = async (leave: any, session: any) => {
         return await leave.save();
     }
 };
-
-// const getTotalLeaveDaysFromYear = async (userId: string, year: number) => {
-//     const totalLeaves = await Leave.aggregate([
-//         { $match: { appliedUser: userId } },
-//         {
-//             $match: {
-//                 $or: [
-//                     { startDate: { $gte: new Date(year, 0, 1) } },
-//                     { endDate: { $lte: new Date(year, 11, 31) } },
-//                 ],
-//             },
-//         },
-//         { $group: { _id: null, totalLeaveCount: { $sum: '$dateCount' } } },
-//     ]);
-
-//     return totalLeaves.length ? totalLeaves[0].totalLeaveCount : 0;
-// };
 
 const getTotalLeaveDaysFromYear = async (userId: string, year: number) => {
     const totalLeaves = await Leave.find({
@@ -186,4 +191,5 @@ export default {
     countByYearUserIdAndStatusIn,
     countByMonthYearUserIdAndStatusIn,
     findAllLeavesByMonthYearAndStatusIn,
+    checkUserAlreadyAppliedForUpdate,
 };

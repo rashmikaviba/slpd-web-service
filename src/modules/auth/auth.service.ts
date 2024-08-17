@@ -21,7 +21,7 @@ const findById = async (id: string) => {
     return await Auth.findOne({
         _id: id,
         status: WellKnownStatus.ACTIVE,
-    });
+    }).populate('user role');
 };
 
 const findByUserId = async (userId: string) => {

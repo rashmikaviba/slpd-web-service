@@ -15,6 +15,7 @@ const leaveModelToLeaveResponseDto = (leave: any): LeaveResponseDto => {
         ),
         appliedUser: leave.appliedUser._id,
         appliedUserName: leave.appliedUser.fullName || '',
+        availableLeaveCount: leave?.availableLeaveCount || '',
         approveBy: leave.approveBy?._id || null,
         approvedUser: leave.approveBy?.fullName || '',
         approveDate: leave.approveDate || null,

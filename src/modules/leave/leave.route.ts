@@ -10,6 +10,7 @@ import {
     rejectLeave,
     getLeaveCount,
     cancelLeave,
+    updateLeave,
 } from './leave.controller';
 
 const LeaveRouter = Router();
@@ -57,6 +58,12 @@ LeaveRouter.post(
     applicationRoutes.leave.getLeaveCount,
     authMiddleware.authorize(),
     getLeaveCount
+);
+
+LeaveRouter.put(
+    applicationRoutes.leave.updateLeave,
+    authMiddleware.authorize(),
+    updateLeave
 );
 
 export default LeaveRouter;

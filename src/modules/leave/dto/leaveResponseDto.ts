@@ -7,6 +7,7 @@ interface LeaveResponseDto {
     status: number;
     statusName: string;
     appliedUser: string;
+    availableLeaveCount: number;
     appliedUserName: string;
     approveBy: string;
     approvedUser: string;

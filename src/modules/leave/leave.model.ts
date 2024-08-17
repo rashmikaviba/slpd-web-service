@@ -40,6 +40,7 @@ const leaveSchema = new mongoose.Schema(
         approveBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
+            default: null,
         },
 
         approveDate: {
@@ -54,6 +55,7 @@ const leaveSchema = new mongoose.Schema(
         rejectBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
+            default: null,
         },
 
         rejectDate: {

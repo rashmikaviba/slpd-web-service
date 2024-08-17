@@ -117,7 +117,10 @@ const applyAdminLeave = async (
         fromYear
     );
 
-    if (leaveCountForYear >= appliedAdmin.leaveCount) {
+    if (
+        leaveCountForYear >= appliedAdmin.leaveCount ||
+        leaveCountForYear + dateCount > appliedAdmin.leaveCount
+    ) {
         throw new BadRequestError(
             `You have exceeded the leave limit for ${fromYear} year!`
         );
@@ -134,6 +137,136 @@ const applyAdminLeave = async (
     });
 
     return leaveService.save(newLeave, session);
+};
+
+const updateLeave = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const auth = req.auth;
+    const { startDate, endDate, dateCount, reason } = req.body;
+
+    // Validate request body
+    const { error } = leaveValidation.leaveSchema.validate(req.body);
+    if (error) {
+        throw new BadRequestError(error.message);
+    }
+
+    // Check if leave has already been applied
+    const isLeaveOverlapped =
+        await leaveService.checkUserAlreadyAppliedForUpdate(
+            auth.id,
+            id,
+            startDate,
+            endDate
+        );
+    if (isLeaveOverlapped) {
+        throw new BadRequestError(
+            'Leave is already applied for the given dates.!'
+        );
+    }
+
+    const leave = await leaveService.findByIdAndStatusIn(id, [
+        WellKnownLeaveStatus.PENDING,
+    ]);
+
+    if (!leave) {
+        throw new NotFoundError('Leave not found!');
+    }
+
+    const session = await startSession();
+    try {
+        session.startTransaction();
+
+        // Apply leave based on the user role
+        const appliedLeave =
+            auth.role === constants.USER.ROLES.DRIVER
+                ? await updateDriverLeave(
+                      auth,
+                      startDate,
+                      endDate,
+                      dateCount,
+                      reason,
+                      leave,
+                      session
+                  )
+                : await updateAdminLeave(
+                      auth,
+                      startDate,
+                      endDate,
+                      dateCount,
+                      reason,
+                      leave,
+                      session
+                  );
+
+        await session.commitTransaction();
+    } catch (error) {
+        await session.abortTransaction();
+        throw error;
+    } finally {
+        session.endSession();
+    }
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        'Leave updated successfully!',
+        leave
+    );
+};
+
+const updateDriverLeave = async (
+    auth: any,
+    startDate: Date,
+    endDate: Date,
+    dateCount: number,
+    reason: string,
+    leave: any,
+    session: any
+) => {
+    leave.startDate = startDate;
+    leave.endDate = endDate;
+    leave.dateCount = dateCount;
+    leave.reason = reason;
+    leave.updatedBy = auth.id;
+
+    return leaveService.save(leave, session);
+};
+
+const updateAdminLeave = async (
+    auth: any,
+    startDate: Date,
+    endDate: Date,
+    dateCount: number,
+    reason: string,
+    leave: any,
+    session: any
+) => {
+    const appliedAdmin: any = await userService.findById(auth.id);
+    const fromYear = new Date(startDate).getFullYear();
+
+    const leaveCountForYear = await leaveService.getTotalLeaveDaysFromYear(
+        auth.id,
+        fromYear
+    );
+
+    if (
+        leaveCountForYear >= appliedAdmin.leaveCount ||
+        leaveCountForYear - leave.dateCount + dateCount >
+            appliedAdmin.leaveCount
+    ) {
+        throw new BadRequestError(
+            `You have exceeded the leave limit for ${fromYear} year!`
+        );
+    }
+
+    leave.startDate = startDate;
+    leave.endDate = endDate;
+    leave.dateCount = dateCount;
+    leave.reason = reason;
+    leave.updatedBy = auth.id;
+
+    return leaveService.save(leave, session);
 };
 
 const getAllLeaves = async (req: Request, res: Response) => {
@@ -191,6 +324,30 @@ const getAllLeaves = async (req: Request, res: Response) => {
                     ]
                 );
 
+            if (superAdminLeaves.length > 0) {
+                for (const leave of superAdminLeaves) {
+                    if (leave.status == WellKnownLeaveStatus.PENDING) {
+                        const appliedUser: any =
+                            await userService.findByIdWithGenderRole(
+                                leave.appliedUser._id
+                            );
+
+                        if (
+                            appliedUser?.role?.id == constants.USER.ROLES.ADMIN
+                        ) {
+                            const availableLeaveCount =
+                                await leaveService.getTotalLeaveDaysFromYear(
+                                    appliedUser._id,
+                                    activeCompanyInfo.workingYear
+                                );
+
+                            leave.availableLeaveCount =
+                                appliedUser.leaveCount - availableLeaveCount;
+                        }
+                    }
+                }
+            }
+
             response =
                 leaveUtil.leaveModelToLeaveResponseDtos(superAdminLeaves);
             break;
@@ -233,6 +390,7 @@ const approveLeave = async (req: Request, res: Response) => {
 
     const leave: any = await leaveService.findByIdAndStatusIn(leaveId, [
         WellKnownLeaveStatus.PENDING,
+        WellKnownLeaveStatus.REJECTED,
     ]);
 
     if (!leave) throw new NotFoundError('Leave not found!');
@@ -265,6 +423,11 @@ const approveLeave = async (req: Request, res: Response) => {
         leave.updatedBy = userAuth.id;
         leave.approveDate = new Date();
         leave.approveRemark = remark;
+
+        // remove reject info
+        leave.rejectBy = null;
+        leave.rejectDate = null;
+        leave.rejectReason = '';
 
         leaveUpdate = await leaveService.save(leave, session);
 
@@ -300,6 +463,7 @@ const rejectLeave = async (req: Request, res: Response) => {
 
     const leave: any = await leaveService.findByIdAndStatusIn(leaveId, [
         WellKnownLeaveStatus.PENDING,
+        WellKnownLeaveStatus.APPROVED,
     ]);
 
     if (!leave) throw new NotFoundError('Leave not found!');
@@ -314,6 +478,11 @@ const rejectLeave = async (req: Request, res: Response) => {
         leave.updatedBy = userAuth.id;
         leave.rejectDate = new Date();
         leave.rejectReason = remark;
+
+        // remove approve info
+        leave.approveBy = null;
+        leave.approveDate = null;
+        leave.approveRemark = '';
 
         leaveUpdate = await leaveService.save(leave, session);
 
@@ -486,4 +655,5 @@ export {
     rejectLeave,
     getLeaveCount,
     cancelLeave,
+    updateLeave,
 };
