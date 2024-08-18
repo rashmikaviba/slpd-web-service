@@ -84,9 +84,16 @@ const findAllByUserIdYearAndStatus = async (
             status: { $in: status },
         })
             .sort({ status: 1 })
-            .populate(
-                'appliedUser approveBy rejectBy createdBy updatedBy'
-            )) as any[];
+            .populate([
+                {
+                    path: 'appliedUser',
+                    populate: { path: 'role' }, // Populates the role inside appliedUser
+                },
+                { path: 'approveBy' },
+                { path: 'rejectBy' },
+                { path: 'createdBy' },
+                { path: 'updatedBy' },
+            ])) as any[];
     } else {
         return (await Leave.find({
             $or: [
@@ -96,9 +103,16 @@ const findAllByUserIdYearAndStatus = async (
             status: { $in: status },
         })
             .sort({ status: 1 })
-            .populate(
-                'appliedUser approveBy rejectBy createdBy updatedBy'
-            )) as any[];
+            .populate([
+                {
+                    path: 'appliedUser',
+                    populate: { path: 'role' }, // Populates the role inside appliedUser
+                },
+                { path: 'approveBy' },
+                { path: 'rejectBy' },
+                { path: 'createdBy' },
+                { path: 'updatedBy' },
+            ])) as any[];
     }
 };
 

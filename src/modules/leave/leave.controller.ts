@@ -251,14 +251,27 @@ const updateAdminLeave = async (
     );
 
     if (
-        leaveCountForYear >= appliedAdmin.leaveCount ||
-        leaveCountForYear - leave.dateCount + dateCount >
+        leaveCountForYear == 0 &&
+        leaveCountForYear - leave.dateCount + dateCount <=
             appliedAdmin.leaveCount
     ) {
         throw new BadRequestError(
             `You have exceeded the leave limit for ${fromYear} year!`
         );
+    } else if (
+        leaveCountForYear - leave.dateCount + dateCount >
+        appliedAdmin.leaveCount
+    ) {
+        throw new BadRequestError(
+            `You have exceeded the leave limit for ${fromYear} year!`
+        );
     }
+
+    // if (leaveCountForYear >= appliedAdmin.leaveCount) {
+    //     throw new BadRequestError(
+    //         `You have exceeded the leave limit for ${fromYear} year!`
+    //     );
+    // }
 
     leave.startDate = startDate;
     leave.endDate = endDate;
@@ -554,6 +567,7 @@ const getLeaveCount = async (req: Request, res: Response) => {
     let rejectLeaveCount: number = 0;
     let pendingLeaveCount: number = 0;
     let remainingLeaveCount: number = 0;
+    let yearlyEligibleLeaveCount: number = 0;
 
     switch (auth.role) {
         case constants.USER.ROLES.ADMIN:
@@ -585,6 +599,8 @@ const getLeaveCount = async (req: Request, res: Response) => {
 
             remainingLeaveCount = admin.leaveCount - leaveCountForYear;
 
+            yearlyEligibleLeaveCount = admin.leaveCount;
+
             break;
 
         case constants.USER.ROLES.DRIVER:
@@ -605,6 +621,7 @@ const getLeaveCount = async (req: Request, res: Response) => {
                 activeCompanyInfo.workingYear,
                 [WellKnownLeaveStatus.PENDING]
             );
+
             break;
 
         case constants.USER.ROLES.SUPERADMIN:
@@ -642,6 +659,7 @@ const getLeaveCount = async (req: Request, res: Response) => {
         rejectLeaveCount,
         pendingLeaveCount,
         remainingLeaveCount,
+        yearlyEligibleLeaveCount,
     };
 
     CommonResponse(res, true, StatusCodes.OK, '', response);

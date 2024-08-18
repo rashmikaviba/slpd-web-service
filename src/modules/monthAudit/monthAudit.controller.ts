@@ -71,7 +71,6 @@ const monthEndDoneForLeave = async (
                 WellKnownLeaveStatus.APPROVED,
                 WellKnownLeaveStatus.REJECTED,
                 WellKnownLeaveStatus.PENDING,
-                WellKnownLeaveStatus.CANCELLED,
             ]
         );
 

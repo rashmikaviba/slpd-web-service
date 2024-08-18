@@ -67,7 +67,7 @@ LeaveRouter.put(
     updateLeave
 );
 
-LeaveRouter.get(
+LeaveRouter.post(
     applicationRoutes.leave.getAvailableLeaves,
     authMiddleware.authorize(),
     getEligibleLeaves
