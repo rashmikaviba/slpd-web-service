@@ -647,6 +647,28 @@ const getLeaveCount = async (req: Request, res: Response) => {
     CommonResponse(res, true, StatusCodes.OK, '', response);
 };
 
+const getEligibleLeaves = async (req: Request, res: Response) => {
+    const auth: any = req.auth;
+
+    const activeCompanyInfo: any =
+        await companyWorkingInfoService.getCompanyWorkingInfo();
+
+    if (!activeCompanyInfo) {
+        throw new BadRequestError('Company not found!');
+    }
+
+    const user: any = await userService.findByIdWithGenderRole(auth.id);
+
+    const leaveCountForYear = await leaveService.getTotalLeaveDaysFromYear(
+        auth.id,
+        activeCompanyInfo.workingYear
+    );
+
+    const remainingLeaveCount = user.leaveCount - leaveCountForYear;
+
+    CommonResponse(res, true, StatusCodes.OK, '', remainingLeaveCount);
+};
+
 export {
     applyLeave,
     getAllLeaves,
@@ -656,4 +678,5 @@ export {
     getLeaveCount,
     cancelLeave,
     updateLeave,
+    getEligibleLeaves,
 };
