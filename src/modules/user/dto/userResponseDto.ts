@@ -17,6 +17,7 @@ interface UserResponseDto {
     sltdaCertificateUrl: string;
     policeReportUrl: string;
     bankName: string;
+    bankId: Number;
     branch: string;
     accountNumber: string;
     accountHolderName: string;

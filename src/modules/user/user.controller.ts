@@ -36,6 +36,7 @@ const saveUser = async (req: Request, res: Response) => {
         sltdaCertificateUrl,
         policeReportUrl,
         bankName,
+        bankId,
         branch,
         accountNumber,
         accountHolderName,
@@ -98,6 +99,7 @@ const saveUser = async (req: Request, res: Response) => {
             sltdaCertificateUrl,
             policeReportUrl,
             bankName,
+            bankId,
             branch,
             accountNumber,
             accountHolderName,
@@ -167,6 +169,7 @@ const updateUser = async (req: Request, res: Response) => {
         sltdaCertificateUrl,
         policeReportUrl,
         bankName,
+        bankId,
         branch,
         accountNumber,
         accountHolderName,
@@ -242,6 +245,7 @@ const updateUser = async (req: Request, res: Response) => {
         user.sltdaCertificateUrl = sltdaCertificateUrl;
         user.policeReportUrl = policeReportUrl;
         user.bankName = bankName;
+        user.bankId = bankId;
         user.branch = branch;
         user.accountNumber = accountNumber;
         user.accountHolderName = accountHolderName;

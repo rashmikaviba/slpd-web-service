@@ -20,6 +20,7 @@ const userModelToUserResponseDto = (user: any): UserResponseDto => {
         sltdaCertificateUrl: user.sltdaCertificateUrl,
         policeReportUrl: user.policeReportUrl,
         bankName: user.bankName,
+        bankId: user.bankId,
         branch: user.branch,
         accountNumber: user.accountNumber,
         accountHolderName: user.accountHolderName,

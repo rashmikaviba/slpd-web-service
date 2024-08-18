@@ -95,6 +95,11 @@ const userSchema = new mongoose.Schema(
             maxlength: [100, 'Bank Name cannot be more than 100 characters'],
         },
 
+        bankId: {
+            type: Number,
+            required: [true, 'Bank Id is required'],
+        },
+
         branch: {
             type: String,
             maxlength: [100, 'Branch cannot be more than 100 characters'],
