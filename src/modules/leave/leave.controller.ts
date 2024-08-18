@@ -339,7 +339,11 @@ const getAllLeaves = async (req: Request, res: Response) => {
 
             if (superAdminLeaves.length > 0) {
                 for (const leave of superAdminLeaves) {
-                    if (leave.status == WellKnownLeaveStatus.PENDING) {
+                    if (
+                        leave.status == WellKnownLeaveStatus.PENDING ||
+                        leave.status == WellKnownLeaveStatus.APPROVED ||
+                        leave.status == WellKnownLeaveStatus.REJECTED
+                    ) {
                         const appliedUser: any =
                             await userService.findByIdWithGenderRole(
                                 leave.appliedUser._id

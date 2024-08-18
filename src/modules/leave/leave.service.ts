@@ -193,7 +193,16 @@ const findAllLeavesByMonthYearAndStatusIn = async (
             { startDate: { $gte: new Date(year, month, 1) } },
             { endDate: { $lte: new Date(year, month, 31) } },
         ],
-    })) as any[];
+    }).populate([
+        {
+            path: 'appliedUser',
+            populate: { path: 'role' }, // Populates the role inside appliedUser
+        },
+        { path: 'approveBy' },
+        { path: 'rejectBy' },
+        { path: 'createdBy' },
+        { path: 'updatedBy' },
+    ])) as any[];
 };
 
 export default {

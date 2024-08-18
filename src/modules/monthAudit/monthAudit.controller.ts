@@ -7,6 +7,13 @@ import monthAudit from './monthAudit.model';
 import monthAuditService from './monthAudit.service';
 import leaveService from '../leave/leave.service';
 import { WellKnownLeaveStatus } from '../../util/enums/well-known-leave-status.enum';
+import userService from '../user/user.service';
+import constants from '../../constant';
+import LeaveResponseDto from '../leave/dto/leaveResponseDto';
+import BadRequestError from '../../error/BadRequestError';
+import leaveUtil from '../leave/leave.util';
+import CommonResponse from '../../util/commonResponse';
+import { StatusCodes } from 'http-status-codes';
 
 const createNewDate = async (req: Request, res: Response) => {
     const auth: any = req.auth;
@@ -71,6 +78,7 @@ const monthEndDoneForLeave = async (
                 WellKnownLeaveStatus.APPROVED,
                 WellKnownLeaveStatus.REJECTED,
                 WellKnownLeaveStatus.PENDING,
+                WellKnownLeaveStatus.CANCELLED,
             ]
         );
 
@@ -80,4 +88,50 @@ const monthEndDoneForLeave = async (
     }
 };
 
-export { createNewDate };
+const getPendingLeaves = async (req: Request, res: Response) => {
+    const auth: any = req.auth;
+
+    let response: LeaveResponseDto[] = [];
+
+    const activeCompanyInfo: any =
+        await companyWorkingInfoService.getCompanyWorkingInfo();
+
+    if (!activeCompanyInfo) {
+        throw new BadRequestError('No active company information found!');
+    }
+
+    const superAdminLeaves =
+        await leaveService.findAllLeavesByMonthYearAndStatusIn(
+            activeCompanyInfo.workingYear,
+            activeCompanyInfo.workingMonth,
+            [WellKnownLeaveStatus.PENDING]
+        );
+
+    if (superAdminLeaves.length > 0) {
+        for (const leave of superAdminLeaves) {
+            if (leave.status == WellKnownLeaveStatus.PENDING) {
+                const appliedUser: any =
+                    await userService.findByIdWithGenderRole(
+                        leave.appliedUser._id
+                    );
+
+                if (appliedUser?.role?.id == constants.USER.ROLES.ADMIN) {
+                    const availableLeaveCount =
+                        await leaveService.getTotalLeaveDaysFromYear(
+                            appliedUser._id,
+                            activeCompanyInfo.workingYear
+                        );
+
+                    leave.availableLeaveCount =
+                        appliedUser.leaveCount - availableLeaveCount;
+                }
+            }
+        }
+    }
+
+    response = leaveUtil.leaveModelToLeaveResponseDtos(superAdminLeaves);
+
+    CommonResponse(res, true, StatusCodes.OK, '', response);
+};
+
+export { createNewDate, getPendingLeaves };
