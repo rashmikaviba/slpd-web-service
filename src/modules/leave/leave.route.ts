@@ -21,6 +21,8 @@ LeaveRouter.post(
     authMiddleware.authorize([
         constants.USER.ROLES.DRIVER,
         constants.USER.ROLES.ADMIN,
+        constants.USER.ROLES.TRIPMANAGER,
+        constants.USER.ROLES.FINANCEOFFICER,
     ]),
     applyLeave
 );

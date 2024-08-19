@@ -31,6 +31,22 @@ db.roles.insertMany([
         createdAt: currentTimestamp,
         updatedAt: currentTimestamp,
     },
+    {
+        id: 4,
+        name: 'Finance Officer',
+        status: 1,
+        modules: [],
+        createdAt: currentTimestamp,
+        updatedAt: currentTimestamp,
+    },
+    {
+        id: 5,
+        name: 'Trip Manager',
+        status: 1,
+        modules: [],
+        createdAt: currentTimestamp,
+        updatedAt: currentTimestamp,
+    },
 ]);
 
 // Insert master data for privileges

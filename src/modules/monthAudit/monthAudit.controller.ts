@@ -115,7 +115,13 @@ const getPendingLeaves = async (req: Request, res: Response) => {
                         leave.appliedUser._id
                     );
 
-                if (appliedUser?.role?.id == constants.USER.ROLES.ADMIN) {
+                if (
+                    (appliedUser?.role?.id == constants.USER.ROLES.ADMIN ||
+                        appliedUser?.role?.id ==
+                            constants.USER.ROLES.TRIPMANAGER,
+                    appliedUser?.role?.id ==
+                        constants.USER.ROLES.FINANCEOFFICER)
+                ) {
                     const availableLeaveCount =
                         await leaveService.getTotalLeaveDaysFromYear(
                             appliedUser._id,

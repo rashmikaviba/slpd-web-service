@@ -36,3 +36,19 @@ export const driverMenu = [
         status: 1,
     },
 ];
+
+export const financeOfficerMenu = [
+    {
+        id: 30,
+        name: 'Admin Leave Management',
+        status: 1,
+    },
+];
+
+export const tripManagerMenu = [
+    {
+        id: 30,
+        name: 'Admin Leave Management',
+        status: 1,
+    },
+];

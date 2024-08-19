@@ -100,7 +100,7 @@ const applyDriverLeave = async (
     return leaveService.save(newLeave, session);
 };
 
-// Helper function to apply leave for an admin
+// Helper function to apply leave for an admin, finance officer, trip manager
 const applyAdminLeave = async (
     auth: any,
     startDate: Date,
@@ -295,8 +295,25 @@ const getAllLeaves = async (req: Request, res: Response) => {
         throw new BadRequestError('No active company information found!');
     }
 
-    switch (auth.role) {
-        case constants.USER.ROLES.DRIVER:
+    // type 1 = driver
+    // type 2 = admin, trip manager, finance officer
+    // type 3 = superadmin
+    let type = 0;
+
+    if (auth.role === constants.USER.ROLES.DRIVER) {
+        type = 1;
+    } else if (
+        auth.role === constants.USER.ROLES.ADMIN ||
+        auth.role === constants.USER.ROLES.FINANCEOFFICER ||
+        auth.role === constants.USER.ROLES.TRIPMANAGER
+    ) {
+        type = 2;
+    } else if (auth.role === constants.USER.ROLES.SUPERADMIN) {
+        type = 3;
+    }
+
+    switch (type) {
+        case 1:
             const DriverLeaves =
                 await leaveService.findAllByUserIdYearAndStatus(
                     userId,
@@ -311,7 +328,7 @@ const getAllLeaves = async (req: Request, res: Response) => {
             response = leaveUtil.leaveModelToLeaveResponseDtos(DriverLeaves);
             break;
 
-        case constants.USER.ROLES.ADMIN:
+        case 2:
             const adminLeaves = await leaveService.findAllByUserIdYearAndStatus(
                 userId,
                 activeCompanyInfo.workingYear,
@@ -325,7 +342,7 @@ const getAllLeaves = async (req: Request, res: Response) => {
             response = leaveUtil.leaveModelToLeaveResponseDtos(adminLeaves);
             break;
 
-        case constants.USER.ROLES.SUPERADMIN:
+        case 3:
             const superAdminLeaves =
                 await leaveService.findAllByUserIdYearAndStatus(
                     '',
@@ -350,7 +367,12 @@ const getAllLeaves = async (req: Request, res: Response) => {
                             );
 
                         if (
-                            appliedUser?.role?.id == constants.USER.ROLES.ADMIN
+                            appliedUser?.role?.id ==
+                                constants.USER.ROLES.ADMIN ||
+                            appliedUser?.role?.id ==
+                                constants.USER.ROLES.FINANCEOFFICER ||
+                            appliedUser?.role?.id ==
+                                constants.USER.ROLES.TRIPMANAGER
                         ) {
                             const availableLeaveCount =
                                 await leaveService.getTotalLeaveDaysFromYear(
@@ -416,7 +438,11 @@ const approveLeave = async (req: Request, res: Response) => {
         leave?.appliedUser?._id
     );
 
-    if (appliedUser?.role?.id === constants.USER.ROLES.ADMIN) {
+    if (
+        appliedUser?.role?.id === constants.USER.ROLES.ADMIN ||
+        appliedUser?.role?.id === constants.USER.ROLES.FINANCEOFFICER ||
+        appliedUser?.role?.id === constants.USER.ROLES.TRIPMANAGER
+    ) {
         const fromYear = new Date(leave?.startDate).getFullYear();
         const leaveCountForYear = await leaveService.getTotalLeaveDaysFromYear(
             appliedUser._id,
@@ -573,8 +599,25 @@ const getLeaveCount = async (req: Request, res: Response) => {
     let remainingLeaveCount: number = 0;
     let yearlyEligibleLeaveCount: number = 0;
 
-    switch (auth.role) {
-        case constants.USER.ROLES.ADMIN:
+    // type 1 = driver
+    // type 2 = admin, trip manager, finance officer
+    // type 3 = superadmin
+    let type = 0;
+
+    if (auth.role === constants.USER.ROLES.DRIVER) {
+        type = 1;
+    } else if (
+        auth.role === constants.USER.ROLES.ADMIN ||
+        auth.role === constants.USER.ROLES.FINANCEOFFICER ||
+        auth.role === constants.USER.ROLES.TRIPMANAGER
+    ) {
+        type = 2;
+    } else if (auth.role === constants.USER.ROLES.SUPERADMIN) {
+        type = 3;
+    }
+
+    switch (type) {
+        case 2:
             approveLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
                 auth.id,
                 activeCompanyInfo.workingYear,
@@ -607,7 +650,7 @@ const getLeaveCount = async (req: Request, res: Response) => {
 
             break;
 
-        case constants.USER.ROLES.DRIVER:
+        case 1:
             approveLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
                 auth.id,
                 activeCompanyInfo.workingYear,
@@ -628,7 +671,7 @@ const getLeaveCount = async (req: Request, res: Response) => {
 
             break;
 
-        case constants.USER.ROLES.SUPERADMIN:
+        case 3:
             approveLeaveCount =
                 await leaveService.countByMonthYearUserIdAndStatusIn(
                     '',

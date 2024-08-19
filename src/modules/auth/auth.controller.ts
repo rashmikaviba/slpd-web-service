@@ -9,7 +9,9 @@ import UnauthorizedError from '../../error/UnauthorizedError';
 import {
     adminMenu,
     driverMenu,
+    financeOfficerMenu,
     superAdminMenu,
+    tripManagerMenu,
 } from '../../util/data/menudata';
 import constants from '../../constant';
 import companyWorkingInfoService from '../common/service/companyWorkingInfo.service';
@@ -21,7 +23,10 @@ const userLogin = async (req: Request, res: Response) => {
 
     const workingInfo = await companyWorkingInfoService.getCompanyWorkingInfo();
 
-    if (!existAuth) throw new BadRequestError('Invalid username!');
+    if (!existAuth)
+        throw new BadRequestError(
+            'Invalid username, Please try again with correct username!'
+        );
 
     if (existAuth?.isBlocked)
         throw new BadRequestError('User is blocked, Please contact admin!');
@@ -31,7 +36,10 @@ const userLogin = async (req: Request, res: Response) => {
         existAuth.password
     );
 
-    if (!isPasswordMatch) throw new BadRequestError('Invalid password!');
+    if (!isPasswordMatch)
+        throw new BadRequestError(
+            'Invalid password, Please try again with correct password!'
+        );
 
     const token = jwtUtil.generateToken(existAuth);
 
@@ -63,6 +71,12 @@ const filterModules = (userAuth: any): any[] => {
             break;
         case constants.USER.ROLES.DRIVER:
             modules = driverMenu;
+            break;
+        case constants.USER.ROLES.FINANCEOFFICER:
+            modules = financeOfficerMenu;
+            break;
+        case constants.USER.ROLES.TRIPMANAGER:
+            modules = tripManagerMenu;
             break;
         default:
             break;
@@ -109,7 +123,10 @@ const changePassword = async (req: Request, res: Response) => {
         auth.password
     );
 
-    if (!isPasswordMatch) throw new BadRequestError('Invalid old password!');
+    if (!isPasswordMatch)
+        throw new BadRequestError(
+            'Invalid old password, Please try again with correct password!'
+        );
 
     let hashedPassword = await passwordHashUtil.hashPassword(newPassword);
 
