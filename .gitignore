@@ -102,3 +102,18 @@ dist
 
 # TernJS port file
 .tern-port
+
+
+src/uploads/ProfileImage/*
+src/uploads/NICImage/*
+src/uploads/GSCertificate/*
+src/uploads/DrivingLicense/*
+src/uploads/SLTDACertificate/*
+src/uploads/PoliceReport/*
+
+# ProfileImage = 1,
+# NICImage = 2,
+# GSCertificate = 3,
+# DrivingLicense = 4,
+# SLTDACertificate = 5,
+# PoliceReport = 6,

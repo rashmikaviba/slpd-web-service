@@ -1,6 +1,6 @@
 import { Response, Request } from 'express';
 
-const CustomResponse = (
+const CommonResponse = (
     res: Response,
     isSuccessful: boolean,
     statusCode: any,
@@ -13,4 +13,4 @@ const CustomResponse = (
         .json({ isSuccessful, timeStamp, message, data });
 };
 
-export default CustomResponse;
+export default CommonResponse;

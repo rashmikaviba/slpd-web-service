@@ -3,14 +3,14 @@ import path from 'path';
 import fs from 'fs-extra';
 import helperUtil from './helper.util';
 import { WellKnownUploadType } from './enums/well-known-upload-type.enum';
-import BadRequestError from '../error/badRequest.error';
+import BadRequestError from '../error/BadRequestError';
 
 const storage: StorageEngine = multer.diskStorage({
     destination: (req, file, cb) => {
         let type = req.query.type as string;
         let uploadPath = 'src/uploads/';
 
-        if (!helperUtil.isValueInEnum(type, WellKnownUploadType)) {
+        if (!helperUtil.isValueInEnum(WellKnownUploadType, Number(type))) {
             return cb(new BadRequestError('Invalid upload type'), '');
         }
 
