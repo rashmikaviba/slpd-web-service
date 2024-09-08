@@ -6,8 +6,8 @@
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
         "build": "npx tsc",
-        "start": "NODE_ENV=production node dist/app.js",
-        "dev": "NODE_ENV=development nodemon src/app.ts",
+        "start": "set NODE_ENV=production node dist/app.js",
+        "dev": "set NODE_ENV=development&& nodemon --ignore backups/ --ignore node_modules/ src/app.ts",
         "lint": "eslint . --ext .ts"
     },
     "keywords": [],
