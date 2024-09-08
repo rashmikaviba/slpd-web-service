@@ -51,6 +51,7 @@ const applicationRoutes = {
         base: '/monthAudit',
         getPendingLeaves: '/pendingLeaves',
         createNewMonth: '/createNewMonth',
+        getWorkingInfo: '/workingInfo',
     },
 };
 
