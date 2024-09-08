@@ -19,6 +19,11 @@ export const superAdminMenu = [
         name: 'Super Admin Dashboard',
         status: 1,
     },
+    {
+        id: 5,
+        name: 'Super Admin Vehicle Tracking',
+        status: 1,
+    },
 ];
 
 export const adminMenu = [
