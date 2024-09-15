@@ -6,6 +6,7 @@ import UserRouter from './modules/user/user.router';
 import AuthRouter from './modules/auth/auth.router';
 import LeaveRouter from './modules/leave/leave.route';
 import MonthAuditRouter from './modules/monthAudit/monthAudit.route';
+import VehicleRouter from './modules/vehicle/vehicle.route';
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use(applicationRoutes.user.base, UserRouter);
 router.use(applicationRoutes.auth.base, AuthRouter);
 router.use(applicationRoutes.leave.base, LeaveRouter);
 router.use(applicationRoutes.monthAudit.base, MonthAuditRouter);
+router.use(applicationRoutes.vehicle.base, VehicleRouter);
 
 export default router;

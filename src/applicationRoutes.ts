@@ -61,7 +61,7 @@ const applicationRoutes = {
         getById: '/:id',
         update: '/:id',
         deleteById: '/:id',
-        activeInactiveVehicles: '/activeInactive',
+        activeInactiveVehicles: '/activeInactive/:id',
     },
 };
 

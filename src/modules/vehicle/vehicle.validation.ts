@@ -21,10 +21,8 @@ const vehicleSchema = Joi.object({
         'number.base': 'Available Seats is invalid',
     }),
 
-    dateCount: Joi.number().min(1).required().messages({
-        'any.required': 'Date Count is required',
-        'number.base': 'Date Count is invalid',
-        'number.min': 'Date Count cannot be less than 1',
+    gpsTracker: Joi.string().messages({
+        'string.base': 'GPS Tracker is invalid',
     }),
 
     description: Joi.string().max(500).messages({
