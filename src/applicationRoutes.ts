@@ -53,6 +53,16 @@ const applicationRoutes = {
         createNewMonth: '/createNewMonth',
         getWorkingInfo: '/workingInfo',
     },
+
+    vehicle: {
+        base: '/vehicle',
+        save: '/',
+        getAll: '/',
+        getById: '/:id',
+        update: '/:id',
+        deleteById: '/:id',
+        activeInactiveVehicles: '/activeInactive',
+    },
 };
 
 export default applicationRoutes;
