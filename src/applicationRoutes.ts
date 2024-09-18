@@ -5,6 +5,7 @@ const applicationRoutes = {
         base: '/common',
         getAllGenders: '/gender',
         getAllRoles: '/role',
+        getCommonData: '/data',
     },
 
     store: {

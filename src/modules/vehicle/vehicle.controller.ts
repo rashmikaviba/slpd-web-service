@@ -25,6 +25,7 @@ const saveVehicle = async (req: Request, res: Response) => {
         capacity,
         availableSeats,
         description,
+        vehicleOwner,
     } = req.body;
 
     // Validate request body
@@ -45,6 +46,17 @@ const saveVehicle = async (req: Request, res: Response) => {
         );
     }
 
+    const isGpsTrackerExist = await vehicleService.findByGpsTrackerAndStatusIn(
+        gpsTracker,
+        [WellKnownStatus.ACTIVE, WellKnownStatus.INACTIVE]
+    );
+
+    if (isGpsTrackerExist) {
+        throw new BadRequestError(
+            'Vehicle already exists with this GPS Tracker!'
+        );
+    }
+
     try {
         const vehicle = new Vehicle({
             vehicleType,
@@ -56,6 +68,7 @@ const saveVehicle = async (req: Request, res: Response) => {
             status: WellKnownStatus.ACTIVE,
             createdBy: auth.id,
             updatedBy: auth.id,
+            vehicleOwner,
         });
 
         let ceratedVehicle = await vehicleService.save(vehicle, null);
@@ -82,6 +95,7 @@ const updateVehicle = async (req: Request, res: Response) => {
         capacity,
         availableSeats,
         description,
+        vehicleOwner,
     } = req.body;
 
     // Validate request body
@@ -111,6 +125,18 @@ const updateVehicle = async (req: Request, res: Response) => {
         );
     }
 
+    const isGpsTrackerExist =
+        await vehicleService.findByIdNotAndGpsTrackerAndStatusIn(
+            id,
+            gpsTracker,
+            [WellKnownStatus.ACTIVE, WellKnownStatus.INACTIVE]
+        );
+
+    if (isGpsTrackerExist) {
+        throw new BadRequestError(
+            'Vehicle already exists with this GPS Tracker!'
+        );
+    }
     try {
         vehicle.vehicleType = vehicleType;
         vehicle.registrationNumber = registrationNumber.toUpperCase();
@@ -119,6 +145,7 @@ const updateVehicle = async (req: Request, res: Response) => {
         vehicle.availableSeats = availableSeats;
         vehicle.description = description;
         vehicle.updatedBy = auth.id;
+        vehicle.vehicleOwner = vehicleOwner;
 
         let updatedVehicle = await vehicleService.save(vehicle, null);
 
@@ -211,7 +238,7 @@ const deleteVehicleById = async (req: Request, res: Response) => {
 // activeInactiveVehicles
 const activeInactiveVehicle = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const status = parseInt(req.params.status || '1');
+    const status = req.query.status as any;
     const auth = req.auth;
 
     if (
@@ -231,7 +258,7 @@ const activeInactiveVehicle = async (req: Request, res: Response) => {
     }
 
     let messageString = '';
-    if (status === WellKnownStatus.ACTIVE) {
+    if (status == WellKnownStatus.ACTIVE) {
         messageString = 'Vehicle activated successfully!';
     } else {
         messageString = 'Vehicle inactivated successfully!';
@@ -239,9 +266,9 @@ const activeInactiveVehicle = async (req: Request, res: Response) => {
 
     try {
         vehicle.status =
-            status === 1 ? WellKnownStatus.ACTIVE : WellKnownStatus.INACTIVE;
+            status == 1 ? WellKnownStatus.ACTIVE : WellKnownStatus.INACTIVE;
         vehicle.updatedBy = auth.id;
-        vehicleService.save(vehicle, null);
+        await vehicleService.save(vehicle, null);
 
         return CommonResponse(
             res,

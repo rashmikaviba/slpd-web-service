@@ -6,6 +6,11 @@ const vehicleSchema = Joi.object({
         'number.base': 'Vehicle Type is invalid!',
     }),
 
+    vehicleOwner: Joi.string().required().messages({
+        'any.required': 'Vehicle Owner is required',
+        'string.base': 'Vehicle Owner is invalid',
+    }),
+
     registrationNumber: Joi.string().required().messages({
         'any.required': 'Registration Number is required',
         'string.base': 'Registration Number is invalid',

@@ -42,10 +42,31 @@ const findAllAndStatusIn = async (status: number[]) => {
         .sort({ createdAt: -1 });
 };
 
+const findByGpsTrackerAndStatusIn = async (
+    gpsTracker: string,
+    status: number[]
+) => {
+    return await Vehicle.findOne({ gpsTracker, status: { $in: status } });
+};
+
+const findByIdNotAndGpsTrackerAndStatusIn = async (
+    id: string,
+    gpsTracker: string,
+    status: number[]
+) => {
+    return await Vehicle.findOne({
+        _id: { $ne: id },
+        gpsTracker,
+        status: { $in: status },
+    });
+};
+
 export default {
     save,
     findByRegistrationNumAndStatusIn,
     findByRegNumAndStatusInAndIdNot,
     findByIdAndStatusIn,
     findAllAndStatusIn,
+    findByGpsTrackerAndStatusIn,
+    findByIdNotAndGpsTrackerAndStatusIn,
 };

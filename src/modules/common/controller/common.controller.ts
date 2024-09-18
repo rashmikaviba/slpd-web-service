@@ -4,6 +4,7 @@ import roleService from '../service/role.service';
 import { WellKnownStatus } from '../../../util/enums/well-known-status.enum';
 import CommonResponse from '../../../util/commonResponse';
 import { StatusCodes } from 'http-status-codes';
+import { vehicleTypes } from '../../../util/data/commonData';
 
 // Get All Active Genders
 const GetAllGenders = async (req: Request, res: Response) => {
@@ -20,4 +21,17 @@ const GetAllRoles = async (req: Request, res: Response) => {
     CommonResponse(res, true, StatusCodes.OK, '', roles);
 };
 
-export { GetAllGenders, GetAllRoles };
+const GetDataByType = async (req: Request, res: Response) => {
+    const { type } = req.query;
+    let response: any[] = [];
+
+    switch (type) {
+        case 'VehicleTypes':
+            response = vehicleTypes;
+            break;
+    }
+
+    CommonResponse(res, true, StatusCodes.OK, '', response);
+};
+
+export { GetAllGenders, GetAllRoles, GetDataByType };

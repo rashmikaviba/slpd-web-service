@@ -24,12 +24,22 @@ export const superAdminMenu = [
         name: 'Super Admin Vehicle Tracking',
         status: 1,
     },
+    {
+        id: 6,
+        name: 'Super Admin Vehicle Management',
+        status: 1,
+    },
 ];
 
 export const adminMenu = [
     {
         id: 30,
         name: 'Admin Leave Management',
+        status: 1,
+    },
+    {
+        id: 31,
+        name: 'Admin Vehicle Management',
         status: 1,
     },
 ];
@@ -54,6 +64,16 @@ export const tripManagerMenu = [
     {
         id: 30,
         name: 'Admin Leave Management',
+        status: 1,
+    },
+    {
+        id: 31,
+        name: 'Admin Vehicle Management',
+        status: 1,
+    },
+    {
+        id: 32,
+        name: 'Admin Trip Management',
         status: 1,
     },
 ];

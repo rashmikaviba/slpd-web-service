@@ -5,6 +5,14 @@ export const vehicleTypes = [
     },
     {
         id: 2,
-        name: 'Bike',
+        name: 'Van',
+    },
+    {
+        id: 3,
+        name: 'Bus',
+    },
+    {
+        id: 4,
+        name: 'SUV',
     },
 ];

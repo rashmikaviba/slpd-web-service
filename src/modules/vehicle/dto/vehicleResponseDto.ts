@@ -1,7 +1,9 @@
 interface VehicleResponseDto {
+    _id: string;
     vehicleType: number;
     vehicleTypeName: string;
     registrationNumber: string;
+    vehicleOwner: string;
     gpsTracker: string;
     capacity: number;
     availableSeats: number;

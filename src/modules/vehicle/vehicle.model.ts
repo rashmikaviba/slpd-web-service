@@ -9,7 +9,12 @@ const vehicleSchema = new mongoose.Schema(
             required: [true, 'Start Date is required'],
         },
 
-        registrationNumber : {
+        vehicleOwner: {
+            type: String,
+            required: [true, 'Vehicle Owner is required'],
+        },
+
+        registrationNumber: {
             type: String,
             required: [true, 'Registration Number is required'],
         },
@@ -18,12 +23,12 @@ const vehicleSchema = new mongoose.Schema(
             type: String,
         },
 
-        capacity : {
+        capacity: {
             type: Number,
             required: [true, 'Capacity is required'],
         },
 
-        availableSeats : {
+        availableSeats: {
             type: Number,
             required: [true, 'Available Seats is required'],
         },
