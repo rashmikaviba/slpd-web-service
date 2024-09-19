@@ -14,6 +14,8 @@ import BadRequestError from '../../error/BadRequestError';
 import leaveUtil from '../leave/leave.util';
 import CommonResponse from '../../util/commonResponse';
 import { StatusCodes } from 'http-status-codes';
+import WorkingInfoResponseDto from './dto/workingInfoResponseDto';
+import monthAuditUtil from './monthAudit.util';
 
 const createNewDate = async (req: Request, res: Response) => {
     const auth: any = req.auth;
@@ -23,6 +25,7 @@ const createNewDate = async (req: Request, res: Response) => {
         await companyWorkingInfoService.getCompanyWorkingInfo();
 
     const session = await startSession();
+    let createdMonth = null;
     try {
         session.startTransaction();
 
@@ -54,7 +57,7 @@ const createNewDate = async (req: Request, res: Response) => {
             updatedBy: auth.id,
         });
 
-        await monthAuditService.save(monthAuditNew, session);
+        createdMonth =  await monthAuditService.save(monthAuditNew, session);
 
         await session.commitTransaction();
     } catch (error) {
@@ -63,6 +66,8 @@ const createNewDate = async (req: Request, res: Response) => {
     } finally {
         session.endSession();
     }
+
+    return CommonResponse(res, true, StatusCodes.CREATED,  `Month Audit successfully done and System date move to ${month}/${year}!`, createdMonth);
 };
 
 const monthEndDoneForLeave = async (
@@ -140,4 +145,21 @@ const getPendingLeaves = async (req: Request, res: Response) => {
     CommonResponse(res, true, StatusCodes.OK, '', response);
 };
 
-export { createNewDate, getPendingLeaves };
+const getWorkingInformation = async (req: Request, res: Response) => {
+    const auth: any = req.auth;
+
+    let response : WorkingInfoResponseDto = Object.create(null);
+
+    let lastCompanyInfo: any =
+        await companyWorkingInfoService.getCompanyWorkingInfo();
+    
+    if (!lastCompanyInfo) {
+        throw new BadRequestError('No active company information found!');
+    }
+
+    response = monthAuditUtil.companyWorkingInfoToWorkingInfoResponseDto(lastCompanyInfo);
+
+    CommonResponse(res, true, StatusCodes.OK, '', response);
+}
+
+export { createNewDate, getPendingLeaves, getWorkingInformation};

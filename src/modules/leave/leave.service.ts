@@ -83,7 +83,7 @@ const findAllByUserIdYearAndStatus = async (
             ],
             status: { $in: status },
         })
-            .sort({ status: 1 })
+            .sort({ status: 1, createdAt: -1 })
             .populate([
                 {
                     path: 'appliedUser',
@@ -102,7 +102,7 @@ const findAllByUserIdYearAndStatus = async (
             ],
             status: { $in: status },
         })
-            .sort({ status: 1 })
+            .sort({ status: 1, createdAt: -1 })
             .populate([
                 {
                     path: 'appliedUser',

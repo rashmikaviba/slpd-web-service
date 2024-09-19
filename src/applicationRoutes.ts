@@ -5,6 +5,7 @@ const applicationRoutes = {
         base: '/common',
         getAllGenders: '/gender',
         getAllRoles: '/role',
+        getCommonData: '/data',
     },
 
     store: {
@@ -51,6 +52,17 @@ const applicationRoutes = {
         base: '/monthAudit',
         getPendingLeaves: '/pendingLeaves',
         createNewMonth: '/createNewMonth',
+        getWorkingInfo: '/workingInfo',
+    },
+
+    vehicle: {
+        base: '/vehicle',
+        save: '/',
+        getAll: '/',
+        getById: '/:id',
+        update: '/:id',
+        deleteById: '/:id',
+        activeInactiveVehicles: '/activeInactive/:id',
     },
 };
 
