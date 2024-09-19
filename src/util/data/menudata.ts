@@ -50,6 +50,11 @@ export const driverMenu = [
         name: 'Driver Leave Management',
         status: 1,
     },
+    {
+        id: 61,
+        name: 'Driver Trip Management',
+        status: 1,
+    },
 ];
 
 export const financeOfficerMenu = [
