@@ -64,6 +64,15 @@ const applicationRoutes = {
         deleteById: '/:id',
         activeInactiveVehicles: '/activeInactive/:id',
     },
+
+    trip: {
+        base: '/trip',
+        saveTrip: '/',
+        getAllTrips: '/',
+        getTripById: '/:id',
+        update: '/:id',
+        deleteById: '/:id',
+    },
 };
 
 export default applicationRoutes;
