@@ -9,6 +9,7 @@ import {
     getVehicleById,
     saveVehicle,
     updateVehicle,
+    getVehiclesByPassengersCount,
 } from './vehicle.controller';
 
 const VehicleRouter = Router();
@@ -55,4 +56,9 @@ VehicleRouter.put(
     activeInactiveVehicle
 );
 
+VehicleRouter.get(
+    applicationRoutes.vehicle.getByPassengersCount,
+    authMiddleware.authorize([]),
+    getVehiclesByPassengersCount
+);
 export default VehicleRouter;

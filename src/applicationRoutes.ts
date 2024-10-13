@@ -24,6 +24,7 @@ const applicationRoutes = {
         blockUser: '/block/:id',
         unblockUser: '/unblock/:id',
         validateUser: '/validateUser',
+        getUsersByRole: '/userByRole/:id',
     },
 
     auth: {
@@ -63,6 +64,7 @@ const applicationRoutes = {
         update: '/:id',
         deleteById: '/:id',
         activeInactiveVehicles: '/activeInactive/:id',
+        getByPassengersCount: '/passengerCount/:count',
     },
 
     trip: {
@@ -72,6 +74,7 @@ const applicationRoutes = {
         getTripById: '/:id',
         update: '/:id',
         deleteById: '/:id',
+        assignDriver: '/assignDriver/:id',
     },
 };
 

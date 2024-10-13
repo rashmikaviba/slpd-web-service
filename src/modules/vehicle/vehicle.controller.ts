@@ -282,6 +282,14 @@ const activeInactiveVehicle = async (req: Request, res: Response) => {
     }
 };
 
+const getVehiclesByPassengersCount = async (req: Request, res: Response) => {
+    const count = req.params.count || '0';
+
+    const vehicles = await vehicleService.findVehiclesBySheetCount(+count);
+
+    CommonResponse(res, true, StatusCodes.OK, '', vehicles);
+};
+
 export {
     saveVehicle,
     updateVehicle,
@@ -289,4 +297,5 @@ export {
     getAllVehicles,
     deleteVehicleById,
     activeInactiveVehicle,
+    getVehiclesByPassengersCount,
 };

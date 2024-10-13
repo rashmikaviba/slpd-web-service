@@ -29,6 +29,11 @@ export const superAdminMenu = [
         name: 'Super Admin Vehicle Management',
         status: 1,
     },
+    {
+        id: 7,
+        name: 'Super Admin Trip Management',
+        status: 1,
+    },
 ];
 
 export const adminMenu = [
@@ -42,12 +47,22 @@ export const adminMenu = [
         name: 'Admin Vehicle Management',
         status: 1,
     },
+    {
+        id: 32,
+        name: 'Admin Trip Management',
+        status: 1,
+    },
 ];
 
 export const driverMenu = [
     {
         id: 60,
         name: 'Driver Leave Management',
+        status: 1,
+    },
+    {
+        id: 61,
+        name: 'Driver Trip Management',
         status: 1,
     },
 ];

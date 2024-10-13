@@ -9,6 +9,7 @@ import {
     updateUser,
     checkUserName,
     deleteUser,
+    getAllUsersByRole,
 } from './user.controller';
 import authMiddleware from '../../middleware/auth.middleware';
 import constants from '../../constant';
@@ -61,6 +62,16 @@ UserRouter.delete(
     applicationRoutes.user.deleteById,
     authMiddleware.authorize([constants.USER.ROLES.SUPERADMIN]),
     deleteUser
+);
+
+UserRouter.get(
+    applicationRoutes.user.getUsersByRole,
+    authMiddleware.authorize([
+        constants.USER.ROLES.SUPERADMIN,
+        constants.USER.ROLES.ADMIN,
+        constants.USER.ROLES.TRIPMANAGER,
+    ]),
+    getAllUsersByRole
 );
 
 export default UserRouter;

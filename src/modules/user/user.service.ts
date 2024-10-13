@@ -137,6 +137,20 @@ const findAllWithGenderRole = async () => {
     return users;
 };
 
+const findAllByRoleId = async (roleId: string) => {
+    let users: any = await Auth.find({
+        role: roleId,
+        status: WellKnownStatus.ACTIVE,
+        isBlocked: false,
+    }).populate('user');
+
+    users = users.map((user: any) => {
+        return user.user;
+    });
+
+    return users || [];
+};
+
 export default {
     Save,
     validateUserData,
@@ -145,4 +159,5 @@ export default {
     findByIdWithGenderRole,
     findAll,
     findAllWithGenderRole,
+    findAllByRoleId,
 };

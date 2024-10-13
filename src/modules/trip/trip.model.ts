@@ -15,6 +15,11 @@ const tripSchema = new mongoose.Schema(
             required: [true, 'End Date is required'],
         },
 
+        tripConfirmedNumber: {
+            type: Number,
+            default: 0,
+        },
+
         dateCount: {
             type: Number,
             required: [true, 'Date Count is required'],
@@ -34,11 +39,10 @@ const tripSchema = new mongoose.Schema(
         // Name, Nationality, Age, Gender
         passengers: [
             {
-                id: {
-                    type: String,
-                    required: [true, 'Id is required'],
-                },
-
+                // id: {
+                //     type: String,
+                //     required: [true, 'Id is required'],
+                // },
                 name: {
                     type: String,
                     required: [true, 'Name is required'],
@@ -116,6 +120,100 @@ const tripSchema = new mongoose.Schema(
             },
         },
 
+        activities: [
+            {
+                // id: {
+                //     type: String,
+                //     required: [true, 'Id is required'],
+                // },
+                date: {
+                    type: Date,
+                },
+
+                description: {
+                    type: String,
+                },
+
+                adultCount: {
+                    type: Number,
+                },
+
+                childCount: {
+                    type: Number,
+                },
+
+                totalCost: {
+                    type: Number,
+                },
+            },
+        ],
+
+        places: [
+            {
+                // id: {
+                //     type: String,
+                //     required: [true, 'Id is required'],
+                // },
+                description: {
+                    type: String,
+                    required: [true, 'Description is required'],
+                },
+
+                dates: [
+                    {
+                        type: Date,
+                        required: [true, 'Dates is required'],
+                    },
+                ],
+
+                isReached: {
+                    type: Boolean,
+                    default: false,
+                },
+
+                index: {
+                    type: Number,
+                    default: 0,
+                },
+
+                changedBy: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'User',
+                    default: null,
+                },
+
+                updatedBy: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'User',
+                    default: null,
+                },
+            },
+        ],
+
+        hotels: [
+            {
+                // id: {
+                //     type: String,
+                //     required: [true, 'Id is required'],
+                // },
+
+                dates: {
+                    type: String,
+                    required: [true, 'Dates is required'],
+                },
+
+                hotelName: {
+                    type: String,
+                    required: [true, 'Hotel Name is required'],
+                },
+
+                city: {
+                    type: String,
+                    required: [true, 'City is required'],
+                },
+            },
+        ],
+
         // Contact Information
         // Email, Phone Number
         email: {
@@ -137,21 +235,66 @@ const tripSchema = new mongoose.Schema(
             maxlength: [20, 'Phone Number cannot be more than 20 characters'],
         },
 
+        contactPerson: {
+            type: String,
+            maxlength: [
+                100,
+                'Contact Person cannot be more than 100 characters',
+            ],
+        },
+
         // driver information
-        driver: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-        },
+        // driver: {
+        //     type: mongoose.Schema.Types.ObjectId,
+        //     ref: 'User',
+        // },
 
-        driverAssignedBy: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-        },
+        // driverAssignedBy: {
+        //     type: mongoose.Schema.Types.ObjectId,
+        //     ref: 'User',
+        // },
 
-        isDriverAssigned: {
-            type: Boolean,
-            default: false,
-        },
+        drivers: [
+            {
+                driver: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'User',
+                },
+
+                driverAssignedBy: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'User',
+                },
+
+                isActive: {
+                    type: Boolean,
+                    default: true,
+                },
+            },
+        ],
+
+        // vehicle information
+        vehicles: [
+            {
+                vehicle: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'Vehicle',
+                    default: null,
+                    required: [true, 'Vehicle is required'],
+                },
+
+                isActive: {
+                    type: Boolean,
+                    default: true,
+                },
+
+                vehicleAssignedBy: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'User',
+                    default: null,
+                },
+            },
+        ],
 
         // general information
         status: {
@@ -168,6 +311,18 @@ const tripSchema = new mongoose.Schema(
         updatedBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
+        },
+
+        startedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            default: null,
+        },
+
+        endedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            default: null,
         },
     },
     {
