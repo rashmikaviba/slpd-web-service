@@ -449,6 +449,59 @@ const assignDriverAndVehicle = async (req: Request, res: Response) => {
     }
 };
 
+const saveCheckListAnswers = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const body = req.body;
+    const auth = req.auth;
+
+    const { error } = tripValidation.checkListAnswerSchema.validate(body);
+    if (error) {
+        throw new BadRequestError(error.message);
+    }
+
+    try {
+        let trip = await tripService.findByIdAndStatusIn(id, [
+            WellKnownTripStatus.PENDING,
+        ]);
+
+        if (!trip) {
+            throw new BadRequestError(
+                'Invalid trip or trip is not in pending status!'
+            );
+        }
+
+        trip.checkListAnswers = body.checkListAnswers;
+
+        await tripService.save(trip, null);
+
+        CommonResponse(
+            res,
+            true,
+            StatusCodes.OK,
+            'Answers saved successfully!',
+            null
+        );
+    } catch (error) {
+        throw error;
+    }
+};
+
+const getCheckListAnswers = async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const trip = await tripService.findByIdAndStatusIn(id, [
+        WellKnownTripStatus.PENDING,
+        WellKnownTripStatus.START,
+        WellKnownTripStatus.FINISHED,
+        WellKnownTripStatus.CANCELED,
+    ]);
+
+    if (!trip) {
+        throw new BadRequestError('Invalid trip!');
+    }
+
+    CommonResponse(res, true, StatusCodes.OK, '', trip.checkListAnswers);
+};
 export {
     saveTrip,
     updateTrip,
@@ -456,4 +509,6 @@ export {
     getTripById,
     getAllTripsByRole,
     assignDriverAndVehicle,
+    saveCheckListAnswers,
+    getCheckListAnswers,
 };

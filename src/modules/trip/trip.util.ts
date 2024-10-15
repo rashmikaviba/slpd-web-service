@@ -127,6 +127,7 @@ const tripModelToTripResponseDtoGetAll = (trip: any): TripResponseDtoGetAll => {
         dateCount: trip.dateCount,
         totalCost: trip.totalCost,
         isActiveDriver: trip.isActiveDriver || false,
+        isCheckListDone: trip.checkListAnswers != null ? true : false,
         email: trip.email,
         phoneNumber: trip.phoneNumber || null,
         status: trip.status,

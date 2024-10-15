@@ -75,6 +75,8 @@ const applicationRoutes = {
         update: '/:id',
         deleteById: '/:id',
         assignDriver: '/assignDriver/:id',
+        saveCheckList: '/checkList/:id',
+        getCheckList: '/checkList/:id',
     },
 };
 

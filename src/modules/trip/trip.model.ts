@@ -296,6 +296,17 @@ const tripSchema = new mongoose.Schema(
             },
         ],
 
+        checkListAnswers: {
+            type: Object,
+            default: null,
+        },
+
+        checkListCheckBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            default: null,
+        },
+
         // general information
         status: {
             type: Number,

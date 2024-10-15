@@ -92,6 +92,7 @@ interface TripResponseDtoGetAll {
     dateCount: number;
     totalCost: number;
     isActiveDriver: boolean;
+    isCheckListDone: boolean;
     activeDriverId: string;
     drivers: DriverDto[];
     vehicles: VehicleDto[];

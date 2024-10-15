@@ -9,6 +9,8 @@ import {
     getTripById,
     getAllTripsByRole,
     assignDriverAndVehicle,
+    saveCheckListAnswers,
+    getCheckListAnswers,
 } from './trip.controller';
 
 const TripRouter = Router();
@@ -63,6 +65,18 @@ TripRouter.put(
         constants.USER.ROLES.ADMIN,
     ]),
     assignDriverAndVehicle
+);
+
+TripRouter.post(
+    applicationRoutes.trip.saveCheckList,
+    authMiddleware.authorize([constants.USER.ROLES.DRIVER]),
+    saveCheckListAnswers
+);
+
+TripRouter.get(
+    applicationRoutes.trip.getCheckList,
+    authMiddleware.authorize([]),
+    getCheckListAnswers
 );
 
 export default TripRouter;

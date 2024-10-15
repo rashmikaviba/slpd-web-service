@@ -246,4 +246,44 @@ const assignDriverVehicleSchema = Joi.object({
     }),
 });
 
-export default { tripSchema, assignDriverVehicleSchema };
+const checkListAnswerSchema = Joi.object({
+    1: Joi.number().messages({
+        'number.base': 'Answer is invalid',
+    }),
+    2: Joi.number().messages({
+        'number.base': 'Answer is invalid',
+    }),
+    3: Joi.number().messages({
+        'number.base': 'Answer is invalid',
+    }),
+    4: Joi.number().messages({
+        'number.base': 'Answer is invalid',
+    }),
+    5: Joi.number().messages({
+        'number.base': 'Answer is invalid',
+    }),
+    6: Joi.number().messages({
+        'number.base': 'Answer is invalid',
+    }),
+    7: Joi.number().messages({
+        'number.base': 'Answer is invalid',
+    }),
+    8: Joi.number().messages({
+        'number.base': 'Answer is invalid',
+    }),
+    9: Joi.number().messages({
+        'number.base': 'Answer is invalid',
+    }),
+
+    isTermsConditionsChecked1: Joi.boolean().required().messages({
+        'boolean.base': 'terms and conditions is invalid',
+        'any.required': 'terms and conditions is required',
+    }),
+
+    isTermsConditionsChecked2: Joi.boolean().required().messages({
+        'boolean.base': 'terms and conditions is invalid',
+        'any.required': 'terms and conditions is required',
+    }),
+});
+
+export default { tripSchema, assignDriverVehicleSchema, checkListAnswerSchema };
