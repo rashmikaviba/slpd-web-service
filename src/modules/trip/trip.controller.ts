@@ -470,7 +470,8 @@ const saveCheckListAnswers = async (req: Request, res: Response) => {
             );
         }
 
-        trip.checkListAnswers = body.checkListAnswers;
+        trip.checkListAnswers = body;
+        trip.checkListCheckBy = auth.id;
 
         await tripService.save(trip, null);
 
@@ -498,6 +499,10 @@ const getCheckListAnswers = async (req: Request, res: Response) => {
 
     if (!trip) {
         throw new BadRequestError('Invalid trip!');
+    }
+
+    if (trip.checkListAnswers == null) {
+        throw new BadRequestError('Checklist not completed yet!');
     }
 
     CommonResponse(res, true, StatusCodes.OK, '', trip.checkListAnswers);

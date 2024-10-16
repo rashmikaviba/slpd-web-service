@@ -67,7 +67,7 @@ TripRouter.put(
     assignDriverAndVehicle
 );
 
-TripRouter.post(
+TripRouter.put(
     applicationRoutes.trip.saveCheckList,
     authMiddleware.authorize([constants.USER.ROLES.DRIVER]),
     saveCheckListAnswers
