@@ -319,7 +319,7 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
         );
 
         trips.map((trip: any) => {
-            if (trip.drivers[0].driver === auth.id) {
+            if (trip.drivers[0].driver?._id.toString() === auth.id) {
                 trip.isActiveDriver = true;
             } else {
                 trip.isActiveDriver = false;
@@ -456,71 +456,82 @@ const changeTripStatus = async (req: Request, res: Response) => {
     const status = req.params.status;
 
     try {
-        if(!helperUtil.isValueInEnum(WellKnownTripStatus, status)){
-            throw new BadRequestError("Invalid status!");
+        if (!helperUtil.isValueInEnum(WellKnownTripStatus, status)) {
+            throw new BadRequestError('Invalid status!');
         }
 
-        let trip:any = null;
+        let trip: any = null;
 
-        //Driver Can cahnge status to pending to start trip 
-        if (
-            auth.role === constants.USER.ROLES.DRIVER 
-        ) {
-            if(parseInt(status) != WellKnownTripStatus.START){
+        //Driver Can cahnge status to pending to start trip
+        if (auth.role === constants.USER.ROLES.DRIVER) {
+            if (parseInt(status) != WellKnownTripStatus.START) {
                 trip = await tripService.findByIdAndStatusIn(tripId, [
                     WellKnownTripStatus.PENDING,
                 ]);
 
                 if (!trip) {
-                    throw new BadRequestError('Trip not found or not in pending status!');
+                    throw new BadRequestError(
+                        'Trip not found or not in pending status!'
+                    );
                 }
 
                 trip.status = parseInt(status);
                 trip.startedBy = auth.id;
-            } else{
-                let statusName = helperUtil.getNameFromEnum(WellKnownTripStatus, status);
-                throw new BadRequestError("You'r not allowed to change status to " + statusName + "!");
+            } else {
+                let statusName = helperUtil.getNameFromEnum(
+                    WellKnownTripStatus,
+                    status
+                );
+                throw new BadRequestError(
+                    "You'r not allowed to change status to " + statusName + '!'
+                );
             }
-        } 
-        
+        }
+
         // admin, tpm,sa cn change status to finished
         if (
             auth.role === constants.USER.ROLES.ADMIN ||
             auth.role === constants.USER.ROLES.TRIPMANAGER ||
             auth.role === constants.USER.ROLES.SUPERADMIN
         ) {
-            if(parseInt(status) != WellKnownTripStatus.FINISHED){
+            if (parseInt(status) != WellKnownTripStatus.FINISHED) {
                 trip = await tripService.findByIdAndStatusIn(tripId, [
                     WellKnownTripStatus.START,
                 ]);
 
                 if (!trip) {
-                    throw new BadRequestError('Trip not found or not in start status!');
+                    throw new BadRequestError(
+                        'Trip not found or not in start status!'
+                    );
                 }
 
                 trip.status = parseInt(status);
                 trip.endedBy = auth.id;
-            } else{
-                let statusName = helperUtil.getNameFromEnum(WellKnownTripStatus, status);
-                throw new BadRequestError("You'r not allowed to change status to " + statusName + "!");
+            } else {
+                let statusName = helperUtil.getNameFromEnum(
+                    WellKnownTripStatus,
+                    status
+                );
+                throw new BadRequestError(
+                    "You'r not allowed to change status to " + statusName + '!'
+                );
             }
         }
-        
-        await tripService.save(trip, null);
 
+        await tripService.save(trip, null);
     } catch (error) {
         throw error;
     }
 
-    let message = ""
-    if(parseInt(status) != WellKnownTripStatus.START){
-        message = "Trip staerted successfully!"
-    }else if(parseInt(status) != WellKnownTripStatus.FINISHED){
-        message = "Trip finished successfully!"
+    let message = '';
+    if (parseInt(status) != WellKnownTripStatus.START) {
+        message = 'Trip staerted successfully!';
+    } else if (parseInt(status) != WellKnownTripStatus.FINISHED) {
+        message = 'Trip finished successfully!';
     }
 
     CommonResponse(res, true, StatusCodes.OK, message, null);
-}
+};
 
 const saveCheckListAnswers = async (req: Request, res: Response) => {
     const { id } = req.params;
@@ -589,5 +600,5 @@ export {
     assignDriverAndVehicle,
     saveCheckListAnswers,
     getCheckListAnswers,
-    changeTripStatus
+    changeTripStatus,
 };
