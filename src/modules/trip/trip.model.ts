@@ -176,7 +176,17 @@ const tripSchema = new mongoose.Schema(
                     default: 0,
                 },
 
-                changedBy: {
+                reachedDate: {
+                    type: Date,
+                    default: null,
+                },
+
+                location: {
+                    type: Object,
+                    default: null,
+                },
+
+                reachedBy: {
                     type: mongoose.Schema.Types.ObjectId,
                     ref: 'User',
                     default: null,
@@ -334,6 +344,11 @@ const tripSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
             default: null,
+        },
+
+        isMonthEndDone: {
+            type: Boolean,
+            default: false,
         },
     },
     {

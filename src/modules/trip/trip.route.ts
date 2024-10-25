@@ -11,7 +11,9 @@ import {
     assignDriverAndVehicle,
     saveCheckListAnswers,
     getCheckListAnswers,
-    changeTripStatus
+    changeTripStatus,
+    getPlacesByTripId,
+    markPlaceAsReached,
 } from './trip.controller';
 
 const TripRouter = Router();
@@ -86,9 +88,21 @@ TripRouter.put(
         constants.USER.ROLES.TRIPMANAGER,
         constants.USER.ROLES.SUPERADMIN,
         constants.USER.ROLES.ADMIN,
-        constants.USER.ROLES.DRIVER
+        constants.USER.ROLES.DRIVER,
     ]),
     changeTripStatus
-)
+);
+
+TripRouter.get(
+    applicationRoutes.trip.getPlacesByTrip,
+    authMiddleware.authorize([]),
+    getPlacesByTripId
+);
+
+TripRouter.put(
+    applicationRoutes.trip.markAsReached,
+    authMiddleware.authorize([constants.USER.ROLES.DRIVER]),
+    markPlaceAsReached
+);
 
 export default TripRouter;

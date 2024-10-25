@@ -286,4 +286,20 @@ const checkListAnswerSchema = Joi.object({
     }),
 });
 
-export default { tripSchema, assignDriverVehicleSchema, checkListAnswerSchema };
+const markPlaceSchema = Joi.object({
+    location: Joi.object({
+        lat: Joi.number().messages({
+            'number.base': 'lat is invalid',
+        }),
+        lng: Joi.number().messages({
+            'number.base': 'lng is invalid',
+        }),
+    }),
+});
+
+export default {
+    tripSchema,
+    assignDriverVehicleSchema,
+    checkListAnswerSchema,
+    markPlaceSchema,
+};

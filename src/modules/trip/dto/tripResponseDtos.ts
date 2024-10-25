@@ -98,6 +98,7 @@ interface TripResponseDtoGetAll {
     vehicles: VehicleDto[];
     activeDriverName: string;
     tripConfirmedNumber: string;
+    canUndo: boolean;
     contactPerson: string;
     activeVehicleId: string;
     activeRegistrationNumber: string;
@@ -118,6 +119,19 @@ interface TripResponseDtoGetAll {
     updatedAt: Date;
 }
 
+interface TripPlaceResponseDto {
+    description: string;
+    dates: Date[];
+    isReached: boolean;
+    index: number;
+    updatedBy: string;
+    _id: string;
+    location: any;
+    reachedBy: string;
+    reachedDate: Date;
+    reachedByUser: string;
+}
+
 export {
     PassengerDto,
     ArrivalInfoDto,
@@ -129,4 +143,5 @@ export {
     TripResponseDto,
     TripResponseDtoGetAll,
     VehicleDto,
+    TripPlaceResponseDto,
 };

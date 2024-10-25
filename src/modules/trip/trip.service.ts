@@ -28,6 +28,7 @@ const findAllByStatusIn = async (status: number[]) => {
         .populate({
             path: 'drivers.driver',
             model: 'User',
+            match: { 'drivers.isActive': true },
         })
         .populate({
             path: 'vehicles.vehicle',
@@ -68,10 +69,22 @@ const generateTripId = async () => {
     }
 };
 
+const findTripPlacesByTripIdAndStatusIn = async (
+    tripId: string,
+    status: number[]
+) => {
+    return Trip.findOne({ _id: tripId, status: { $in: status } }).populate({
+        path: 'places.reachedBy',
+        model: 'User',
+        match: { 'places.isReached': true },
+    });
+};
+
 export default {
     save,
     findByIdAndStatusIn,
     generateTripId,
     findAllByStatusIn,
     findAllByDriverIdAndStatusIn,
+    findTripPlacesByTripIdAndStatusIn,
 };

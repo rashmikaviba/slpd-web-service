@@ -6,12 +6,14 @@ import {
     DropOffInfoDto,
     PassengerDto,
     PickUpInfoDto,
+    TripPlaceResponseDto,
     TripResponseDto,
     TripResponseDtoGetAll,
     VehicleDto,
 } from './dto/tripResponseDtos';
 import helperUtil from '../../util/helper.util';
 import { WellKnownTripStatus } from '../../util/enums/well-known-trip-status.enum';
+import { truncate } from 'fs/promises';
 
 const mapPassengerToPassengerDto = (passenger: any): PassengerDto => ({
     id: passenger.id,
@@ -136,7 +138,7 @@ const tripModelToTripResponseDtoGetAll = (trip: any): TripResponseDtoGetAll => {
             WellKnownTripStatus,
             trip.status
         ),
-        tripConfirmedNumber: `JK-${trip?.tripConfirmedNumber
+        tripConfirmedNumber: `DK-${trip?.tripConfirmedNumber
             .toString()
             .padStart(3, '0')}`,
         contactPerson: trip?.contactPerson || '',
@@ -148,6 +150,11 @@ const tripModelToTripResponseDtoGetAll = (trip: any): TripResponseDtoGetAll => {
         updatedUser: trip.updatedBy?.fullName || '',
         startedUser: trip.startedBy?.fullName || null,
         endedUser: trip.endedBy?.fullName || null,
+        canUndo:
+            trip?.status === WellKnownTripStatus.START &&
+            !trip?.places.find((x: any) => x.isReached === true)
+                ? true
+                : false,
         createdAt: trip.createdAt,
         updatedAt: trip.updatedAt,
         activeVehicleId:
@@ -155,8 +162,10 @@ const tripModelToTripResponseDtoGetAll = (trip: any): TripResponseDtoGetAll => {
         activeRegistrationNumber:
             trip?.vehicles.find((x: any) => x.isActive)?.vehicle
                 ?.registrationNumber || '',
-        activeDriverId: trip?.drivers?.[0]?.driver?._id || '',
-        activeDriverName: trip?.drivers?.[0]?.driver?.fullName || '',
+        activeDriverId:
+            trip?.drivers?.find((x: any) => x.isActive)?.driver?._id || '',
+        activeDriverName:
+            trip?.drivers?.find((x: any) => x.isActive)?.driver?.fullName || '',
         drivers: trip.drivers.map((x: any) => mapDriverToDriverDto(x)),
         vehicles: trip.vehicles.map((x: any) => mapVehicleToVehicleDto(x)),
     };
@@ -169,9 +178,33 @@ const tripModelArrToTripResponseDtoGetAlls = (
         tripModelToTripResponseDtoGetAll(trip)
     ) as TripResponseDtoGetAll[];
 };
+
+const TripModelToTripPlaceResponseDto = (place: any): TripPlaceResponseDto => {
+    return {
+        description: place.description,
+        dates: place.dates,
+        isReached: place.isReached || false,
+        index: place.index || 0,
+        updatedBy: place.updatedBy || '',
+        _id: place?._id || '',
+        location: place.location,
+        reachedBy: place.reachedBy?._id || '',
+        reachedDate: place.reachedDate || null,
+        reachedByUser: place.reachedBy?.fullName || '',
+    };
+};
+
+const TripModelArrToTripPlaceResponseDtos = (
+    places: any[]
+): TripPlaceResponseDto[] => {
+    return places.map((place) =>
+        TripModelToTripPlaceResponseDto(place)
+    ) as TripPlaceResponseDto[];
+};
 export default {
     tripModelToTripResponseDto,
     tripModelArrToTripResponseDtos,
     tripModelToTripResponseDtoGetAll,
     tripModelArrToTripResponseDtoGetAlls,
+    TripModelArrToTripPlaceResponseDtos,
 };

@@ -75,11 +75,15 @@ const applicationRoutes = {
         update: '/:id',
         deleteById: '/:id',
         assignDriver: '/assignDriver/:id',
-        changeTripStatus : '/:id/status/:status',
-        undoTripStatus : '/:id/undoStatus/:status',
+        changeTripStatus: '/:id/status/:status',
+        undoTripStatus: '/:id/undoStatus/:status',
         // checklist routes
         saveCheckList: '/checkList/:id',
         getCheckList: '/checkList/:id',
+
+        // places routes
+        getPlacesByTrip: '/places/:id',
+        markAsReached: '/:tripId/markAsReached/:placeId',
     },
 };
 

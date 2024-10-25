@@ -319,7 +319,11 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
         );
 
         trips.map((trip: any) => {
-            if (trip.drivers[0].driver?._id.toString() === auth.id) {
+            if (
+                trip.drivers
+                    .find((x: any) => x.isActive)
+                    ?.driver?._id.toString() === auth.id
+            ) {
                 trip.isActiveDriver = true;
             } else {
                 trip.isActiveDriver = false;
@@ -370,24 +374,29 @@ const assignDriverAndVehicle = async (req: Request, res: Response) => {
             } else {
                 // if it is not deactive all other drivers and assign new one as active
                 let isDriverAvailable = false;
-
-                trip.drivers.map((driver: any) => {
-                    if (driver.driver === body?.driverId) {
-                        isDriverAvailable = true;
-                        driver.isActive = true;
-                        driver.driverAssignedBy = auth.id;
-                    } else {
-                        driver.isActive = false;
-                    }
+                let activeDriver = trip.drivers.find((driver: any) => {
+                    return driver.isActive === true;
                 });
 
-                if (!isDriverAvailable) {
-                    let driver = {
-                        driver: body?.driverId,
-                        driverAssignedBy: auth.id,
-                        isActive: true,
-                    };
-                    trip.drivers.push(driver);
+                if (activeDriver.driver.toString() !== body?.driverId) {
+                    trip.drivers.map((driver: any) => {
+                        if (driver.driver === body?.driverId) {
+                            isDriverAvailable = true;
+                            driver.isActive = true;
+                            driver.driverAssignedBy = auth.id;
+                        } else {
+                            driver.isActive = false;
+                        }
+                    });
+
+                    if (!isDriverAvailable) {
+                        let driver = {
+                            driver: body?.driverId,
+                            driverAssignedBy: auth.id,
+                            isActive: true,
+                        };
+                        trip.drivers.push(driver);
+                    }
                 }
             }
         }
@@ -413,24 +422,29 @@ const assignDriverAndVehicle = async (req: Request, res: Response) => {
                 trip.vehicles = [vehicle];
             } else {
                 let isVehicleAvailable = false;
-
-                trip.vehicles.map((vehicle: any) => {
-                    if (vehicle.vehicle === body?.vehicleId) {
-                        isVehicleAvailable = true;
-                        vehicle.isActive = true;
-                        vehicle.vehicleAssignedBy = auth.id;
-                    } else {
-                        vehicle.isActive = false;
-                    }
+                let activeVehicle = trip.vehicles.find((vehicle: any) => {
+                    return vehicle.isActive === true;
                 });
 
-                if (!isVehicleAvailable) {
-                    let vehicle = {
-                        vehicle: body?.vehicleId,
-                        isActive: true,
-                        vehicleAssignedBy: auth.id,
-                    };
-                    trip.vehicles.push(vehicle);
+                if (activeVehicle.vehicle.toString() !== body?.vehicleId) {
+                    trip.vehicles.map((vehicle: any) => {
+                        if (vehicle.vehicle === body?.vehicleId) {
+                            isVehicleAvailable = true;
+                            vehicle.isActive = true;
+                            vehicle.vehicleAssignedBy = auth.id;
+                        } else {
+                            vehicle.isActive = false;
+                        }
+                    });
+
+                    if (!isVehicleAvailable) {
+                        let vehicle = {
+                            vehicle: body?.vehicleId,
+                            isActive: true,
+                            vehicleAssignedBy: auth.id,
+                        };
+                        trip.vehicles.push(vehicle);
+                    }
                 }
             }
 
@@ -453,7 +467,7 @@ const assignDriverAndVehicle = async (req: Request, res: Response) => {
 const changeTripStatus = async (req: Request, res: Response) => {
     const tripId = req.params.id;
     const auth = req.auth;
-    const status = req.params.status;
+    const status = parseInt(req.params.status);
 
     try {
         if (!helperUtil.isValueInEnum(WellKnownTripStatus, status)) {
@@ -464,7 +478,7 @@ const changeTripStatus = async (req: Request, res: Response) => {
 
         //Driver Can cahnge status to pending to start trip
         if (auth.role === constants.USER.ROLES.DRIVER) {
-            if (parseInt(status) != WellKnownTripStatus.START) {
+            if (status == WellKnownTripStatus.START) {
                 trip = await tripService.findByIdAndStatusIn(tripId, [
                     WellKnownTripStatus.PENDING,
                 ]);
@@ -475,8 +489,32 @@ const changeTripStatus = async (req: Request, res: Response) => {
                     );
                 }
 
-                trip.status = parseInt(status);
+                trip.status = status;
                 trip.startedBy = auth.id;
+            } else if (status == WellKnownTripStatus.PENDING) {
+                trip = await tripService.findByIdAndStatusIn(tripId, [
+                    WellKnownTripStatus.START,
+                ]);
+
+                if (!trip) {
+                    throw new BadRequestError(
+                        'Trip not found or not in start status!'
+                    );
+                }
+
+                let isPlaceReached = trip?.places.find(
+                    (place: any) => place.isReached == true
+                );
+
+                if (isPlaceReached) {
+                    throw new BadRequestError(
+                        "Can't change status to pending after reached at least one place!"
+                    );
+                }
+
+                trip.status = status;
+                trip.startedBy = null;
+                trip.updatedBy = auth.id;
             } else {
                 let statusName = helperUtil.getNameFromEnum(
                     WellKnownTripStatus,
@@ -494,7 +532,7 @@ const changeTripStatus = async (req: Request, res: Response) => {
             auth.role === constants.USER.ROLES.TRIPMANAGER ||
             auth.role === constants.USER.ROLES.SUPERADMIN
         ) {
-            if (parseInt(status) != WellKnownTripStatus.FINISHED) {
+            if (status == WellKnownTripStatus.FINISHED) {
                 trip = await tripService.findByIdAndStatusIn(tripId, [
                     WellKnownTripStatus.START,
                 ]);
@@ -505,8 +543,32 @@ const changeTripStatus = async (req: Request, res: Response) => {
                     );
                 }
 
-                trip.status = parseInt(status);
+                trip.status = status;
                 trip.endedBy = auth.id;
+            } else if (status == WellKnownTripStatus.PENDING) {
+                trip = await tripService.findByIdAndStatusIn(tripId, [
+                    WellKnownTripStatus.START,
+                ]);
+
+                if (!trip) {
+                    throw new BadRequestError(
+                        'Trip not found or not in start status!'
+                    );
+                }
+
+                let isPlaceReached = trip?.places.find(
+                    (place: any) => place.isReached == true
+                );
+
+                if (isPlaceReached) {
+                    throw new BadRequestError(
+                        "Can't change status to pending after reached at least one place!"
+                    );
+                }
+
+                trip.status = status;
+                trip.updatedBy = auth.id;
+                trip.startedBy = null;
             } else {
                 let statusName = helperUtil.getNameFromEnum(
                     WellKnownTripStatus,
@@ -524,10 +586,12 @@ const changeTripStatus = async (req: Request, res: Response) => {
     }
 
     let message = '';
-    if (parseInt(status) != WellKnownTripStatus.START) {
-        message = 'Trip staerted successfully!';
-    } else if (parseInt(status) != WellKnownTripStatus.FINISHED) {
+    if (status == WellKnownTripStatus.START) {
+        message = 'Trip started successfully!';
+    } else if (status == WellKnownTripStatus.FINISHED) {
         message = 'Trip finished successfully!';
+    } else if (status == WellKnownTripStatus.PENDING) {
+        message = 'Trip pending successfully!';
     }
 
     CommonResponse(res, true, StatusCodes.OK, message, null);
@@ -591,6 +655,96 @@ const getCheckListAnswers = async (req: Request, res: Response) => {
 
     CommonResponse(res, true, StatusCodes.OK, '', trip.checkListAnswers);
 };
+
+const getPlacesByTripId = async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const trip = await tripService.findTripPlacesByTripIdAndStatusIn(id, [
+        WellKnownTripStatus.PENDING,
+        WellKnownTripStatus.START,
+        WellKnownTripStatus.FINISHED,
+    ]);
+
+    if (!trip) {
+        throw new BadRequestError('Invalid trip!');
+    }
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        '',
+        tripUtil.TripModelArrToTripPlaceResponseDtos(trip.places)
+    );
+};
+
+const markPlaceAsReached = async (req: Request, res: Response) => {
+    const { tripId, placeId } = req.params;
+    const auth = req.auth;
+    const body = req.body;
+
+    const { error } = tripValidation.markPlaceSchema.validate(body);
+
+    if (error) {
+        throw new BadRequestError(error.message);
+    }
+
+    try {
+        // get trip by status running
+        let trip = await tripService.findByIdAndStatusIn(tripId, [
+            WellKnownTripStatus.START,
+        ]);
+
+        if (!trip) {
+            throw new BadRequestError('Started trip not found!');
+        }
+
+        // get active driver
+        let driver = trip.drivers.find(
+            (driver: any) => driver.isActive == true
+        );
+
+        if (!driver) {
+            throw new BadRequestError('No active driver found!');
+        }
+
+        if (driver.driver?.toString() != auth.id) {
+            throw new BadRequestError(
+                'Only active driver can update place as reached!'
+            );
+        }
+
+        // find place by id from place array
+        let place = trip.places.find((place: any) => place._id == placeId);
+
+        if (!place) {
+            throw new BadRequestError('Place not found!');
+        }
+
+        if (place.isReached == true) {
+            throw new BadRequestError('Place already reached!');
+        }
+
+        // udpate place as reached
+        place.isReached = true;
+        place.reachedDate = new Date();
+        place.reachedBy = auth.id;
+        place.location = body.location;
+
+        // save trip
+        await tripService.save(trip, null);
+
+        CommonResponse(
+            res,
+            true,
+            StatusCodes.OK,
+            'Place marked as reached successfully!',
+            null
+        );
+    } catch (error) {
+        throw error;
+    }
+};
 export {
     saveTrip,
     updateTrip,
@@ -601,4 +755,6 @@ export {
     saveCheckListAnswers,
     getCheckListAnswers,
     changeTripStatus,
+    getPlacesByTripId,
+    markPlaceAsReached,
 };
