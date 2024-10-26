@@ -80,6 +80,49 @@ const findTripPlacesByTripIdAndStatusIn = async (
     });
 };
 
+// const findAllByStatusIn = async (status: number[]) => {
+//     return Trip.find({ status: { $in: status } })
+// .populate('createdBy updatedBy startedBy endedBy')
+// .populate({
+//     path: 'drivers.driver',
+//     model: 'User',
+//     match: { 'drivers.isActive': true },
+// })
+// .populate({
+//     path: 'vehicles.vehicle',
+//     model: 'Vehicle',
+// })
+// .sort({ startDate: 1 });
+// };
+
+const findAllByEndMonthAndStatusIn = async (
+    endMonth: number,
+    currYear: number,
+    status: number[]
+) => {
+    let endDate = new Date();
+    endDate.setFullYear(currYear);
+    endDate.setMonth(endMonth - 1);
+    endDate = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0);
+
+    return Trip.find({
+        endDate: { $lt: endDate },
+        status: { $in: status },
+        isMonthEndDone: false,
+    })
+        .populate('createdBy updatedBy startedBy endedBy')
+        .populate({
+            path: 'drivers.driver',
+            model: 'User',
+            match: { 'drivers.isActive': true },
+        })
+        .populate({
+            path: 'vehicles.vehicle',
+            model: 'Vehicle',
+        })
+        .sort({ startDate: 1 });
+};
+
 export default {
     save,
     findByIdAndStatusIn,
@@ -87,4 +130,5 @@ export default {
     findAllByStatusIn,
     findAllByDriverIdAndStatusIn,
     findTripPlacesByTripIdAndStatusIn,
+    findAllByEndMonthAndStatusIn,
 };

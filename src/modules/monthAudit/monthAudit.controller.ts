@@ -16,6 +16,13 @@ import CommonResponse from '../../util/commonResponse';
 import { StatusCodes } from 'http-status-codes';
 import WorkingInfoResponseDto from './dto/workingInfoResponseDto';
 import monthAuditUtil from './monthAudit.util';
+import {
+    TripPlaceResponseDto,
+    TripResponseDtoGetAll,
+} from '../trip/dto/tripResponseDtos';
+import tripService from '../trip/trip.service';
+import { WellKnownTripStatus } from '../../util/enums/well-known-trip-status.enum';
+import tripUtil from '../trip/trip.util';
 
 const createNewDate = async (req: Request, res: Response) => {
     const auth: any = req.auth;
@@ -30,6 +37,12 @@ const createNewDate = async (req: Request, res: Response) => {
         session.startTransaction();
 
         await monthEndDoneForLeave(
+            lastCompanyInfo.workingMonth,
+            lastCompanyInfo.workingYear,
+            session
+        );
+
+        await monthEndDoneForTrip(
             lastCompanyInfo.workingMonth,
             lastCompanyInfo.workingYear,
             session
@@ -57,7 +70,7 @@ const createNewDate = async (req: Request, res: Response) => {
             updatedBy: auth.id,
         });
 
-        createdMonth =  await monthAuditService.save(monthAuditNew, session);
+        createdMonth = await monthAuditService.save(monthAuditNew, session);
 
         await session.commitTransaction();
     } catch (error) {
@@ -67,7 +80,13 @@ const createNewDate = async (req: Request, res: Response) => {
         session.endSession();
     }
 
-    return CommonResponse(res, true, StatusCodes.CREATED,  `Month Audit successfully done and System date move to ${month}/${year}!`, createdMonth);
+    return CommonResponse(
+        res,
+        true,
+        StatusCodes.CREATED,
+        `Month Audit successfully done and System date move to ${month}/${year}!`,
+        createdMonth
+    );
 };
 
 const monthEndDoneForLeave = async (
@@ -90,6 +109,28 @@ const monthEndDoneForLeave = async (
     for (const leave of leaves) {
         leave.isMonthEndDone = true;
         await leaveService.save(leave, session);
+    }
+};
+
+const monthEndDoneForTrip = async (
+    currMonth: number,
+    currYear: number,
+    session: any
+) => {
+    const trips: any[] = await tripService.findAllByEndMonthAndStatusIn(
+        currMonth,
+        currYear,
+        [
+            WellKnownTripStatus.PENDING,
+            WellKnownTripStatus.START,
+            WellKnownTripStatus.FINISHED,
+            WellKnownTripStatus.CANCELED,
+        ]
+    );
+
+    for (const trip of trips) {
+        trip.isMonthEndDone = true;
+        await tripService.save(trip, session);
     }
 };
 
@@ -148,18 +189,48 @@ const getPendingLeaves = async (req: Request, res: Response) => {
 const getWorkingInformation = async (req: Request, res: Response) => {
     const auth: any = req.auth;
 
-    let response : WorkingInfoResponseDto = Object.create(null);
+    let response: WorkingInfoResponseDto = Object.create(null);
 
     let lastCompanyInfo: any =
         await companyWorkingInfoService.getCompanyWorkingInfo();
-    
+
     if (!lastCompanyInfo) {
         throw new BadRequestError('No active company information found!');
     }
 
-    response = monthAuditUtil.companyWorkingInfoToWorkingInfoResponseDto(lastCompanyInfo);
+    response =
+        monthAuditUtil.companyWorkingInfoToWorkingInfoResponseDto(
+            lastCompanyInfo
+        );
 
     CommonResponse(res, true, StatusCodes.OK, '', response);
-}
+};
 
-export { createNewDate, getPendingLeaves, getWorkingInformation};
+const getTripInfoForWorkingMonth = async (req: Request, res: Response) => {
+    let response: TripResponseDtoGetAll[] = [];
+    const activeCompanyInfo: any =
+        await companyWorkingInfoService.getCompanyWorkingInfo();
+
+    if (!activeCompanyInfo) {
+        throw new BadRequestError('No active company information found!');
+    }
+
+    const trips = await tripService.findAllByEndMonthAndStatusIn(
+        activeCompanyInfo.workingMonth,
+        activeCompanyInfo.workingYear,
+        [WellKnownTripStatus.PENDING, WellKnownTripStatus.START]
+    );
+
+    if (trips?.length > 0) {
+        response = tripUtil.tripModelArrToTripResponseDtoGetAlls(trips);
+    }
+
+    CommonResponse(res, true, StatusCodes.OK, '', response);
+};
+
+export {
+    createNewDate,
+    getPendingLeaves,
+    getWorkingInformation,
+    getTripInfoForWorkingMonth,
+};

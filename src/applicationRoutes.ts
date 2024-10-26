@@ -54,6 +54,7 @@ const applicationRoutes = {
         getPendingLeaves: '/pendingLeaves',
         createNewMonth: '/createNewMonth',
         getWorkingInfo: '/workingInfo',
+        getTripForWorkingMonth: '/pendingTrip',
     },
 
     vehicle: {
