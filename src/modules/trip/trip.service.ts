@@ -102,8 +102,8 @@ const findAllByEndMonthAndStatusIn = async (
 ) => {
     let endDate = new Date();
     endDate.setFullYear(currYear);
-    endDate.setMonth(endMonth - 1);
-    endDate = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0);
+    endDate.setMonth(endMonth);
+    endDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
 
     return Trip.find({
         endDate: { $lt: endDate },

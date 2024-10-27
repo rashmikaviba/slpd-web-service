@@ -145,6 +145,7 @@ const tripModelToTripResponseDtoGetAll = (trip: any): TripResponseDtoGetAll => {
         createdBy: trip.createdBy?._id || '',
         updatedBy: trip.updatedBy?._id || '',
         startedBy: trip.startedBy?._id || null,
+        isMonthEndDone: trip.isMonthEndDone || false,
         endedBy: trip.endedBy?._id || null,
         createdUser: trip.createdBy?.fullName || '',
         updatedUser: trip.updatedBy?.fullName || '',
