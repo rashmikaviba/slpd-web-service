@@ -170,25 +170,25 @@ const updateTrip = async (req: Request, res: Response) => {
             });
 
             // check if try to change isReached place index
-            if (isReachedPlaces.length > 0) {
-                let isReachedPlaceValid = true;
+            // if (isReachedPlaces.length > 0) {
+            //     let isReachedPlaceValid = true;
 
-                isReachedPlaces.forEach((p: any) => {
-                    let sleetedPlace = places.find((place: any) => {
-                        return place._id.toString() === p._id.toString();
-                    });
+            //     isReachedPlaces.forEach((p: any) => {
+            //         let sleetedPlace = places.find((place: any) => {
+            //             return place._id.toString() === p._id.toString();
+            //         });
 
-                    if (sleetedPlace.index !== p.index) {
-                        isReachedPlaceValid = false;
-                    }
-                });
+            //         if (sleetedPlace.index !== p.index) {
+            //             isReachedPlaceValid = false;
+            //         }
+            //     });
 
-                if (!isReachedPlaceValid) {
-                    throw new BadRequestError(
-                        'Can not change reached place Order!'
-                    );
-                }
-            }
+            //     if (!isReachedPlaceValid) {
+            //         throw new BadRequestError(
+            //             'Can not change reached place Order!'
+            //         );
+            //     }
+            // }
 
             let savedPlaces: any[] = [...trip.places];
             let placesFromBody: any[] = [...places];
