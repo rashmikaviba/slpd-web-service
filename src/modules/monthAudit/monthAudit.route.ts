@@ -2,7 +2,12 @@ import { Router } from 'express';
 import applicationRoutes from '../../applicationRoutes';
 import authMiddleware from '../../middleware/auth.middleware';
 import constants from '../../constant';
-import { createNewDate, getPendingLeaves, getWorkingInformation } from './monthAudit.controller';
+import {
+    createNewDate,
+    getPendingLeaves,
+    getWorkingInformation,
+    getTripInfoForWorkingMonth,
+} from './monthAudit.controller';
 
 const MonthAuditRouter = Router();
 
@@ -22,6 +27,12 @@ MonthAuditRouter.get(
     applicationRoutes.monthAudit.getWorkingInfo,
     authMiddleware.authorize([]),
     getWorkingInformation
-)
+);
+
+MonthAuditRouter.get(
+    applicationRoutes.monthAudit.getTripForWorkingMonth,
+    authMiddleware.authorize([constants.USER.ROLES.SUPERADMIN]),
+    getTripInfoForWorkingMonth
+);
 
 export default MonthAuditRouter;

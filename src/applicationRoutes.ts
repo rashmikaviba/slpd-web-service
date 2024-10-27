@@ -5,6 +5,7 @@ const applicationRoutes = {
         base: '/common',
         getAllGenders: '/gender',
         getAllRoles: '/role',
+        getCommonData: '/data',
     },
 
     store: {
@@ -23,6 +24,7 @@ const applicationRoutes = {
         blockUser: '/block/:id',
         unblockUser: '/unblock/:id',
         validateUser: '/validateUser',
+        getUsersByRole: '/userByRole/:id',
     },
 
     auth: {
@@ -52,6 +54,37 @@ const applicationRoutes = {
         getPendingLeaves: '/pendingLeaves',
         createNewMonth: '/createNewMonth',
         getWorkingInfo: '/workingInfo',
+        getTripForWorkingMonth: '/pendingTrip',
+    },
+
+    vehicle: {
+        base: '/vehicle',
+        save: '/',
+        getAll: '/',
+        getById: '/:id',
+        update: '/:id',
+        deleteById: '/:id',
+        activeInactiveVehicles: '/activeInactive/:id',
+        getByPassengersCount: '/passengerCount/:count',
+    },
+
+    trip: {
+        base: '/trip',
+        saveTrip: '/',
+        getAllTrips: '/',
+        getTripById: '/:id',
+        update: '/:id',
+        deleteById: '/:id',
+        assignDriver: '/assignDriver/:id',
+        changeTripStatus: '/:id/status/:status',
+        undoTripStatus: '/:id/undoStatus/:status',
+        // checklist routes
+        saveCheckList: '/checkList/:id',
+        getCheckList: '/checkList/:id',
+
+        // places routes
+        getPlacesByTrip: '/places/:id',
+        markAsReached: '/:tripId/markAsReached/:placeId',
     },
 };
 
