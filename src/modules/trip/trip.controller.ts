@@ -15,6 +15,9 @@ import constants from '../../constant';
 import userService from '../user/user.service';
 import vehicleService from '../vehicle/vehicle.service';
 import helperUtil from '../../util/helper.util';
+import Expenses from '../expenses/expenses.model';
+import expensesService from '../expenses/expenses.service';
+import { startSession } from 'mongoose';
 
 const saveTrip = async (req: Request, res: Response) => {
     const body: any = req.body;
@@ -493,7 +496,11 @@ const changeTripStatus = async (req: Request, res: Response) => {
     const auth = req.auth;
     const status = parseInt(req.params.status);
 
+    const session = await startSession();
+
     try {
+        session.startTransaction();
+
         if (!helperUtil.isValueInEnum(WellKnownTripStatus, status)) {
             throw new BadRequestError('Invalid status!');
         }
@@ -515,6 +522,17 @@ const changeTripStatus = async (req: Request, res: Response) => {
 
                 trip.status = status;
                 trip.startedBy = auth.id;
+
+                // Create expenses
+                let expenses = new Expenses({
+                    tripId: tripId,
+                    createdBy: auth.id,
+                    updatedBy: auth.id,
+                    expenses: [],
+                    driverSalary: null,
+                });
+
+                await expensesService.save(expenses, session);
             } else if (status == WellKnownTripStatus.PENDING) {
                 trip = await tripService.findByIdAndStatusIn(tripId, [
                     WellKnownTripStatus.START,
@@ -539,6 +557,12 @@ const changeTripStatus = async (req: Request, res: Response) => {
                 trip.status = status;
                 trip.startedBy = null;
                 trip.updatedBy = auth.id;
+
+                // delete expenses
+                await expensesService.findAndHardDeleteByTripId(
+                    tripId,
+                    session
+                );
             } else {
                 let statusName = helperUtil.getNameFromEnum(
                     WellKnownTripStatus,
@@ -593,6 +617,12 @@ const changeTripStatus = async (req: Request, res: Response) => {
                 trip.status = status;
                 trip.updatedBy = auth.id;
                 trip.startedBy = null;
+
+                // delete expenses
+                await expensesService.findAndHardDeleteByTripId(
+                    tripId,
+                    session
+                );
             } else {
                 let statusName = helperUtil.getNameFromEnum(
                     WellKnownTripStatus,
@@ -604,9 +634,16 @@ const changeTripStatus = async (req: Request, res: Response) => {
             }
         }
 
-        await tripService.save(trip, null);
-    } catch (error) {
-        throw error;
+        await tripService.save(trip, session);
+
+        await session.commitTransaction();
+    } catch (e) {
+        //abort transaction
+        await session.abortTransaction();
+        throw e;
+    } finally {
+        //end session
+        session.endSession();
     }
 
     let message = '';

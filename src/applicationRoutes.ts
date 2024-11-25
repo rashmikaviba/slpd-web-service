@@ -86,6 +86,14 @@ const applicationRoutes = {
         getPlacesByTrip: '/places/:id',
         markAsReached: '/:tripId/markAsReached/:placeId',
     },
+
+    expenses: {
+        base: '/expenses',
+        save: '/:tripId',
+        update: '/:tripId/:expenseId',
+        deleteById: '/:tripId/:expenseId',
+        getAll: '/',
+    },
 };
 
 export default applicationRoutes;
