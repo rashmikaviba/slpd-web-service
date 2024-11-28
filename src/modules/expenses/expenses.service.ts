@@ -17,7 +17,10 @@ const findAndHardDeleteByTripId = async (tripId: string, session: any) => {
 };
 
 const findByTripIdAndStatusIn = async (tripId: string, status: number[]) => {
-    return Expenses.findOne({ tripId: tripId, status: { $in: status } });
+    return Expenses.findOne({
+        tripId: tripId,
+        status: { $in: status },
+    }).populate('tripId');
 };
 
 export default {

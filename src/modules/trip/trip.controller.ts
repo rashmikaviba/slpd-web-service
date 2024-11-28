@@ -18,6 +18,7 @@ import helperUtil from '../../util/helper.util';
 import Expenses from '../expenses/expenses.model';
 import expensesService from '../expenses/expenses.service';
 import { startSession } from 'mongoose';
+import { number } from 'joi';
 
 const saveTrip = async (req: Request, res: Response) => {
     const body: any = req.body;
@@ -333,6 +334,42 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
             WellKnownTripStatus.START,
             WellKnownTripStatus.FINISHED,
         ]);
+
+        // for (let i = 0; i < trips.length; i++) {
+        //     const trip: any = trips[i];
+        //     if (
+        //         trip.status === WellKnownTripStatus.START ||
+        //         trip.status === WellKnownTripStatus.FINISHED
+        //     ) {
+        //         const expense: any =
+        //             await expensesService.findByTripIdAndStatusIn(
+        //                 trip._id.toString(),
+        //                 [WellKnownStatus.ACTIVE]
+        //             );
+        //         if (expense) {
+        //             trip.isDriverSalaryDone = expense?.driverSalary != null;
+        //         }
+        //     }
+        // }
+
+        await Promise.all(
+            trips.map(async (trip: any) => {
+                if (
+                    trip.status === WellKnownTripStatus.START ||
+                    trip.status === WellKnownTripStatus.FINISHED
+                ) {
+                    const expense =
+                        await expensesService.findByTripIdAndStatusIn(
+                            trip._id.toString(),
+                            [WellKnownStatus.ACTIVE]
+                        );
+                    if (expense) {
+                        trip.isDriverSalaryDone =
+                            expense.toObject()?.driverSalary != null;
+                    }
+                }
+            })
+        );
 
         response = tripUtil.tripModelArrToTripResponseDtoGetAlls(trips);
     } else if (auth.role === constants.USER.ROLES.DRIVER) {

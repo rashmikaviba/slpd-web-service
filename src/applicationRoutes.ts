@@ -88,11 +88,11 @@ const applicationRoutes = {
     },
 
     expenses: {
-        base: '/expenses',
+        base: '/expense',
         save: '/:tripId',
         update: '/:tripId/:expenseId',
         deleteById: '/:tripId/:expenseId',
-        getAll: '/',
+        getAllExpensesByTrip: '/:tripId',
     },
 };
 

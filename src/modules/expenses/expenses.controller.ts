@@ -8,6 +8,8 @@ import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
 import Expenses from './expenses.model';
 import { StatusCodes } from 'http-status-codes';
 import CommonResponse from '../../util/commonResponse';
+import TripExpensesResponseDto from './dto/tripExpensesResponseDto';
+import expensesUtils from './expenses.util';
 
 const saveExpense = async (req: Request, res: Response) => {
     const tripId: any = req.params.tripId;
@@ -201,4 +203,50 @@ const deleteExpense = async (req: Request, res: Response) => {
     }
 };
 
-export { saveExpense, updateExpense, deleteExpense };
+const getExpenseByTripId = async (req: Request, res: Response) => {
+    const tripId: any = req.params.tripId;
+
+    try {
+        let expense: any = await expensesService.findByTripIdAndStatusIn(
+            tripId,
+            [WellKnownStatus.ACTIVE]
+        );
+
+        let response: TripExpensesResponseDto | null = null;
+
+        if (expense) {
+            // get only active expenses
+            let activeExpenses = expense.expenses.filter(
+                (exp: any) => exp.status === WellKnownStatus.ACTIVE
+            );
+
+            let totalExpensesAmount = activeExpenses.reduce(
+                (total: number, exp: any) => total + exp.amount,
+                0
+            );
+
+            expense.expenses = activeExpenses;
+            expense.tripExpensesAmount = expense?.tripId?.estimatedExpense;
+            expense.totalTripExpensesAmount = totalExpensesAmount;
+            expense.remainingTripExpensesAmount =
+                expense?.tripExpensesAmount - totalExpensesAmount;
+
+            response =
+                expensesUtils.ExpensesModelToTripExpensesResponseDto(expense);
+        }
+
+        CommonResponse(res, true, StatusCodes.OK, '', response);
+
+        // _id: string;
+        // tripId: string;
+        // expenses: any[];
+        // driverSalary: any;
+        // isMonthEndDone: boolean;
+        // tripExpensesAmount: number;
+        // totalTripExpensesAmount: number;
+        // remainingTripExpensesAmount: number;
+    } catch (error) {
+        throw error;
+    }
+};
+export { saveExpense, updateExpense, deleteExpense, getExpenseByTripId };

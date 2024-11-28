@@ -7,6 +7,7 @@ import {
     saveExpense,
     updateExpense,
     deleteExpense,
+    getExpenseByTripId,
 } from './expenses.controller';
 
 const ExpensesRouter = Router();
@@ -45,5 +46,12 @@ ExpensesRouter.delete(
         constants.USER.ROLES.DRIVER,
     ]),
     deleteExpense
+);
+
+// getExpenseById
+ExpensesRouter.get(
+    applicationRoutes.expenses.getAllExpensesByTrip,
+    authMiddleware.authorize([]),
+    getExpenseByTripId
 );
 export default ExpensesRouter;

@@ -100,6 +100,7 @@ interface TripResponseDtoGetAll {
     tripConfirmedNumber: string;
     canUndo: boolean;
     isMonthEndDone: boolean;
+    isDriverSalaryDone: boolean;
     contactPerson: string;
     activeVehicleId: string;
     activeRegistrationNumber: string;
