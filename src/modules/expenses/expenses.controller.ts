@@ -189,7 +189,7 @@ const deleteExpense = async (req: Request, res: Response) => {
         updatedExpense.updatedBy = auth.id;
         updatedExpense.updatedAt = new Date();
 
-        await expensesService.save(expense, expenseId);
+        await expensesService.save(expense, null);
 
         CommonResponse(
             res,
@@ -249,4 +249,41 @@ const getExpenseByTripId = async (req: Request, res: Response) => {
         throw error;
     }
 };
-export { saveExpense, updateExpense, deleteExpense, getExpenseByTripId };
+
+const getExpenseByTripIdAndExpenseId = async (req: Request, res: Response) => {
+    const tripId: any = req.params.tripId;
+    const expenseId: any = req.params.expenseId;
+
+    try {
+        let expense: any = await expensesService.findByTripIdAndStatusIn(
+            tripId,
+            [WellKnownStatus.ACTIVE]
+        );
+
+        let response: any = null;
+
+        if (expense) {
+            let expenseData: any = expense.expenses.find(
+                (exp: any) =>
+                    exp.id === expenseId &&
+                    exp.status === WellKnownStatus.ACTIVE
+            );
+
+            if (expenseData) {
+                response = expenseData;
+            }
+        }
+
+        CommonResponse(res, true, StatusCodes.OK, '', response);
+    } catch (error) {
+        throw error;
+    }
+};
+
+export {
+    saveExpense,
+    updateExpense,
+    deleteExpense,
+    getExpenseByTripId,
+    getExpenseByTripIdAndExpenseId,
+};

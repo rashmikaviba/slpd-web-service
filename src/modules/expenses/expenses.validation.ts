@@ -13,7 +13,7 @@ const saveExpenseSchema = Joi.object({
         'number.base': 'Amount is invalid',
     }),
 
-    description: Joi.string().max(500).messages({
+    description: Joi.string().max(500).allow(null).allow('').messages({
         'string.max': 'Description should not be more than 500 characters',
         'string.base': 'Description is invalid',
     }),
@@ -23,9 +23,8 @@ const saveExpenseSchema = Joi.object({
         'date.base': 'Date is invalid',
     }),
 
-    receiptUrl: Joi.string().uri().allow(null).optional().messages({
+    receiptUrl: Joi.string().allow(null).allow('').optional().messages({
         'string.base': 'Receipt URL is invalid',
-        'string.uri': 'Receipt URL is invalid',
     }),
 });
 

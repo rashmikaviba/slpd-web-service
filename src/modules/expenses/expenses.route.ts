@@ -8,6 +8,7 @@ import {
     updateExpense,
     deleteExpense,
     getExpenseByTripId,
+    getExpenseByTripIdAndExpenseId,
 } from './expenses.controller';
 
 const ExpensesRouter = Router();
@@ -53,5 +54,12 @@ ExpensesRouter.get(
     applicationRoutes.expenses.getAllExpensesByTrip,
     authMiddleware.authorize([]),
     getExpenseByTripId
+);
+
+// Get getExpensesById
+ExpensesRouter.get(
+    applicationRoutes.expenses.getExpensesById,
+    authMiddleware.authorize([]),
+    getExpenseByTripIdAndExpenseId
 );
 export default ExpensesRouter;

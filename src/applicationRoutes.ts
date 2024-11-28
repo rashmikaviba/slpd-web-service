@@ -93,6 +93,7 @@ const applicationRoutes = {
         update: '/:tripId/:expenseId',
         deleteById: '/:tripId/:expenseId',
         getAllExpensesByTrip: '/:tripId',
+        getExpensesById: '/:tripId/:expenseId',
     },
 };
 

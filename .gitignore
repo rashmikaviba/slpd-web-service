@@ -111,6 +111,7 @@ src/uploads/GSCertificate/*
 src/uploads/DrivingLicense/*
 src/uploads/SLTDACertificate/*
 src/uploads/PoliceReport/*
+src/uploads/ExpensesRecept/*
 
 # ProfileImage = 1,
 # NICImage = 2,
@@ -118,4 +119,3 @@ src/uploads/PoliceReport/*
 # DrivingLicense = 4,
 # SLTDACertificate = 5,
 # PoliceReport = 6,
-src/uploads/ExpensesRecept/1732816509034-download (1).jpg
