@@ -19,6 +19,8 @@ import Expenses from '../expenses/expenses.model';
 import expensesService from '../expenses/expenses.service';
 import { startSession } from 'mongoose';
 import { number } from 'joi';
+import TripExpensesResponseDto from '../expenses/dto/tripExpensesResponseDto';
+import expensesUtil from '../expenses/expenses.util';
 
 const saveTrip = async (req: Request, res: Response) => {
     const body: any = req.body;
@@ -843,6 +845,59 @@ const markPlaceAsReached = async (req: Request, res: Response) => {
         throw error;
     }
 };
+
+const getTripForReport = async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    try {
+        let trip: any = await tripService.findByIdAndStatusIn(id, [
+            WellKnownTripStatus.PENDING,
+            WellKnownTripStatus.START,
+            WellKnownTripStatus.FINISHED,
+        ]);
+
+        if (trip) {
+            trip = trip.toObject();
+            //  get expense by trip id and status active
+            let expense: any = await expensesService.findByTripIdAndStatusIn(
+                trip._id.toString(),
+                [WellKnownStatus.ACTIVE]
+            );
+
+            let response: TripExpensesResponseDto | null = null;
+
+            if (expense) {
+                // get only active expenses
+                let activeExpenses = expense.expenses.filter(
+                    (exp: any) => exp.status === WellKnownStatus.ACTIVE
+                );
+
+                let totalExpensesAmount = activeExpenses.reduce(
+                    (total: number, exp: any) => total + exp.amount,
+                    0
+                );
+
+                expense.expenses = activeExpenses;
+                expense.tripExpensesAmount = expense?.tripId?.estimatedExpense;
+                expense.totalTripExpensesAmount = totalExpensesAmount;
+                expense.remainingTripExpensesAmount =
+                    expense?.tripExpensesAmount - totalExpensesAmount;
+
+                response =
+                    expensesUtil.ExpensesModelToTripExpensesResponseDto(
+                        expense
+                    );
+            }
+
+            trip.expenses = response;
+        }
+
+        CommonResponse(res, true, StatusCodes.OK, '', trip);
+    } catch (error) {
+        throw error;
+    }
+};
+
 export {
     saveTrip,
     updateTrip,
@@ -855,4 +910,5 @@ export {
     changeTripStatus,
     getPlacesByTripId,
     markPlaceAsReached,
+    getTripForReport,
 };

@@ -62,4 +62,5 @@ ExpensesRouter.get(
     authMiddleware.authorize([]),
     getExpenseByTripIdAndExpenseId
 );
+
 export default ExpensesRouter;

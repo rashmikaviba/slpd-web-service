@@ -134,7 +134,7 @@ const updateExpense = async (req: Request, res: Response) => {
         updatedExpense.updatedBy = auth.id;
         updatedExpense.updatedAt = new Date();
 
-        await expensesService.save(expense, expenseId);
+        await expensesService.save(expense, null);
 
         CommonResponse(
             res,

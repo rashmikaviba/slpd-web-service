@@ -78,6 +78,8 @@ const applicationRoutes = {
         assignDriver: '/assignDriver/:id',
         changeTripStatus: '/:id/status/:status',
         undoTripStatus: '/:id/undoStatus/:status',
+        getTripForPrint: '/tripForPrint/:id',
+
         // checklist routes
         saveCheckList: '/checkList/:id',
         getCheckList: '/checkList/:id',
