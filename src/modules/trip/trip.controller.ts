@@ -356,6 +356,7 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
 
         await Promise.all(
             trips.map(async (trip: any) => {
+                trip.isDriverSalaryDone = false;
                 if (
                     trip.status === WellKnownTripStatus.START ||
                     trip.status === WellKnownTripStatus.FINISHED
@@ -367,7 +368,7 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
                         );
                     if (expense) {
                         trip.isDriverSalaryDone =
-                            expense.toObject()?.driverSalary != null;
+                            expense.toObject()?.driverSalary != null; //  expense.toObject()?.driverSalary != null;
                     }
                 }
             })

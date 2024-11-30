@@ -56,4 +56,32 @@ const updateExpenseSchema = Joi.object({
     }),
 });
 
-export default { saveExpenseSchema, updateExpenseSchema };
+const saveDriverSalarySchema = Joi.object({
+    salaryPerDay: Joi.number().required().messages({
+        'any.required': 'Salary Per Day is required',
+        'number.base': 'Salary Per Day is invalid',
+    }),
+
+    noOfDays: Joi.number().required().messages({
+        'any.required': 'No of Days is required',
+        'number.base': 'No of Days is invalid',
+    }),
+
+    totalAddition: Joi.number().messages({
+        'number.base': 'Total Addition is invalid',
+    }),
+
+    totalDeduction: Joi.number().messages({
+        'number.base': 'Total Deduction is invalid',
+    }),
+
+    isRemainingToDriver: Joi.boolean().messages({
+        'boolean.base': 'Is Remaining To Driver is invalid',
+    }),
+});
+
+export default {
+    saveExpenseSchema,
+    updateExpenseSchema,
+    saveDriverSalarySchema,
+};

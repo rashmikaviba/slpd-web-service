@@ -96,6 +96,7 @@ const applicationRoutes = {
         deleteById: '/:tripId/:expenseId',
         getAllExpensesByTrip: '/:tripId',
         getExpensesById: '/:tripId/:expenseId',
+        saveDriverSalary: '/saveSalary/:tripId',
     },
 };
 

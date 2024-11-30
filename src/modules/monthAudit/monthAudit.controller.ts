@@ -23,6 +23,8 @@ import {
 import tripService from '../trip/trip.service';
 import { WellKnownTripStatus } from '../../util/enums/well-known-trip-status.enum';
 import tripUtil from '../trip/trip.util';
+import expensesService from '../expenses/expenses.service';
+import assert from 'assert';
 
 const createNewDate = async (req: Request, res: Response) => {
     const auth: any = req.auth;
@@ -39,13 +41,15 @@ const createNewDate = async (req: Request, res: Response) => {
         await monthEndDoneForLeave(
             lastCompanyInfo.workingMonth,
             lastCompanyInfo.workingYear,
-            session
+            session,
+            auth?.id
         );
 
         await monthEndDoneForTrip(
             lastCompanyInfo.workingMonth,
             lastCompanyInfo.workingYear,
-            session
+            session,
+            auth?.id
         );
 
         if (lastCompanyInfo) {
@@ -92,7 +96,8 @@ const createNewDate = async (req: Request, res: Response) => {
 const monthEndDoneForLeave = async (
     currMonth: number,
     currYear: number,
-    session: any
+    session: any,
+    userId: string
 ) => {
     const leaves: any[] =
         await leaveService.findAllLeavesByMonthYearAndStatusIn(
@@ -108,6 +113,7 @@ const monthEndDoneForLeave = async (
 
     for (const leave of leaves) {
         leave.isMonthEndDone = true;
+        leave.updatedBy = userId;
         await leaveService.save(leave, session);
     }
 };
@@ -115,7 +121,8 @@ const monthEndDoneForLeave = async (
 const monthEndDoneForTrip = async (
     currMonth: number,
     currYear: number,
-    session: any
+    session: any,
+    userId: string
 ) => {
     const trips: any[] = await tripService.findAllByEndMonthAndStatusIn(
         currMonth,
@@ -128,8 +135,24 @@ const monthEndDoneForTrip = async (
         ]
     );
 
-    for (const trip of trips) {
+    for (let trip of trips) {
         trip.isMonthEndDone = true;
+        trip.updatedBy = userId;
+
+        if (trip.status == WellKnownTripStatus.FINISHED) {
+            // month end for expenses header
+            let expenseHeader: any =
+                await expensesService.findByTripIdAndStatusIn(trip._id, [
+                    WellKnownStatus.ACTIVE,
+                ]);
+
+            if (expenseHeader) {
+                expenseHeader.isMonthEndDone = true;
+                expenseHeader.updatedBy = userId;
+                await expensesService.save(expenseHeader, session);
+            }
+        }
+
         await tripService.save(trip, session);
     }
 };
@@ -215,11 +238,38 @@ const getTripInfoForWorkingMonth = async (req: Request, res: Response) => {
         throw new BadRequestError('No active company information found!');
     }
 
-    const trips = await tripService.findAllByEndMonthAndStatusIn(
+    let trips = await tripService.findAllByEndMonthAndStatusIn(
         activeCompanyInfo.workingMonth,
         activeCompanyInfo.workingYear,
-        [WellKnownTripStatus.PENDING, WellKnownTripStatus.START]
+        [
+            WellKnownTripStatus.PENDING,
+            WellKnownTripStatus.START,
+            WellKnownTripStatus.FINISHED,
+        ]
     );
+
+    await Promise.all(
+        trips.map(async (trip: any) => {
+            trip.isDriverSalaryDone = false;
+            if (
+                trip.status === WellKnownTripStatus.START ||
+                trip.status === WellKnownTripStatus.FINISHED
+            ) {
+                const expense = await expensesService.findByTripIdAndStatusIn(
+                    trip._id.toString(),
+                    [WellKnownStatus.ACTIVE]
+                );
+                if (expense) {
+                    trip.isDriverSalaryDone =
+                        expense.toObject()?.driverSalary != null; //  expense.toObject()?.driverSalary != null;
+                }
+            }
+        })
+    );
+
+    trips = trips.filter((trip: any) => {
+        return trip.isDriverSalaryDone == false;
+    });
 
     if (trips?.length > 0) {
         response = tripUtil.tripModelArrToTripResponseDtoGetAlls(trips);

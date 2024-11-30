@@ -93,8 +93,21 @@ const expensesSchema = new mongoose.Schema(
                 type: Number,
             },
 
-            otherExpenses: {
+            totalAddition: {
                 type: Number,
+            },
+
+            totalDeduction: {
+                type: Number,
+            },
+
+            remainingExpenses: {
+                type: Number,
+            },
+
+            isRemainingToDriver: {
+                type: Boolean,
+                default: false,
             },
 
             createdBy: {

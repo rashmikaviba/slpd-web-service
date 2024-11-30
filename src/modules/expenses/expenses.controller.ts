@@ -280,10 +280,151 @@ const getExpenseByTripIdAndExpenseId = async (req: Request, res: Response) => {
     }
 };
 
+const saveDriverSalary = async (req: Request, res: Response) => {
+    const tripId: any = req.params.tripId;
+    const auth: any = req.auth;
+    const body: any = req.body;
+
+    try {
+        let expense: any = await expensesService.findByTripIdAndStatusIn(
+            tripId,
+            [WellKnownStatus.ACTIVE]
+        );
+
+        if (!expense) {
+            throw new BadRequestError('No expense header found for this trip!');
+        }
+
+        let expenseDriverSalary: any = expense.toObject()?.driverSalary == null;
+        if (expenseDriverSalary) {
+            let driverSalary: any = {};
+            driverSalary.salaryPerDay = body.salaryPerDay;
+            driverSalary.noOfDays = body.noOfDays;
+            driverSalary.totalSalary = calculateDriverSalary(
+                expense?.tripId,
+                expense.expenses,
+                body.salaryPerDay,
+                body.noOfDays,
+                body.totalAddition,
+                body.totalDeduction,
+                body.isRemainingToDriver
+            );
+            driverSalary.totalAddition = body.totalAddition;
+            driverSalary.totalDeduction = body.totalDeduction;
+            driverSalary.remainingExpenses = calcRemainingExpenses(
+                expense?.tripId,
+                expense.expenses
+            );
+            driverSalary.isRemainingToDriver = body.isRemainingToDriver;
+            driverSalary.createdBy = auth.id;
+            driverSalary.updatedBy = auth.id;
+            driverSalary.createdAt = new Date();
+            driverSalary.updatedAt = new Date();
+
+            expense.driverSalary = driverSalary;
+        } else {
+            expense.driverSalary.salaryPerDay = body.salaryPerDay;
+            expense.driverSalary.noOfDays = body.noOfDays;
+            expense.driverSalary.totalSalary = calculateDriverSalary(
+                expense?.tripId,
+                expense.expenses,
+                body.salaryPerDay,
+                body.noOfDays,
+                body.totalAddition,
+                body.totalDeduction,
+                body.isRemainingToDriver
+            );
+            expense.driverSalary.totalAddition = body.totalAddition;
+            expense.driverSalary.totalDeduction = body.totalDeduction;
+            expense.driverSalary.remainingExpenses = calcRemainingExpenses(
+                expense?.tripId,
+                expense.expenses
+            );
+            expense.driverSalary.isRemainingToDriver = body.isRemainingToDriver;
+            expense.driverSalary.updatedBy = auth.id;
+            expense.driverSalary.updatedAt = new Date();
+        }
+
+        await expensesService.save(expense, null);
+
+        CommonResponse(
+            res,
+            true,
+            StatusCodes.OK,
+            'Driver salary saved successfully!',
+            null
+        );
+    } catch (error) {
+        throw error;
+    }
+};
+
+const calculateDriverSalary = (
+    trip: any,
+    expenses: any,
+    salaryPerDay: number,
+    noOfDays: number,
+    totalAddition: number,
+    totalDeduction: number,
+    isRemainingToDriver: boolean
+): number => {
+    let totalSalary: number = 0;
+    let activeExpenses = expenses.filter(
+        (exp: any) => exp.status === WellKnownStatus.ACTIVE
+    );
+
+    let totalExpensesAmount = activeExpenses.reduce(
+        (total: number, exp: any) => total + exp.amount,
+        0
+    );
+
+    let remainingExpenseAmount =
+        trip?.estimatedExpense - totalExpensesAmount || 0;
+
+    if (salaryPerDay > 0 && noOfDays > 0) {
+        totalSalary += salaryPerDay * noOfDays;
+    }
+
+    if (totalAddition > 0) {
+        totalSalary += totalAddition;
+    }
+
+    if (totalDeduction > 0) {
+        totalSalary -= totalDeduction;
+    }
+
+    if (remainingExpenseAmount > 0) {
+        if (isRemainingToDriver) {
+            totalSalary -= remainingExpenseAmount;
+        }
+    } else {
+        totalSalary += Math.abs(remainingExpenseAmount);
+    }
+
+    return totalSalary;
+};
+
+const calcRemainingExpenses = (trip: any, expenses: any) => {
+    let activeExpenses = expenses.filter(
+        (exp: any) => exp.status === WellKnownStatus.ACTIVE
+    );
+
+    let totalExpensesAmount = activeExpenses.reduce(
+        (total: number, exp: any) => total + exp.amount,
+        0
+    );
+
+    let remainingExpenseAmount =
+        trip?.estimatedExpense - totalExpensesAmount || 0;
+
+    return remainingExpenseAmount;
+};
+
 export {
     saveExpense,
     updateExpense,
     deleteExpense,
     getExpenseByTripId,
     getExpenseByTripIdAndExpenseId,
+    saveDriverSalary,
 };
