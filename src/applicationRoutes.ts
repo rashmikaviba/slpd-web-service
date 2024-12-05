@@ -98,6 +98,14 @@ const applicationRoutes = {
         getExpensesById: '/:tripId/:expenseId',
         saveDriverSalary: '/saveSalary/:tripId',
     },
+
+    report: {
+        base: '/report',
+        monthlyTripReport: '/monthlyTripReport',
+        monthlyExpensesReport: '/monthlyExpensesReport',
+        monthlyDriverSalary: '/monthlyDriverSalary',
+        monthlyIncomeReport: '/monthlyIncomeReport',
+    }
 };
 
 export default applicationRoutes;

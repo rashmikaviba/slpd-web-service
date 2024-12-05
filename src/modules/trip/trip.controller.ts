@@ -337,23 +337,6 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
             WellKnownTripStatus.FINISHED,
         ]);
 
-        // for (let i = 0; i < trips.length; i++) {
-        //     const trip: any = trips[i];
-        //     if (
-        //         trip.status === WellKnownTripStatus.START ||
-        //         trip.status === WellKnownTripStatus.FINISHED
-        //     ) {
-        //         const expense: any =
-        //             await expensesService.findByTripIdAndStatusIn(
-        //                 trip._id.toString(),
-        //                 [WellKnownStatus.ACTIVE]
-        //             );
-        //         if (expense) {
-        //             trip.isDriverSalaryDone = expense?.driverSalary != null;
-        //         }
-        //     }
-        // }
-
         await Promise.all(
             trips.map(async (trip: any) => {
                 trip.isDriverSalaryDone = false;
@@ -373,7 +356,7 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
                 }
             })
         );
-
+        sortTrips(trips);
         response = tripUtil.tripModelArrToTripResponseDtoGetAlls(trips);
     } else if (auth.role === constants.USER.ROLES.DRIVER) {
         const trips: any = await tripService.findAllByDriverIdAndStatusIn(
@@ -396,11 +379,24 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
                 trip.isActiveDriver = false;
             }
         });
-
+        sortTrips(trips);
         response = tripUtil.tripModelArrToTripResponseDtoGetAlls(trips);
     }
 
     CommonResponse(res, true, StatusCodes.OK, '', response);
+};
+
+const sortTrips = (trips: any[]) => {
+    const priorityMap: any = {
+        [WellKnownTripStatus.START]: 1,
+        [WellKnownTripStatus.PENDING]: 2,
+        [WellKnownTripStatus.FINISHED]: 3,
+    };
+
+    // Sort based on the priority map
+    trips.sort((a: any, b: any) => {
+        return priorityMap[a.status] - priorityMap[b.status];
+    });
 };
 
 const assignDriverAndVehicle = async (req: Request, res: Response) => {
@@ -849,6 +845,7 @@ const markPlaceAsReached = async (req: Request, res: Response) => {
 
 const getTripForReport = async (req: Request, res: Response) => {
     const { id } = req.params;
+    const auth = req.auth;
 
     try {
         let trip: any = await tripService.findByIdAndStatusIn(id, [
@@ -857,7 +854,13 @@ const getTripForReport = async (req: Request, res: Response) => {
             WellKnownTripStatus.FINISHED,
         ]);
 
-        if (trip) {
+        let roleArr = [
+            constants.USER.ROLES.ADMIN,
+            constants.USER.ROLES.SUPERADMIN,
+            constants.USER.ROLES.TRIPMANAGER,
+            constants.USER.ROLES.FINANCEOFFICER,
+        ];
+        if (trip && roleArr.includes(auth.role)) {
             trip = trip.toObject();
             //  get expense by trip id and status active
             let expense: any = await expensesService.findByTripIdAndStatusIn(
