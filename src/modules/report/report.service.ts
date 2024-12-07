@@ -6,11 +6,11 @@ const findAllTripsByDateAndStatusIn = async (date: Date, status: number[]) => {
     let monthStartDate = new Date(date.getFullYear(), date.getMonth(), 1);
     let monthEndDate = new Date(date.getFullYear(), date.getMonth() + 1, 1);
 
-    return await Trip.find({ startDate: { $gte: monthStartDate, $lt: monthEndDate }, status: { $in: status } }).lean();
+    return await Trip.find({ endDate: { $gte: monthStartDate, $lt: monthEndDate }, status: { $in: status } }).lean();
 }
 
 const findAllExpensesByTripIds = async (tripIds: string[]) => {
-    return await Expenses.find({ trip: { $in: tripIds }, 'expenses.status': WellKnownStatus.ACTIVE, })
+    return await Expenses.find({ tripId: { $in: tripIds }, 'expenses.status': WellKnownStatus.ACTIVE, })
         .populate('tripId')
         .populate({
             path: 'expenses.createdBy expenses.updatedBy',
@@ -21,7 +21,7 @@ const findAllExpensesByTripIds = async (tripIds: string[]) => {
 }
 
 const findAllDriverSalaryByTripIds = async (tripIds: string[]) => {
-    return await Expenses.find({ trip: { $in: tripIds }, driverSalary: { $ne: null } })
+    return await Expenses.find({ tripId: { $in: tripIds }, driverSalary: { $ne: null } })
         .populate({
             path: 'tripId',
             populate: {
