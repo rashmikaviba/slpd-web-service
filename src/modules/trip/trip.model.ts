@@ -30,6 +30,11 @@ const tripSchema = new mongoose.Schema(
             required: [true, 'Total Cost is required'],
         },
 
+        totalCostLocalCurrency: {
+            type: Number,
+            required: [true, 'Total Cost Local Currency is required'],
+        },
+
         estimatedExpense: {
             type: Number,
             required: [true, 'Estimated Expense is required'],

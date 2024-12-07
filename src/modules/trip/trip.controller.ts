@@ -78,6 +78,7 @@ const saveTrip = async (req: Request, res: Response) => {
             endDate: body.endDate,
             dateCount: body.dateCount,
             totalCost: body.totalCost,
+            totalCostLocalCurrency: body.totalCostLocalCurrency,
             contactPerson: body.contactPerson,
             estimatedExpense: body.estimatedExpense,
             tripConfirmedNumber: tripConfirmedNumber,
@@ -241,6 +242,7 @@ const updateTrip = async (req: Request, res: Response) => {
         trip.endDate = body.endDate;
         trip.dateCount = body.dateCount;
         trip.totalCost = body.totalCost;
+        trip.totalCostLocalCurrency = body.totalCostLocalCurrency;
         trip.estimatedExpense = body.estimatedExpense;
         trip.passengers = passengers;
         trip.activities = activities;
@@ -517,8 +519,8 @@ const assignDriverAndVehicle = async (req: Request, res: Response) => {
                 body?.driverId && body?.vehicleId
                     ? 'Driver and vehicle assigned successfully!'
                     : body?.driverId
-                    ? 'Driver assigned successfully!'
-                    : 'Vehicle assigned successfully!';
+                        ? 'Driver assigned successfully!'
+                        : 'Vehicle assigned successfully!';
 
             CommonResponse(res, true, StatusCodes.OK, message, null);
         }

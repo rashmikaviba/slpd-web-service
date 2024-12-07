@@ -81,6 +81,7 @@ const tripModelToTripResponseDto = (trip: any): TripResponseDto => {
         endDate: trip.endDate,
         dateCount: trip.dateCount,
         totalCost: trip.totalCost,
+        totalCostLocalCurrency: trip.totalCostLocalCurrency,
         estimatedExpense: trip.estimatedExpense,
         passengers: Array.isArray(trip.passengers)
             ? trip.passengers.map(mapPassengerToPassengerDto)
@@ -128,6 +129,7 @@ const tripModelToTripResponseDtoGetAll = (trip: any): TripResponseDtoGetAll => {
         endDate: trip.endDate,
         dateCount: trip.dateCount,
         totalCost: trip.totalCost,
+        totalCostLocalCurrency: trip.totalCostLocalCurrency,
         isActiveDriver: trip.isActiveDriver || false,
         isCheckListDone: trip.checkListAnswers != null ? true : false,
         email: trip.email,
@@ -154,7 +156,7 @@ const tripModelToTripResponseDtoGetAll = (trip: any): TripResponseDtoGetAll => {
         endedUser: trip.endedBy?.fullName || null,
         canUndo:
             trip?.status === WellKnownTripStatus.START &&
-            !trip?.places.find((x: any) => x.isReached === true)
+                !trip?.places.find((x: any) => x.isReached === true)
                 ? true
                 : false,
         createdAt: trip.createdAt,

@@ -22,6 +22,10 @@ const tripSchema = Joi.object({
         'any.required': 'Total Cost is required',
         'number.base': 'Total Cost is invalid',
     }),
+    totalCostLocalCurrency: Joi.number().required().messages({
+        'any.required': 'Total Cost Local Currency is required',
+        'number.base': 'Total Cost Local Currency is invalid',
+    }),
     estimatedExpense: Joi.number().required().messages({
         'any.required': 'Estimated Expense is required',
         'number.base': 'Estimated Expense is invalid',
