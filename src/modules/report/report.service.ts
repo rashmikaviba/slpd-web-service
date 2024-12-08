@@ -10,7 +10,7 @@ const findAllTripsByDateAndStatusIn = async (date: Date, status: number[]) => {
 }
 
 const findAllExpensesByTripIds = async (tripIds: string[]) => {
-    return await Expenses.find({ tripId: { $in: tripIds }, 'expenses.status': WellKnownStatus.ACTIVE, })
+    const expenses = await Expenses.find({ tripId: { $in: tripIds } })
         .populate('tripId')
         .populate({
             path: 'expenses.createdBy expenses.updatedBy',
@@ -18,6 +18,12 @@ const findAllExpensesByTripIds = async (tripIds: string[]) => {
             select: 'fullName userName',
         })
         .lean();
+
+    expenses.forEach((expenseDoc: any) => {
+        expenseDoc.expenses = expenseDoc.expenses.filter((exp: any) => exp.status === WellKnownStatus.ACTIVE);
+    });
+
+    return expenses;
 }
 
 const findAllDriverSalaryByTripIds = async (tripIds: string[]) => {

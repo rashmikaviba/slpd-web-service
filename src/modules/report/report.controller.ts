@@ -10,6 +10,7 @@ import { StatusCodes } from "http-status-codes";
 import ExpensesReportResponseDto from "./dto/expensesReportResponseDto";
 import reportUtil from "./report.util";
 import { DriverSalaryReportResponseDto } from "./dto/driverSalaryReportResponseDto";
+import MonthlyIncomeReportResponseDto from "./dto/monthlyIncomeReportResponseDto";
 
 // Monthly Trip report - Full trip report
 const monthlyTripReport = async (req: Request, res: Response) => {
@@ -109,7 +110,85 @@ const monthlyDriverSalary = async (req: Request, res: Response) => {
 };
 
 // Monthly Income report
-const monthlyIncomeReport = async (req: Request, res: Response) => { };
+const monthlyIncomeReport = async (req: Request, res: Response) => {
+    const date = req.query.date as string;
+
+    try {
+        let selectedDate = date ? new Date(date) : new Date();
+        let trips: any[] = await reportService.findAllTripsByDateAndStatusIn(selectedDate, [WellKnownTripStatus.FINISHED, WellKnownTripStatus.START]);
+        let response: MonthlyIncomeReportResponseDto[] = []
+        if (trips.length > 0) {
+            let tripIds = trips.map((trip: any) => trip._id.toString());
+
+            const expenses: any = await reportService.findAllExpensesByTripIds(tripIds);
+
+            if (expenses.length > 0) {
+                for (let expense of expenses) {
+                    let calcTotals: any = await calculateIncome(expense);
+
+                    let data: any = {
+                        tripId: expense?.tripId?._id,
+                        confirmationNumber: `DK-${expense?.tripId?.tripConfirmedNumber.toString().padStart(3, '0')}`,
+                        startDate: expense?.tripId?.startDate,
+                        endDate: expense?.tripId?.endDate,
+                        expenseId: expense?._id,
+                        totalCost: expense?.tripId?.totalCost || 0,
+                        totalCostLocalCurrency: expense?.tripId?.totalCostLocalCurrency || 0,
+                        totalIncomeLocalCurrency: calcTotals.totalIncomeLocalCurrency,
+                        estimatedExpense: expense?.tripId?.estimatedExpense,
+                        remainingExpenses: calcTotals?.remainingExpenses,
+                        totalExpense: calcTotals?.totalExpensesAmount,
+                        totalDriverSalary: calcTotals?.totalDriverSalary,
+                        isRemainingToDriver: expense?.driverSalary?.isRemainingToDriver === true ? true : false,
+                        tripIncome: calcTotals?.totalIncome
+                    }
+
+                    response.push(data);
+                }
+            }
+        }
+
+        CommonResponse(res, true, StatusCodes.OK, '', response);
+    } catch (error) {
+        throw error;
+    }
+};
+
+
+const calculateIncome = async (expense: any) => {
+    let data = {
+        totalExpensesAmount: 0,
+        totalDriverSalary: 0,
+        totalIncome: 0,
+        remainingExpenses: 0
+    }
+    // calculate expense amount
+    let activeExpenses = expense.expenses.filter(
+        (exp: any) => exp.status === WellKnownStatus.ACTIVE
+    );
+
+    let totalExpensesAmount = activeExpenses.reduce(
+        (total: number, exp: any) => total + exp.amount,
+        0
+    );
+
+    let remainingExpenses = expense?.tripId?.estimatedExpense - totalExpensesAmount;
+
+    data.totalExpensesAmount = totalExpensesAmount;
+    data.remainingExpenses = remainingExpenses;
+
+    // calculate driver salary
+    // calculate total income
+    let totalIncome = expense?.tripId?.totalCostLocalCurrency || 0;
+    if (expense.driverSalary) {
+        totalIncome = totalIncome - expense?.driverSalary?.totalSalary;
+        data.totalDriverSalary = expense.driverSalary?.totalSalary;
+    } else {
+        totalIncome = totalIncome - totalExpensesAmount;
+    }
+    data.totalIncome = totalIncome;
+    return data;
+}
 
 export {
     monthlyTripReport,
