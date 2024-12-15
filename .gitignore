@@ -111,6 +111,7 @@ src/uploads/GSCertificate/*
 src/uploads/DrivingLicense/*
 src/uploads/SLTDACertificate/*
 src/uploads/PoliceReport/*
+src/uploads/ExpensesRecept/*
 
 # ProfileImage = 1,
 # NICImage = 2,

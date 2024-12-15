@@ -15,6 +15,12 @@ import constants from '../../constant';
 import userService from '../user/user.service';
 import vehicleService from '../vehicle/vehicle.service';
 import helperUtil from '../../util/helper.util';
+import Expenses from '../expenses/expenses.model';
+import expensesService from '../expenses/expenses.service';
+import { startSession } from 'mongoose';
+import { number } from 'joi';
+import TripExpensesResponseDto from '../expenses/dto/tripExpensesResponseDto';
+import expensesUtil from '../expenses/expenses.util';
 
 const saveTrip = async (req: Request, res: Response) => {
     const body: any = req.body;
@@ -72,6 +78,7 @@ const saveTrip = async (req: Request, res: Response) => {
             endDate: body.endDate,
             dateCount: body.dateCount,
             totalCost: body.totalCost,
+            totalCostLocalCurrency: body.totalCostLocalCurrency,
             contactPerson: body.contactPerson,
             estimatedExpense: body.estimatedExpense,
             tripConfirmedNumber: tripConfirmedNumber,
@@ -235,6 +242,7 @@ const updateTrip = async (req: Request, res: Response) => {
         trip.endDate = body.endDate;
         trip.dateCount = body.dateCount;
         trip.totalCost = body.totalCost;
+        trip.totalCostLocalCurrency = body.totalCostLocalCurrency;
         trip.estimatedExpense = body.estimatedExpense;
         trip.passengers = passengers;
         trip.activities = activities;
@@ -331,6 +339,26 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
             WellKnownTripStatus.FINISHED,
         ]);
 
+        await Promise.all(
+            trips.map(async (trip: any) => {
+                trip.isDriverSalaryDone = false;
+                if (
+                    trip.status === WellKnownTripStatus.START ||
+                    trip.status === WellKnownTripStatus.FINISHED
+                ) {
+                    const expense =
+                        await expensesService.findByTripIdAndStatusIn(
+                            trip._id.toString(),
+                            [WellKnownStatus.ACTIVE]
+                        );
+                    if (expense) {
+                        trip.isDriverSalaryDone =
+                            expense.toObject()?.driverSalary != null; //  expense.toObject()?.driverSalary != null;
+                    }
+                }
+            })
+        );
+        sortTrips(trips);
         response = tripUtil.tripModelArrToTripResponseDtoGetAlls(trips);
     } else if (auth.role === constants.USER.ROLES.DRIVER) {
         const trips: any = await tripService.findAllByDriverIdAndStatusIn(
@@ -353,11 +381,24 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
                 trip.isActiveDriver = false;
             }
         });
-
+        sortTrips(trips);
         response = tripUtil.tripModelArrToTripResponseDtoGetAlls(trips);
     }
 
     CommonResponse(res, true, StatusCodes.OK, '', response);
+};
+
+const sortTrips = (trips: any[]) => {
+    const priorityMap: any = {
+        [WellKnownTripStatus.START]: 1,
+        [WellKnownTripStatus.PENDING]: 2,
+        [WellKnownTripStatus.FINISHED]: 3,
+    };
+
+    // Sort based on the priority map
+    trips.sort((a: any, b: any) => {
+        return priorityMap[a.status] - priorityMap[b.status];
+    });
 };
 
 const assignDriverAndVehicle = async (req: Request, res: Response) => {
@@ -478,8 +519,8 @@ const assignDriverAndVehicle = async (req: Request, res: Response) => {
                 body?.driverId && body?.vehicleId
                     ? 'Driver and vehicle assigned successfully!'
                     : body?.driverId
-                    ? 'Driver assigned successfully!'
-                    : 'Vehicle assigned successfully!';
+                        ? 'Driver assigned successfully!'
+                        : 'Vehicle assigned successfully!';
 
             CommonResponse(res, true, StatusCodes.OK, message, null);
         }
@@ -493,7 +534,11 @@ const changeTripStatus = async (req: Request, res: Response) => {
     const auth = req.auth;
     const status = parseInt(req.params.status);
 
+    const session = await startSession();
+
     try {
+        session.startTransaction();
+
         if (!helperUtil.isValueInEnum(WellKnownTripStatus, status)) {
             throw new BadRequestError('Invalid status!');
         }
@@ -515,6 +560,17 @@ const changeTripStatus = async (req: Request, res: Response) => {
 
                 trip.status = status;
                 trip.startedBy = auth.id;
+
+                // Create expenses
+                let expenses = new Expenses({
+                    tripId: tripId,
+                    createdBy: auth.id,
+                    updatedBy: auth.id,
+                    expenses: [],
+                    driverSalary: null,
+                });
+
+                await expensesService.save(expenses, session);
             } else if (status == WellKnownTripStatus.PENDING) {
                 trip = await tripService.findByIdAndStatusIn(tripId, [
                     WellKnownTripStatus.START,
@@ -539,6 +595,12 @@ const changeTripStatus = async (req: Request, res: Response) => {
                 trip.status = status;
                 trip.startedBy = null;
                 trip.updatedBy = auth.id;
+
+                // delete expenses
+                await expensesService.findAndHardDeleteByTripId(
+                    tripId,
+                    session
+                );
             } else {
                 let statusName = helperUtil.getNameFromEnum(
                     WellKnownTripStatus,
@@ -593,6 +655,12 @@ const changeTripStatus = async (req: Request, res: Response) => {
                 trip.status = status;
                 trip.updatedBy = auth.id;
                 trip.startedBy = null;
+
+                // delete expenses
+                await expensesService.findAndHardDeleteByTripId(
+                    tripId,
+                    session
+                );
             } else {
                 let statusName = helperUtil.getNameFromEnum(
                     WellKnownTripStatus,
@@ -604,9 +672,16 @@ const changeTripStatus = async (req: Request, res: Response) => {
             }
         }
 
-        await tripService.save(trip, null);
-    } catch (error) {
-        throw error;
+        await tripService.save(trip, session);
+
+        await session.commitTransaction();
+    } catch (e) {
+        //abort transaction
+        await session.abortTransaction();
+        throw e;
+    } finally {
+        //end session
+        session.endSession();
     }
 
     let message = '';
@@ -769,6 +844,66 @@ const markPlaceAsReached = async (req: Request, res: Response) => {
         throw error;
     }
 };
+
+const getTripForReport = async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const auth = req.auth;
+
+    try {
+        let trip: any = await tripService.findByIdAndStatusIn(id, [
+            WellKnownTripStatus.PENDING,
+            WellKnownTripStatus.START,
+            WellKnownTripStatus.FINISHED,
+        ]);
+
+        let roleArr = [
+            constants.USER.ROLES.ADMIN,
+            constants.USER.ROLES.SUPERADMIN,
+            constants.USER.ROLES.TRIPMANAGER,
+            constants.USER.ROLES.FINANCEOFFICER,
+        ];
+        if (trip && roleArr.includes(auth.role)) {
+            trip = trip.toObject();
+            //  get expense by trip id and status active
+            let expense: any = await expensesService.findByTripIdAndStatusIn(
+                trip._id.toString(),
+                [WellKnownStatus.ACTIVE]
+            );
+
+            let response: TripExpensesResponseDto | null = null;
+
+            if (expense) {
+                // get only active expenses
+                let activeExpenses = expense.expenses.filter(
+                    (exp: any) => exp.status === WellKnownStatus.ACTIVE
+                );
+
+                let totalExpensesAmount = activeExpenses.reduce(
+                    (total: number, exp: any) => total + exp.amount,
+                    0
+                );
+
+                expense.expenses = activeExpenses;
+                expense.tripExpensesAmount = expense?.tripId?.estimatedExpense;
+                expense.totalTripExpensesAmount = totalExpensesAmount;
+                expense.remainingTripExpensesAmount =
+                    expense?.tripExpensesAmount - totalExpensesAmount;
+
+                response =
+                    expensesUtil.ExpensesModelToTripExpensesResponseDto(
+                        expense
+                    );
+            }
+
+            trip.expenses = response;
+        }
+
+        CommonResponse(res, true, StatusCodes.OK, '', trip);
+    } catch (error) {
+        throw error;
+    }
+};
+
 export {
     saveTrip,
     updateTrip,
@@ -781,4 +916,5 @@ export {
     changeTripStatus,
     getPlacesByTripId,
     markPlaceAsReached,
+    getTripForReport,
 };

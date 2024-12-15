@@ -78,6 +78,8 @@ const applicationRoutes = {
         assignDriver: '/assignDriver/:id',
         changeTripStatus: '/:id/status/:status',
         undoTripStatus: '/:id/undoStatus/:status',
+        getTripForPrint: '/tripForPrint/:id',
+
         // checklist routes
         saveCheckList: '/checkList/:id',
         getCheckList: '/checkList/:id',
@@ -86,6 +88,24 @@ const applicationRoutes = {
         getPlacesByTrip: '/places/:id',
         markAsReached: '/:tripId/markAsReached/:placeId',
     },
+
+    expenses: {
+        base: '/expense',
+        save: '/:tripId',
+        update: '/:tripId/:expenseId',
+        deleteById: '/:tripId/:expenseId',
+        getAllExpensesByTrip: '/:tripId',
+        getExpensesById: '/:tripId/:expenseId',
+        saveDriverSalary: '/saveSalary/:tripId',
+    },
+
+    report: {
+        base: '/report',
+        monthlyTripReport: '/monthlyTripReport',
+        monthlyExpensesReport: '/monthlyExpensesReport',
+        monthlyDriverSalary: '/monthlyDriverSalary',
+        monthlyIncomeReport: '/monthlyIncomeReport',
+    }
 };
 
 export default applicationRoutes;

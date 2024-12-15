@@ -61,6 +61,7 @@ interface TripResponseDto {
     endDate: Date;
     dateCount: number;
     totalCost: number;
+    totalCostLocalCurrency: number;
     estimatedExpense: number;
     passengers: PassengerDto[];
     arrivalInfo: ArrivalInfoDto | null;
@@ -91,6 +92,7 @@ interface TripResponseDtoGetAll {
     endDate: Date;
     dateCount: number;
     totalCost: number;
+    totalCostLocalCurrency: number;
     isActiveDriver: boolean;
     isCheckListDone: boolean;
     activeDriverId: string;
@@ -100,6 +102,7 @@ interface TripResponseDtoGetAll {
     tripConfirmedNumber: string;
     canUndo: boolean;
     isMonthEndDone: boolean;
+    isDriverSalaryDone: boolean;
     contactPerson: string;
     activeVehicleId: string;
     activeRegistrationNumber: string;
