@@ -472,6 +472,19 @@ const deleteUser = async (req: Request, res: Response) => {
     );
 };
 
+const getAllUsersByRole = async (req: Request, res: Response) => {
+    const userAuth: any = req.auth;
+    const roleId = req.params.id;
+
+    const role: any = await roleService.findByCustomId(roleId);
+
+    let users: any[] = [];
+    if (role) {
+        users = await userService.findAllByRoleId(role?._id);
+    }
+    CommonResponse(res, true, StatusCodes.OK, '', users);
+};
+
 export {
     saveUser,
     blockUser,
@@ -481,4 +494,5 @@ export {
     getUserById,
     checkUserName,
     deleteUser,
+    getAllUsersByRole,
 };

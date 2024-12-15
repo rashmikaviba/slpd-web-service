@@ -1,3 +1,4 @@
+import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
 import Vehicle from './vehicle.model';
 
 const save = async (vehicle: any, session: any) => {
@@ -61,6 +62,13 @@ const findByIdNotAndGpsTrackerAndStatusIn = async (
     });
 };
 
+const findVehiclesBySheetCount = async (count: number) => {
+    return await Vehicle.find({
+        availableSeats: { $gte: count },
+        status: WellKnownStatus.ACTIVE,
+    });
+};
+
 export default {
     save,
     findByRegistrationNumAndStatusIn,
@@ -69,4 +77,5 @@ export default {
     findAllAndStatusIn,
     findByGpsTrackerAndStatusIn,
     findByIdNotAndGpsTrackerAndStatusIn,
+    findVehiclesBySheetCount,
 };
