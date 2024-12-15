@@ -8,9 +8,11 @@ const execShellCommand = (cmd: string) => {
     return new Promise<string>((resolve, reject) => {
         exec(cmd, (error, stdout, stderr) => {
             if (error) {
-                console.error(error)
-                reject(error) // Reject the promise on error
-                return
+                console.error(`Error executing command: ${cmd}`);
+                console.error(`Error: ${error.message}`);
+                console.error(`Stderr: ${stderr}`);
+                reject(error); // Reject the promise on error
+                return;
             }
             resolve(stdout ? stdout : stderr)
         })

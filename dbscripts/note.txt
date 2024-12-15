@@ -1,0 +1,7 @@
+Command to run db script
+
+open mongo terminal- mongosh
+
+login with admin - db.auth("admin", "Nimna@123")
+Crete db - use slpd_db
+run db script - load("/home/nimna-thiranjaya/Documents/Projects/Cybertronix Projects/slpd-web-service/dbscripts/masterDataDBScript.js")

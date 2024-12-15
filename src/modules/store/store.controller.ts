@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
+import path from 'path';
 
 import CommonResponse from '../../util/commonResponse';
-import helperUtil from '../../util/helper.util';
 
-import BadRequestError from '../../error/badRequest.error';
 import { envConfig } from '../../config/environment.config';
+import BadRequestError from '../../error/BadRequestError';
 
 const UploadFile = async (req: Request, res: Response) => {
     const file = req.file;
@@ -15,16 +15,17 @@ const UploadFile = async (req: Request, res: Response) => {
         throw new BadRequestError('Please upload a file!');
     }
 
-    let path = file.path.split('src/').pop();
-
+    let normalizedPath = path.normalize(file.path).replace(/\\/g, '/');
+    let pathData = normalizedPath.split('src/').pop();
     CommonResponse(
         res,
         true,
         StatusCodes.OK,
         'File uploaded successfully',
-        `${envConfig.BASE_URL}/${path}`
+        `${envConfig.BASE_URL}/${pathData}`
     );
 };
+
 
 const UploadMultipleFiles = async (req: Request, res: Response) => {
     const files: any = req.files;

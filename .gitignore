@@ -69,6 +69,7 @@ typings/
 .yarn-integrity
 
 # dotenv environment variables file
+.env.dev
 .env.prod
 .env.test
 
@@ -105,3 +106,16 @@ dist
 
 
 src/uploads/ProfileImage/*
+src/uploads/NICImage/*
+src/uploads/GSCertificate/*
+src/uploads/DrivingLicense/*
+src/uploads/SLTDACertificate/*
+src/uploads/PoliceReport/*
+src/uploads/ExpensesRecept/*
+
+# ProfileImage = 1,
+# NICImage = 2,
+# GSCertificate = 3,
+# DrivingLicense = 4,
+# SLTDACertificate = 5,
+# PoliceReport = 6,

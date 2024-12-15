@@ -6,9 +6,12 @@ require('express-async-errors');
 import { envConfig } from './config/environment.config';
 import { connectDB } from './config/database.config';
 
+import mapping from './mapping';
+
 // Import errors
-import errorHandlerMiddleware from './middleware/error.middleware';
 import constants from './constant';
+import errorHandlerMiddleware from './middleware/error.middleware';
+import NotFoundError from './error/NotFoundError';
 
 const app: Express = express();
 
@@ -19,11 +22,13 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static files from the uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Import routes
-import StoreRouter from './modules/store/store.route';
+// use routes mapping
+app.use(constants.API.PREFIX, mapping);
 
-// use routes
-app.use(constants.API.PREFIX.concat('/store'), StoreRouter);
+// Not found route
+app.use('*', (req: Request, res: Response) => {
+    throw new NotFoundError(`Can't find ${req.originalUrl} on this server!`);
+});
 
 app.use(errorHandlerMiddleware);
 

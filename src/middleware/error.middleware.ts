@@ -1,6 +1,6 @@
 import { StatusCodes } from 'http-status-codes';
+import InternalServerError from '../error/InternalServerError';
 import { NextFunction, Request, Response } from 'express';
-import InternalServerError from '../error/internalServer.error';
 import CommonResponse from '../util/commonResponse';
 import logger from '../util/logger.util';
 
@@ -10,22 +10,28 @@ const errorHandlerMiddleware = async (
     res: Response,
     next: NextFunction
 ) => {
-    logger.error(err.stack || err.message);
     let customError: any = {
         statusCode: err.statusCode || StatusCodes.INTERNAL_SERVER_ERROR,
         message: err.message || 'Something went wrong!',
+        data: {},
     };
 
     if (
         err instanceof InternalServerError ||
         customError.statusCode === StatusCodes.INTERNAL_SERVER_ERROR
     ) {
-        customError.message = err.message || 'Something went wrong!';
+        logger.error(err.stack || err.message);
     }
 
     if (err.name === 'ValidationError') {
+        let validatorArr: any[] = [];
+
+        Object.values(err.errors).forEach((error: any) => {
+            validatorArr.push(error.message);
+        });
+
         customError.statusCode = StatusCodes.BAD_REQUEST;
-        customError.message = err.errors[0];
+        customError.message = validatorArr[0];
     }
 
     if (err.code && err.code === 11000) {
