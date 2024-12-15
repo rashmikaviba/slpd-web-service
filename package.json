@@ -5,9 +5,9 @@
     "main": "index.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "build": "npx tsc",
-        "start": "set NODE_ENV=production node dist/app.js",
-        "dev": "set NODE_ENV=development&& nodemon --ignore backups/ --ignore node_modules/ src/app.ts",
+        "build": "npx tsc && cp .env.dev ./dist/.env.dev && cp .env.prod ./dist/.env.prod",
+        "start": "cross-env NODE_ENV=production node dist/app.js",
+        "dev": "cross-env NODE_ENV=development&& nodemon --ignore backups/ --ignore node_modules/ src/app.ts",
         "lint": "eslint . --ext .ts"
     },
     "keywords": [],
@@ -28,6 +28,7 @@
         "@types/node-schedule": "^2.1.7",
         "@typescript-eslint/eslint-plugin": "^6.1.0",
         "@typescript-eslint/parser": "^6.1.0",
+        "cross-env": "^7.0.3",
         "eslint": "^8.57.0",
         "globals": "^15.8.0",
         "nodemon": "^3.1.4",
