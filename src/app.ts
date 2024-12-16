@@ -12,6 +12,7 @@ import mapping from './mapping';
 import constants from './constant';
 import errorHandlerMiddleware from './middleware/error.middleware';
 import NotFoundError from './error/NotFoundError';
+import runDBBackup from './config/dbBackups.config';
 
 const app: Express = express();
 
@@ -43,6 +44,7 @@ const start = async () => {
         app.listen(port, () => {
             console.log(`SERVER IS LISTENING ON PORT ${port}..!`);
             connectDB();
+            runDBBackup();
         });
     } catch (e) {
         console.log(e);

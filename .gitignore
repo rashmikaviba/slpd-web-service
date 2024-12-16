@@ -113,6 +113,8 @@ src/uploads/SLTDACertificate/*
 src/uploads/PoliceReport/*
 src/uploads/ExpensesRecept/*
 
+backups/*
+
 # ProfileImage = 1,
 # NICImage = 2,
 # GSCertificate = 3,
