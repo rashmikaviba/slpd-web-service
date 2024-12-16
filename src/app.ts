@@ -20,7 +20,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static files from the uploads directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const uploadsPath =
+    process.env.NODE_ENV === 'production'
+        ? '../../src/uploads' // Adjust path for compiled production
+        : 'uploads';     // Use this for development
+console.log('Serving uploads from:', uploadsPath);
+app.use('/uploads', express.static(path.join(__dirname, uploadsPath)));
 
 // use routes mapping
 app.use(constants.API.PREFIX, mapping);
