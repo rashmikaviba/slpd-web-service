@@ -9,6 +9,7 @@ import MonthAuditRouter from './modules/monthAudit/monthAudit.route';
 import VehicleRouter from './modules/vehicle/vehicle.route';
 import TripRouter from './modules/trip/trip.route';
 import ReportRouter from './modules/report/report.route';
+import ExpensesRouter from './modules/expenses/expenses.route';
 
 const router = Router();
 
@@ -21,7 +22,7 @@ router.use(applicationRoutes.leave.base, LeaveRouter);
 router.use(applicationRoutes.monthAudit.base, MonthAuditRouter);
 router.use(applicationRoutes.vehicle.base, VehicleRouter);
 router.use(applicationRoutes.trip.base, TripRouter);
-router.use(applicationRoutes.trip.base, TripRouter);
+router.use(applicationRoutes.expenses.base, ExpensesRouter);
 router.use(applicationRoutes.report.base, ReportRouter);
 
 export default router;
