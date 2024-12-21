@@ -25,7 +25,7 @@ const uploadsPath =
     process.env.NODE_ENV === 'production'
         ? '../../src/uploads' // Adjust path for compiled production
         : 'uploads';     // Use this for development
-console.log('Serving uploads from:', uploadsPath);
+
 app.use('/uploads', express.static(path.join(__dirname, uploadsPath)));
 
 // use routes mapping

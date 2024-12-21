@@ -99,6 +99,19 @@ const applicationRoutes = {
         saveDriverSalary: '/saveSalary/:tripId',
     },
 
+    expensesRequest: {
+        base: '/expenseRequest',
+        save: '/',
+        approveExpense: '/approve/:id',
+        rejectExpense: '/reject/:id',
+        getExpenseExtensionById: '/:id',
+    },
+
+    notification: {
+        base: '/notification',
+        getAllNotifications: '/',
+    },
+
     report: {
         base: '/report',
         monthlyTripReport: '/monthlyTripReport',

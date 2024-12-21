@@ -10,6 +10,8 @@ import VehicleRouter from './modules/vehicle/vehicle.route';
 import TripRouter from './modules/trip/trip.route';
 import ReportRouter from './modules/report/report.route';
 import ExpensesRouter from './modules/expenses/expenses.route';
+import ExpensesRequestRouter from './modules/expensesRequest/expensesRequest.route';
+import NotificationRouter from './modules/notification/notification.route';
 
 const router = Router();
 
@@ -24,5 +26,7 @@ router.use(applicationRoutes.vehicle.base, VehicleRouter);
 router.use(applicationRoutes.trip.base, TripRouter);
 router.use(applicationRoutes.expenses.base, ExpensesRouter);
 router.use(applicationRoutes.report.base, ReportRouter);
+router.use(applicationRoutes.expensesRequest.base, ExpensesRequestRouter);
+router.use(applicationRoutes.notification.base, NotificationRouter);
 
 export default router;
