@@ -99,12 +99,12 @@ const applicationRoutes = {
         saveDriverSalary: '/saveSalary/:tripId',
     },
 
-    expensesRequest: {
+    expenseRequest: {
         base: '/expenseRequest',
         save: '/',
         approveExpense: '/approve/:id',
         rejectExpense: '/reject/:id',
-        getExpenseExtensionById: '/:id',
+        getExpenseRequestById: '/:id',
     },
 
     notification: {
@@ -118,7 +118,7 @@ const applicationRoutes = {
         monthlyExpensesReport: '/monthlyExpensesReport',
         monthlyDriverSalary: '/monthlyDriverSalary',
         monthlyIncomeReport: '/monthlyIncomeReport',
-    }
+    },
 };
 
 export default applicationRoutes;

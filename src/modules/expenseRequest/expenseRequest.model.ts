@@ -1,7 +1,7 @@
-import { WellKnownLeaveStatus } from './../../util/enums/well-known-leave-status.enum';
+import { WellKnownLeaveStatus } from '../../util/enums/well-known-leave-status.enum';
 import mongoose from 'mongoose';
 
-const expensesRequestSchema = new mongoose.Schema(
+const expenseRequestSchema = new mongoose.Schema(
     {
         tripId: {
             type: mongoose.Schema.Types.ObjectId,
@@ -16,10 +16,7 @@ const expensesRequestSchema = new mongoose.Schema(
 
         description: {
             type: String,
-            maxlength: [
-                500,
-                'Description cannot be more than 500 characters',
-            ],
+            maxlength: [500, 'Description cannot be more than 500 characters'],
         },
 
         approvedAmount: {
@@ -55,7 +52,9 @@ const expensesRequestSchema = new mongoose.Schema(
         timestamps: true,
         versionKey: false,
     }
-
 );
 
-export const ExpensesRequest = mongoose.model('ExpensesRequest', expensesRequestSchema);
+export const ExpenseRequest = mongoose.model(
+    'ExpenseRequest',
+    expenseRequestSchema
+);

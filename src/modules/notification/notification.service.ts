@@ -1,8 +1,8 @@
-import { WellKnownLeaveStatus } from "../../util/enums/well-known-leave-status.enum";
-import { ExpensesRequest } from "../expensesRequest/expensesRequest.model";
+import { WellKnownLeaveStatus } from '../../util/enums/well-known-leave-status.enum';
+import { ExpenseRequest } from '../expenseRequest/expenseRequest.model';
 
 const getPendingExpenseRequest = async () => {
-    return await ExpensesRequest.find({
+    return await ExpenseRequest.find({
         status: WellKnownLeaveStatus.PENDING,
     }).populate('tripId createdBy');
 };

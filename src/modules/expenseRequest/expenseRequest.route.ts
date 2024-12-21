@@ -2,22 +2,25 @@ import { Router } from 'express';
 import applicationRoutes from '../../applicationRoutes';
 import authMiddleware from '../../middleware/auth.middleware';
 import constants from '../../constant';
-import { approveExpensesRequest, requestMoreExpenses, rejectExpensesRequest, getExpenseExtension } from './expensesRequest.controller';
+import {
+    approveExpensesRequest,
+    requestMoreExpenses,
+    rejectExpensesRequest,
+    getExpenseExtension,
+} from './expenseRequest.controller';
 
 const ExpensesRequestRouter = Router();
 
-// request expenses 
+// request expenses
 ExpensesRequestRouter.post(
-    applicationRoutes.expensesRequest.save,
-    authMiddleware.authorize([
-        constants.USER.ROLES.DRIVER,
-    ]),
+    applicationRoutes.expenseRequest.save,
+    authMiddleware.authorize([constants.USER.ROLES.DRIVER]),
     requestMoreExpenses
 );
 
 // approve expenses
 ExpensesRequestRouter.put(
-    applicationRoutes.expensesRequest.approveExpense,
+    applicationRoutes.expenseRequest.approveExpense,
     authMiddleware.authorize([
         constants.USER.ROLES.SUPERADMIN,
         constants.USER.ROLES.ADMIN,
@@ -25,11 +28,11 @@ ExpensesRequestRouter.put(
         constants.USER.ROLES.FINANCEOFFICER,
     ]),
     approveExpensesRequest
-)
+);
 
 // reject expenses
 ExpensesRequestRouter.put(
-    applicationRoutes.expensesRequest.rejectExpense,
+    applicationRoutes.expenseRequest.rejectExpense,
     authMiddleware.authorize([
         constants.USER.ROLES.SUPERADMIN,
         constants.USER.ROLES.ADMIN,
@@ -37,12 +40,12 @@ ExpensesRequestRouter.put(
         constants.USER.ROLES.FINANCEOFFICER,
     ]),
     rejectExpensesRequest
-)
+);
 
 // get expense extension by id
 ExpensesRequestRouter.get(
-    applicationRoutes.expensesRequest.getExpenseExtensionById,
+    applicationRoutes.expenseRequest.getExpenseRequestById,
     authMiddleware.authorize([]),
     getExpenseExtension
-)
+);
 export default ExpensesRequestRouter;

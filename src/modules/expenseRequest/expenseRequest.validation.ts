@@ -1,9 +1,9 @@
 import Joi from 'joi';
 
 const saveExpenseRequestSchema = Joi.object({
-    typeId: Joi.number().required().messages({
+    tripId: Joi.string().required().messages({
         'any.required': 'Type is required',
-        'number.base': 'Type is invalid',
+        'string.base': 'Type is invalid',
     }),
 
     requestedAmount: Joi.number().required().messages({

@@ -1,16 +1,16 @@
 import { Request, Response } from 'express';
 import BadRequestError from '../../error/BadRequestError';
-import expensesRequestValidation from './expensesRequest.validation';
-import expensesRequestService from './expensesRequest.service';
+import expensesRequestValidation from './expenseRequest.validation';
+import expensesRequestService from './expenseRequest.service';
 import tripService from '../trip/trip.service';
 import { WellKnownTripStatus } from '../../util/enums/well-known-trip-status.enum';
 import { WellKnownLeaveStatus } from '../../util/enums/well-known-leave-status.enum';
-import { ExpensesRequest } from './expensesRequest.model';
+import { ExpenseRequest } from './expenseRequest.model';
 import { StatusCodes } from 'http-status-codes';
 import CommonResponse from '../../util/commonResponse';
 import { startSession } from 'mongoose';
-import ExpensesExtensionByIdResponseDto from './ExpensesExtensionByIdResponseDto';
-import expensesRequestUtil from './expensesRequest.util';
+import expensesRequestUtil from './expenseRequest.util';
+import ExpenseRequestByIdResponseDto from './dto/ExpenseRequestByIdResponseDto';
 
 const requestMoreExpenses = async (req: Request, res: Response) => {
     const body: any = req.body;
@@ -41,18 +41,18 @@ const requestMoreExpenses = async (req: Request, res: Response) => {
 
         if (expensesRequests.length > 0) {
             throw new BadRequestError(
-                'You already have a pending expense extension request for this trip. If you need immediate assistance, please contact the administrator!'
+                'You already have a pending expense request for this trip. If you need immediate assistance, please contact the administrator!'
             );
         }
 
         // if it is false then create new expenses request
-        let newExpenseRequest = new ExpensesRequest();
+        let newExpenseRequest = new ExpenseRequest();
 
         newExpenseRequest.tripId = body.tripId;
         newExpenseRequest.requestedAmount = body.requestedAmount;
         newExpenseRequest.description = body.description;
-        newExpenseRequest.createdBy = auth._id;
-        newExpenseRequest.updatedBy = auth._id;
+        newExpenseRequest.createdBy = auth.id;
+        newExpenseRequest.updatedBy = auth.id;
 
         await expensesRequestService.save(newExpenseRequest, null);
 
@@ -60,7 +60,7 @@ const requestMoreExpenses = async (req: Request, res: Response) => {
             res,
             true,
             StatusCodes.CREATED,
-            'Expense extension request saved successfully!',
+            'Expense request saved successfully!',
             null
         );
     } catch (error) {
@@ -86,27 +86,25 @@ const approveExpensesRequest = async (req: Request, res: Response) => {
 
         // check if expense request exists
         let expenseRequest: any =
-            await expensesRequestService.findByIdAndStatusIn(expenseReqId, []);
+            await expensesRequestService.findByIdAndStatusIn(expenseReqId, [
+                WellKnownLeaveStatus.PENDING,
+                WellKnownLeaveStatus.APPROVED,
+                WellKnownLeaveStatus.REJECTED,
+            ]);
 
         if (!expenseRequest) {
-            throw new BadRequestError(
-                'No expense extension requests were found.!'
-            );
+            throw new BadRequestError('No expense requests were not found.!');
         }
 
         if (expenseRequest.status == WellKnownLeaveStatus.APPROVED) {
-            throw new BadRequestError(
-                'Expense extension request already approved!'
-            );
+            throw new BadRequestError('Expense request already approved!');
         } else if (expenseRequest.status == WellKnownLeaveStatus.REJECTED) {
-            throw new BadRequestError(
-                'Expense extension request already rejected!'
-            );
+            throw new BadRequestError('Expense request already rejected!');
         }
 
         // check if trip exists
         let trip: any = await tripService.findByIdAndStatusIn(
-            expenseRequest?.tripId.toString(),
+            expenseRequest?.tripId?._id.toString(),
             [WellKnownTripStatus.START]
         );
 
@@ -119,13 +117,13 @@ const approveExpensesRequest = async (req: Request, res: Response) => {
         // updated expense request
         expenseRequest.approvedAmount = body.approvedAmount;
         expenseRequest.status = WellKnownLeaveStatus.APPROVED;
-        expenseRequest.updatedBy = auth._id;
+        expenseRequest.updatedBy = auth.id;
 
         await expensesRequestService.save(expenseRequest, session);
 
         // update trip total expenses
         trip.estimatedExpense += body.approvedAmount;
-        trip.updatedBy = auth._id;
+        trip.updatedBy = auth.id;
 
         await tripService.save(trip, session);
 
@@ -133,7 +131,7 @@ const approveExpensesRequest = async (req: Request, res: Response) => {
             res,
             true,
             StatusCodes.OK,
-            'Expense extension request approved successfully!',
+            'Expense request approved successfully!',
             null
         );
         await session.commitTransaction();
@@ -159,26 +157,24 @@ const rejectExpensesRequest = async (req: Request, res: Response) => {
     try {
         // check if expense request exists
         let expenseRequest: any =
-            await expensesRequestService.findByIdAndStatusIn(expenseReqId, []);
+            await expensesRequestService.findByIdAndStatusIn(expenseReqId, [
+                WellKnownLeaveStatus.PENDING,
+                WellKnownLeaveStatus.APPROVED,
+                WellKnownLeaveStatus.REJECTED,
+            ]);
 
         if (!expenseRequest) {
-            throw new BadRequestError(
-                'No expense extension requests were found.!'
-            );
+            throw new BadRequestError('No expense requests were found.!');
         }
 
         if (expenseRequest.status == WellKnownLeaveStatus.APPROVED) {
-            throw new BadRequestError(
-                'Expense extension request already approved!'
-            );
+            throw new BadRequestError('Expense request already approved!');
         } else if (expenseRequest.status == WellKnownLeaveStatus.REJECTED) {
-            throw new BadRequestError(
-                'Expense extension request already rejected!'
-            );
+            throw new BadRequestError('Expense request already rejected!');
         }
 
         expenseRequest.status = WellKnownLeaveStatus.REJECTED;
-        expenseRequest.updatedBy = auth._id;
+        expenseRequest.updatedBy = auth.id;
         expenseRequest.rejectRemark = body.rejectRemark;
 
         await expensesRequestService.save(expenseRequest, null);
@@ -187,7 +183,7 @@ const rejectExpensesRequest = async (req: Request, res: Response) => {
             res,
             true,
             StatusCodes.OK,
-            'Expense extension request rejected successfully!',
+            'Expense request rejected successfully!',
             null
         );
     } catch (error) {
@@ -201,16 +197,18 @@ const getExpenseExtension = async (req: Request, res: Response) => {
     try {
         // check if expense request exists
         let expenseRequest: any =
-            await expensesRequestService.findByIdAndStatusIn(expenseReqId, []);
+            await expensesRequestService.findByIdAndStatusIn(expenseReqId, [
+                WellKnownLeaveStatus.PENDING,
+                WellKnownLeaveStatus.APPROVED,
+                WellKnownLeaveStatus.REJECTED,
+            ]);
 
         if (!expenseRequest) {
-            throw new BadRequestError(
-                'No expense extension requests were found.!'
-            );
+            throw new BadRequestError('No expense requests were found.!');
         }
 
-        const response: ExpensesExtensionByIdResponseDto =
-            expensesRequestUtil.modelToExpensesExtensionByIdResponseDto(
+        const response: ExpenseRequestByIdResponseDto =
+            expensesRequestUtil.modelToExpensesRequestByIdResponseDto(
                 expenseRequest
             );
 
