@@ -11,6 +11,10 @@ import CommonResponse from '../../util/commonResponse';
 import { startSession } from 'mongoose';
 import expensesRequestUtil from './expenseRequest.util';
 import ExpenseRequestByIdResponseDto from './dto/ExpenseRequestByIdResponseDto';
+import { getActiveSocketIdsByRoles, io } from '../../config/soket.config';
+import constants from '../../constant';
+import ExpensesExtensionResponseDto from '../notification/dto/expensesExtensionResponseDto';
+import notificationUtil from '../notification/notification.util';
 
 const requestMoreExpenses = async (req: Request, res: Response) => {
     const body: any = req.body;
@@ -24,7 +28,7 @@ const requestMoreExpenses = async (req: Request, res: Response) => {
 
     try {
         // check if trip exists
-        const trip = await tripService.findByIdAndStatusIn(body.tripId, [
+        const trip: any = await tripService.findByIdAndStatusIn(body.tripId, [
             WellKnownTripStatus.START,
         ]);
 
@@ -55,6 +59,31 @@ const requestMoreExpenses = async (req: Request, res: Response) => {
         newExpenseRequest.updatedBy = auth.id;
 
         await expensesRequestService.save(newExpenseRequest, null);
+
+        // send notification to admins
+        let activeSockets = getActiveSocketIdsByRoles([
+            constants.USER.ROLES.SUPERADMIN,
+            constants.USER.ROLES.ADMIN,
+            constants.USER.ROLES.FINANCEOFFICER,
+            constants.USER.ROLES.TRIPMANAGER,
+        ]);
+
+        let newExpenseReq = await expensesRequestService.findByIdAndStatusIn(
+            newExpenseRequest._id.toString(),
+            [WellKnownLeaveStatus.PENDING]
+        );
+
+        if (activeSockets.length > 0 && newExpenseReq) {
+            let response: ExpensesExtensionResponseDto =
+                notificationUtil.modelToExpensesExtensionResponseDto(
+                    newExpenseReq
+                );
+
+            io.to(activeSockets).emit('new-expense-request', {
+                message: `New expense request has been created for trip ${response?.tripConfirmedNumber} by ${response?.requestedUserName} `,
+                data: response,
+            });
+        }
 
         CommonResponse(
             res,
@@ -127,6 +156,26 @@ const approveExpensesRequest = async (req: Request, res: Response) => {
 
         await tripService.save(trip, session);
 
+        // send notification to admins
+        let activeSockets = getActiveSocketIdsByRoles([
+            constants.USER.ROLES.SUPERADMIN,
+            constants.USER.ROLES.ADMIN,
+            constants.USER.ROLES.FINANCEOFFICER,
+            constants.USER.ROLES.TRIPMANAGER,
+        ]);
+
+        if (activeSockets.length > 0 && expenseRequest) {
+            let response: ExpensesExtensionResponseDto =
+                notificationUtil.modelToExpensesExtensionResponseDto(
+                    expenseRequest
+                );
+
+            io.to(activeSockets).emit('expense-request-approved', {
+                message: '',
+                data: response,
+            });
+        }
+
         CommonResponse(
             res,
             true,
@@ -178,6 +227,26 @@ const rejectExpensesRequest = async (req: Request, res: Response) => {
         expenseRequest.rejectRemark = body.rejectRemark;
 
         await expensesRequestService.save(expenseRequest, null);
+
+        // send notification to admins
+        let activeSockets = getActiveSocketIdsByRoles([
+            constants.USER.ROLES.SUPERADMIN,
+            constants.USER.ROLES.ADMIN,
+            constants.USER.ROLES.FINANCEOFFICER,
+            constants.USER.ROLES.TRIPMANAGER,
+        ]);
+
+        if (activeSockets.length > 0 && expenseRequest) {
+            let response: ExpensesExtensionResponseDto =
+                notificationUtil.modelToExpensesExtensionResponseDto(
+                    expenseRequest
+                );
+
+            io.to(activeSockets).emit('expense-request-rejected', {
+                message: '',
+                data: response,
+            });
+        }
 
         CommonResponse(
             res,
