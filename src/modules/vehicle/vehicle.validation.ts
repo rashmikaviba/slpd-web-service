@@ -26,11 +26,11 @@ const vehicleSchema = Joi.object({
         'number.base': 'Available Seats is invalid',
     }),
 
-    gpsTracker: Joi.string().messages({
+    gpsTracker: Joi.string().allow(null).allow('').messages({
         'string.base': 'GPS Tracker is invalid',
     }),
 
-    description: Joi.string().max(500).messages({
+    description: Joi.string().allow(null).allow('').max(500).messages({
         'string.base': 'Reason is invalid',
         'string.max': 'Reason cannot be more than 500 characters',
     }),
