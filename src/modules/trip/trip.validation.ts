@@ -253,10 +253,10 @@ const tripSchema = Joi.object({
 });
 
 const assignDriverVehicleSchema = Joi.object({
-    driverId: Joi.string().messages({
+    driverId: Joi.string().allow(null).allow('').messages({
         'string.base': 'Driver Id is invalid',
     }),
-    vehicleId: Joi.string().messages({
+    vehicleId: Joi.string().allow(null).allow('').messages({
         'string.base': 'Vehicle Id is invalid',
     }),
 });

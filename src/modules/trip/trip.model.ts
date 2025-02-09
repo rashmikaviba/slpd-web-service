@@ -33,6 +33,7 @@ const tripSchema = new mongoose.Schema(
         totalCostLocalCurrency: {
             type: Number,
             required: [true, 'Total Cost Local Currency is required'],
+            default: 0,
         },
 
         estimatedExpense: {
@@ -51,7 +52,7 @@ const tripSchema = new mongoose.Schema(
         paymentMode: {
             type: String,
             required: [true, 'Payment Mode is required'],
-            default: '',
+            default: 'Cash',
         },
 
         // Passenger Information

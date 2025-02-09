@@ -516,18 +516,18 @@ const assignDriverAndVehicle = async (req: Request, res: Response) => {
                     }
                 }
             }
-
-            await tripService.save(trip, null);
-
-            let message =
-                body?.driverId && body?.vehicleId
-                    ? 'Driver and vehicle assigned successfully!'
-                    : body?.driverId
-                    ? 'Driver assigned successfully!'
-                    : 'Vehicle assigned successfully!';
-
-            CommonResponse(res, true, StatusCodes.OK, message, null);
         }
+
+        await tripService.save(trip, null);
+
+        let message =
+            body?.driverId && body?.vehicleId
+                ? 'Driver and vehicle assigned successfully!'
+                : body?.driverId
+                ? 'Driver assigned successfully!'
+                : 'Vehicle assigned successfully!';
+
+        CommonResponse(res, true, StatusCodes.OK, message, null);
     } catch (error) {
         throw error;
     }
