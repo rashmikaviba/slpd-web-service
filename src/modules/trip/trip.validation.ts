@@ -31,6 +31,17 @@ const tripSchema = Joi.object({
         'number.base': 'Estimated Expense is invalid',
     }),
 
+    specialRequirement: Joi.string().allow(null).allow('').messages({
+        'string.base': 'Special Requirement is invalid',
+        'string.max':
+            'Special Requirement should not be more than 500 characters',
+    }),
+
+    paymentMode: Joi.string().required().messages({
+        'any.required': 'Payment Mode is required',
+        'string.base': 'Payment Mode is invalid',
+    }),
+
     // Passenger Information
     // Name, Nationality, Age, Gender
     passengers: Joi.array()
@@ -276,6 +287,21 @@ const checkListAnswerSchema = Joi.object({
         'number.base': 'Answer is invalid',
     }),
     9: Joi.number().messages({
+        'number.base': 'Answer is invalid',
+    }),
+    10: Joi.number().messages({
+        'number.base': 'Answer is invalid',
+    }),
+
+    11: Joi.number().messages({
+        'number.base': 'Answer is invalid',
+    }),
+
+    12: Joi.number().messages({
+        'number.base': 'Answer is invalid',
+    }),
+
+    umbrellaCount: Joi.number().messages({
         'number.base': 'Answer is invalid',
     }),
 

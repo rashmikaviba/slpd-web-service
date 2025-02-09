@@ -40,6 +40,20 @@ const tripSchema = new mongoose.Schema(
             required: [true, 'Estimated Expense is required'],
         },
 
+        specialRequirement: {
+            type: String,
+            maxlength: [
+                500,
+                'Special Requirement cannot be more than 500 characters',
+            ],
+        },
+
+        paymentMode: {
+            type: String,
+            required: [true, 'Payment Mode is required'],
+            default: '',
+        },
+
         // Passenger Information
         // Name, Nationality, Age, Gender
         passengers: [

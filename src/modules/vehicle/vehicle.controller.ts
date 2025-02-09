@@ -26,6 +26,12 @@ const saveVehicle = async (req: Request, res: Response) => {
         availableSeats,
         description,
         vehicleOwner,
+        licenseRenewalDate,
+        insuranceRenewalDate,
+        gearOil,
+        airFilter,
+        oilFilter,
+        initialMileage,
     } = req.body;
 
     // Validate request body
@@ -65,6 +71,13 @@ const saveVehicle = async (req: Request, res: Response) => {
             capacity,
             availableSeats,
             description,
+            licenseRenewalDate,
+            insuranceRenewalDate,
+            gearOil,
+            airFilter,
+            oilFilter,
+            initialMileage,
+            currentMileage: initialMileage,
             status: WellKnownStatus.ACTIVE,
             createdBy: auth.id,
             updatedBy: auth.id,
@@ -96,6 +109,12 @@ const updateVehicle = async (req: Request, res: Response) => {
         availableSeats,
         description,
         vehicleOwner,
+        licenseRenewalDate,
+        insuranceRenewalDate,
+        gearOil,
+        airFilter,
+        oilFilter,
+        initialMileage,
     } = req.body;
 
     // Validate request body
@@ -146,6 +165,16 @@ const updateVehicle = async (req: Request, res: Response) => {
         vehicle.description = description;
         vehicle.updatedBy = auth.id;
         vehicle.vehicleOwner = vehicleOwner;
+        vehicle.licenseRenewalDate = licenseRenewalDate;
+        vehicle.insuranceRenewalDate = insuranceRenewalDate;
+        vehicle.gearOil = gearOil;
+        vehicle.airFilter = airFilter;
+        vehicle.oilFilter = oilFilter;
+
+        if (vehicle.initialMileage != initialMileage) {
+            vehicle.currentMileage = initialMileage;
+            vehicle.initialMileage = initialMileage;
+        }
 
         let updatedVehicle = await vehicleService.save(vehicle, null);
 
@@ -170,15 +199,11 @@ const getVehicleById = async (req: Request, res: Response) => {
         WellKnownStatus.INACTIVE,
     ]);
 
-    let response: any = null;
-
     if (!vehicle) {
         throw new BadRequestError('Vehicle not found!');
-    } else {
-        response = vehicleUtil.vehicleModelToVehicleResponseDto(vehicle);
     }
 
-    if (vehicle) CommonResponse(res, true, StatusCodes.OK, '', response);
+    if (vehicle) CommonResponse(res, true, StatusCodes.OK, '', vehicle);
 };
 
 // Get all
