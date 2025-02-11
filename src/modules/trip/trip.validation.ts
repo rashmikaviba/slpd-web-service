@@ -325,6 +325,10 @@ const markPlaceSchema = Joi.object({
             'number.base': 'lng is invalid',
         }),
     }),
+    currentMilage: Joi.number().required().messages({
+        'number.base': 'currentMilage is invalid',
+        'any.required': 'Current milage is required',
+    }),
 });
 
 export default {

@@ -119,6 +119,15 @@ const applicationRoutes = {
         monthlyDriverSalary: '/monthlyDriverSalary',
         monthlyIncomeReport: '/monthlyIncomeReport',
     },
+
+    internalTrip: {
+        base: '/internalTrip',
+        save: '/',
+        getByVehicle: '/getByVehicle/:id',
+        getById: '/:id',
+        update: '/:id',
+        deleteById: '/:id',
+    },
 };
 
 export default applicationRoutes;

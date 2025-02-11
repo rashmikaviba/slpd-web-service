@@ -201,6 +201,11 @@ const tripSchema = new mongoose.Schema(
                     default: null,
                 },
 
+                calcDistance: {
+                    type: Number,
+                    default: 0,
+                },
+
                 location: {
                     type: Object,
                     default: null,

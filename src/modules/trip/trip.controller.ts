@@ -792,7 +792,11 @@ const markPlaceAsReached = async (req: Request, res: Response) => {
         throw new BadRequestError(error.message);
     }
 
+    const session = await startSession();
     try {
+        //start transaction in session
+        session.startTransaction();
+
         // get trip by status running
         let trip = await tripService.findByIdAndStatusIn(tripId, [
             WellKnownTripStatus.START,
@@ -828,25 +832,60 @@ const markPlaceAsReached = async (req: Request, res: Response) => {
             throw new BadRequestError('Place already reached!');
         }
 
+        let activeVehicle: any = trip.vehicles.find(
+            (vehicle: any) => vehicle.isActive == true
+        );
+
+        let selectedVehicle: any = await vehicleService.findByIdAndStatusIn(
+            activeVehicle.vehicle.toString(),
+            [WellKnownStatus.ACTIVE]
+        );
+
+        if (!selectedVehicle) {
+            throw new BadRequestError('Selected vehicle not found!');
+        }
+
+        if (selectedVehicle.currentMileage >= body.currentMilage) {
+            throw new BadRequestError(
+                'Current mileage should be greater than previous mileage!'
+            );
+        }
+
+        let calcDistance = body.currentMilage - selectedVehicle?.currentMileage;
+
         // udpate place as reached
         place.isReached = true;
         place.reachedDate = new Date();
         place.reachedBy = auth.id;
         place.location = body.location;
+        place.calcDistance = calcDistance;
+
+        selectedVehicle.currentMileage += calcDistance;
 
         // save trip
-        await tripService.save(trip, null);
+        await tripService.save(trip, session);
 
-        CommonResponse(
-            res,
-            true,
-            StatusCodes.OK,
-            'Place marked as reached successfully!',
-            null
-        );
-    } catch (error) {
-        throw error;
+        // save vehicle
+        await vehicleService.save(selectedVehicle, session);
+
+        //commit transaction
+        await session.commitTransaction();
+    } catch (e) {
+        //abort transaction
+        await session.abortTransaction();
+        throw e;
+    } finally {
+        //end session
+        session.endSession();
     }
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        'Place marked as reached successfully!',
+        null
+    );
 };
 
 const getTripForReport = async (req: Request, res: Response) => {
