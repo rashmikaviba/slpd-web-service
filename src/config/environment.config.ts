@@ -14,4 +14,5 @@ export const envConfig = {
     JWT_SECRET: process.env.JWT_SECRET,
     SALT_ROUNDS: process.env.SALT_ROUNDS,
     BASE_URL: process.env.BASE_URL,
+    CLIENT_URL: process.env.CLIENT_URL,
 };

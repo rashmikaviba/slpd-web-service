@@ -14,9 +14,14 @@ import errorHandlerMiddleware from './middleware/error.middleware';
 import NotFoundError from './error/NotFoundError';
 import runDBBackup from './config/dbBackups.config';
 
-const app: Express = express();
+import { app, server } from './config/soket.config';
+// const app: Express = express();
 
-app.use(cors());
+const corsOptions = {
+    origin: envConfig.CLIENT_URL,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -24,8 +29,8 @@ app.use(express.urlencoded({ extended: true }));
 const uploadsPath =
     process.env.NODE_ENV === 'production'
         ? '../../src/uploads' // Adjust path for compiled production
-        : 'uploads';     // Use this for development
-console.log('Serving uploads from:', uploadsPath);
+        : 'uploads'; // Use this for development
+
 app.use('/uploads', express.static(path.join(__dirname, uploadsPath)));
 
 // use routes mapping
@@ -41,7 +46,7 @@ app.use(errorHandlerMiddleware);
 const start = async () => {
     const port = envConfig.PORT || 5000;
     try {
-        app.listen(port, () => {
+        server.listen(port, () => {
             console.log(`SERVER IS LISTENING ON PORT ${port}..!`);
             connectDB();
             runDBBackup();

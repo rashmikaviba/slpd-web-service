@@ -17,6 +17,7 @@ import { StatusCodes } from 'http-status-codes';
 import UserResponseDto from './dto/userResponseDto';
 import NotFoundError from '../../error/NotFoundError';
 import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
+import constants from '../../constant';
 
 const saveUser = async (req: Request, res: Response) => {
     const {
@@ -485,6 +486,24 @@ const getAllUsersByRole = async (req: Request, res: Response) => {
     CommonResponse(res, true, StatusCodes.OK, '', users);
 };
 
+const getDriversForTrip = async (req: Request, res: Response) => {
+    const startDate = req.query.startDate;
+    const endDate = req.query.endDate;
+
+    const role: any = await roleService.findByCustomId(
+        constants.USER.ROLES.DRIVER.toString()
+    );
+    let users: any[] = [];
+
+    users = await userService.findDriversByNotInInternalTrips(
+        role?._id,
+        startDate,
+        endDate
+    );
+
+    CommonResponse(res, true, StatusCodes.OK, '', users);
+};
+
 export {
     saveUser,
     blockUser,
@@ -495,4 +514,5 @@ export {
     checkUserName,
     deleteUser,
     getAllUsersByRole,
+    getDriversForTrip,
 };

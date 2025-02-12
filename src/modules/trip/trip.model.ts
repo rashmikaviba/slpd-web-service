@@ -33,11 +33,26 @@ const tripSchema = new mongoose.Schema(
         totalCostLocalCurrency: {
             type: Number,
             required: [true, 'Total Cost Local Currency is required'],
+            default: 0,
         },
 
         estimatedExpense: {
             type: Number,
             required: [true, 'Estimated Expense is required'],
+        },
+
+        specialRequirement: {
+            type: String,
+            maxlength: [
+                500,
+                'Special Requirement cannot be more than 500 characters',
+            ],
+        },
+
+        paymentMode: {
+            type: String,
+            required: [true, 'Payment Mode is required'],
+            default: 'Cash',
         },
 
         // Passenger Information
@@ -184,6 +199,21 @@ const tripSchema = new mongoose.Schema(
                 reachedDate: {
                     type: Date,
                     default: null,
+                },
+
+                calcDistance: {
+                    type: Number,
+                    default: 0,
+                },
+
+                startMilage: {
+                    type: Number,
+                    default: 0,
+                },
+
+                endMilage: {
+                    type: Number,
+                    default: 0,
                 },
 
                 location: {
@@ -354,6 +384,11 @@ const tripSchema = new mongoose.Schema(
         isMonthEndDone: {
             type: Boolean,
             default: false,
+        },
+
+        batchId: {
+            type: Number,
+            default: 0,
         },
     },
     {

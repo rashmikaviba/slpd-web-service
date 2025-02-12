@@ -8,6 +8,7 @@ interface VehicleResponseDto {
     capacity: number;
     availableSeats: number;
     description: string;
+    currentMileage: number;
     status: number;
     statusName: string;
     createdBy: string;
