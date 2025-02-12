@@ -1,4 +1,5 @@
 import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
+import InternalTrip from '../internalTrip/internalTrip.model';
 import Vehicle from './vehicle.model';
 
 const save = async (vehicle: any, session: any) => {
@@ -62,11 +63,31 @@ const findByIdNotAndGpsTrackerAndStatusIn = async (
     });
 };
 
-const findVehiclesBySheetCount = async (count: number) => {
+const findVehiclesBySheetCountAndNotInInternalTrips = async (
+    count: number,
+    startDate: any,
+    endDate: any
+) => {
+    let internalTripVehicles: string[] = [];
+    if (startDate && endDate) {
+        internalTripVehicles = await InternalTrip.find({
+            $or: [
+                { startDate: { $gte: startDate, $lt: endDate } },
+                { endDate: { $gte: startDate, $lt: endDate } },
+                { startDate: { $lte: startDate }, endDate: { $gte: endDate } },
+            ],
+            status: WellKnownStatus.ACTIVE,
+        })
+            .select('vehicle')
+            .lean()
+            .then((trips) => trips.map((trip) => trip.vehicle.toString()));
+    }
+
     return await Vehicle.find({
         availableSeats: { $gte: count },
         status: WellKnownStatus.ACTIVE,
-    });
+        _id: { $nin: internalTripVehicles },
+    }).lean();
 };
 
 export default {
@@ -77,5 +98,5 @@ export default {
     findAllAndStatusIn,
     findByGpsTrackerAndStatusIn,
     findByIdNotAndGpsTrackerAndStatusIn,
-    findVehiclesBySheetCount,
+    findVehiclesBySheetCountAndNotInInternalTrips,
 };

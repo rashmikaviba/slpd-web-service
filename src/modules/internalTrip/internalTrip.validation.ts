@@ -20,8 +20,7 @@ const internalTripSchema = Joi.object({
         'string.base': 'Vehicle is invalid',
     }),
 
-    meterReading: Joi.number().required().messages({
-        'any.required': 'Meter Reading is required',
+    meterReading: Joi.number().messages({
         'number.base': 'Meter Reading is invalid',
     }),
 

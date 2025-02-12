@@ -10,11 +10,22 @@ import {
     checkUserName,
     deleteUser,
     getAllUsersByRole,
+    getDriversForTrip,
 } from './user.controller';
 import authMiddleware from '../../middleware/auth.middleware';
 import constants from '../../constant';
 
 const UserRouter = Router();
+
+UserRouter.get(
+    applicationRoutes.user.getDriversForTrip,
+    authMiddleware.authorize([
+        constants.USER.ROLES.SUPERADMIN,
+        constants.USER.ROLES.ADMIN,
+        constants.USER.ROLES.TRIPMANAGER,
+    ]),
+    getDriversForTrip
+);
 
 UserRouter.post(
     applicationRoutes.user.save,

@@ -17,8 +17,9 @@ const errorHandlerMiddleware = async (
     };
 
     if (
-        err instanceof InternalServerError ||
-        customError.statusCode === StatusCodes.INTERNAL_SERVER_ERROR
+        (err instanceof InternalServerError ||
+            customError.statusCode === StatusCodes.INTERNAL_SERVER_ERROR) &&
+        err.name != 'ValidationError'
     ) {
         logger.error(err.stack || err.message);
     }

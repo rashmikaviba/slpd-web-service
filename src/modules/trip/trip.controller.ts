@@ -330,6 +330,23 @@ const getTripById = async (req: Request, res: Response) => {
 
 const getAllTripsByRole = async (req: Request, res: Response) => {
     const auth = req.auth;
+    const status = req.query.status || '-1';
+
+    let statusArr: number[] = [];
+    if (+status == -1) {
+        statusArr = [
+            WellKnownTripStatus.PENDING,
+            WellKnownTripStatus.START,
+            WellKnownTripStatus.FINISHED,
+        ];
+    } else if (+status == WellKnownTripStatus.PENDING) {
+        statusArr = [WellKnownTripStatus.PENDING];
+    } else if (+status == WellKnownTripStatus.START) {
+        statusArr = [WellKnownTripStatus.START];
+    } else if (+status == WellKnownTripStatus.FINISHED) {
+        statusArr = [WellKnownTripStatus.FINISHED];
+    }
+
     let response: any = [];
     // admin, trip manager, super admin
     if (
@@ -337,11 +354,7 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
         auth.role === constants.USER.ROLES.TRIPMANAGER ||
         auth.role === constants.USER.ROLES.SUPERADMIN
     ) {
-        const trips = await tripService.findAllByStatusIn([
-            WellKnownTripStatus.PENDING,
-            WellKnownTripStatus.START,
-            WellKnownTripStatus.FINISHED,
-        ]);
+        const trips = await tripService.findAllByStatusIn(statusArr);
 
         await Promise.all(
             trips.map(async (trip: any) => {
@@ -367,11 +380,7 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
     } else if (auth.role === constants.USER.ROLES.DRIVER) {
         const trips: any = await tripService.findAllByDriverIdAndStatusIn(
             auth.id,
-            [
-                WellKnownTripStatus.PENDING,
-                WellKnownTripStatus.START,
-                WellKnownTripStatus.FINISHED,
-            ]
+            statusArr
         );
 
         trips.map((trip: any) => {

@@ -14,6 +14,7 @@ import BadRequestError from '../../error/BadRequestError';
 import VehicleResponseDto from './dto/vehicleResponseDto';
 import vehicleUtil from './vehicle.util';
 import vehicleValidation from './vehicle.validation';
+import { vehicleTypes } from '../../util/data/commonData';
 
 // Save vehicle
 const saveVehicle = async (req: Request, res: Response) => {
@@ -309,8 +310,24 @@ const activeInactiveVehicle = async (req: Request, res: Response) => {
 
 const getVehiclesByPassengersCount = async (req: Request, res: Response) => {
     const count = req.params.count || '0';
+    const startDate = req.query.startDate;
+    const endDate = req.query.endDate;
 
-    const vehicles = await vehicleService.findVehiclesBySheetCount(+count);
+    const vehicles =
+        await vehicleService.findVehiclesBySheetCountAndNotInInternalTrips(
+            +count,
+            startDate,
+            endDate
+        );
+
+    if (vehicles.length > 0) {
+        vehicles.map((vehicle: any) => {
+            vehicle.typeName =
+                vehicleTypes.find(
+                    (vehicleType) => vehicleType.id === vehicle.vehicleType
+                )?.name || '';
+        });
+    }
 
     CommonResponse(res, true, StatusCodes.OK, '', vehicles);
 };

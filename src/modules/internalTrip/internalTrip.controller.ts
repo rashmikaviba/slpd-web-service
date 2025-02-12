@@ -20,21 +20,19 @@ const saveInternalTrip = async (req: Request, res: Response) => {
         throw new BadRequestError(error.message);
     }
 
-    let vehicle = await vehicleService.findByIdAndStatusIn(body.vehicle, [
-        WellKnownStatus.ACTIVE,
-        WellKnownStatus.INACTIVE,
-    ]);
+    const checkVehicleForDateRange =
+        await internalTripService.validateVehicleForDateRange(
+            body.startDate,
+            body.endDate,
+            body.vehicle,
+            ''
+        );
 
-    if (!vehicle) {
-        throw new BadRequestError('Vehicle not found!');
-    }
-
-    if (vehicle.currentMileage >= body.meterReading) {
+    if (checkVehicleForDateRange) {
         throw new BadRequestError(
-            'Vehicle current mileage is greater than meter reading!'
+            'Vehicle already has internal trip or an other trip for this date range!'
         );
     }
-
     const session = await startSession();
     try {
         //start transaction in session
@@ -52,17 +50,34 @@ const saveInternalTrip = async (req: Request, res: Response) => {
             updatedBy: auth.id,
         });
 
-        // calculate distance
-        let calcDistance = body.meterReading - vehicle.currentMileage;
+        if (body.meterReading > 0) {
+            let vehicle = await vehicleService.findByIdAndStatusIn(
+                body.vehicle,
+                [WellKnownStatus.ACTIVE, WellKnownStatus.INACTIVE]
+            );
 
-        internalTrip.calcDistance = calcDistance;
+            if (!vehicle) {
+                throw new BadRequestError('Vehicle not found!');
+            }
+
+            if (vehicle.currentMileage >= body.meterReading) {
+                throw new BadRequestError(
+                    'Vehicle current mileage is greater than meter reading!'
+                );
+            }
+
+            // calculate distance
+            let calcDistance = body.meterReading - vehicle.currentMileage;
+
+            internalTrip.calcDistance = calcDistance;
+
+            // Update vehicle current mileage
+            vehicle.currentMileage += calcDistance;
+
+            await vehicleService.save(vehicle, session);
+        }
 
         await internalTripService.save(internalTrip, session);
-
-        // Update vehicle current mileage
-        vehicle.currentMileage += calcDistance;
-
-        await vehicleService.save(vehicle, session);
 
         //commit transaction in session
         await session.commitTransaction();
@@ -103,6 +118,20 @@ const updateInternalTrip = async (req: Request, res: Response) => {
         throw new BadRequestError('Internal trip not found!');
     }
 
+    const checkVehicleForDateRange =
+        await internalTripService.validateVehicleForDateRange(
+            body.startDate,
+            body.endDate,
+            body.vehicle,
+            internalTripId
+        );
+
+    if (checkVehicleForDateRange) {
+        throw new BadRequestError(
+            'Vehicle already has internal trip or an other trip for this date range!'
+        );
+    }
+
     const session = await startSession();
     try {
         //start transaction in session
@@ -115,6 +144,32 @@ const updateInternalTrip = async (req: Request, res: Response) => {
         internalTrip.driver = body.driver;
         internalTrip.updatedBy = auth.id;
 
+        if (internalTrip.meterReading <= 0 && body.meterReading > 0) {
+            let vehicle = await vehicleService.findByIdAndStatusIn(
+                internalTrip.vehicle.toString(),
+                [WellKnownStatus.ACTIVE, WellKnownStatus.INACTIVE]
+            );
+
+            if (!vehicle) {
+                throw new BadRequestError('Vehicle not found!');
+            }
+
+            if (vehicle.currentMileage >= body.meterReading) {
+                throw new BadRequestError(
+                    'Vehicle current mileage is greater than meter reading!'
+                );
+            }
+
+            // calculate distance
+            let calcDistance = body.meterReading - vehicle.currentMileage;
+
+            internalTrip.calcDistance = calcDistance;
+
+            // Update vehicle current mileage
+            vehicle.currentMileage += calcDistance;
+
+            await vehicleService.save(vehicle, session);
+        }
         await internalTripService.save(internalTrip, session);
 
         //commit transaction in session

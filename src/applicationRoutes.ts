@@ -25,6 +25,7 @@ const applicationRoutes = {
         unblockUser: '/unblock/:id',
         validateUser: '/validateUser',
         getUsersByRole: '/userByRole/:id',
+        getDriversForTrip: '/getDriversForTrip',
     },
 
     auth: {
