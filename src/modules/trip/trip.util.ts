@@ -130,6 +130,7 @@ const tripModelToTripResponseDtoGetAll = (trip: any): TripResponseDtoGetAll => {
         dateCount: trip.dateCount,
         totalCost: trip.totalCost,
         totalCostLocalCurrency: trip.totalCostLocalCurrency,
+        paymentMode: trip?.paymentMode || '',
         isActiveDriver: trip.isActiveDriver || false,
         isCheckListDone: trip.checkListAnswers != null ? true : false,
         email: trip.email,
@@ -156,7 +157,7 @@ const tripModelToTripResponseDtoGetAll = (trip: any): TripResponseDtoGetAll => {
         endedUser: trip.endedBy?.fullName || null,
         canUndo:
             trip?.status === WellKnownTripStatus.START &&
-                !trip?.places.find((x: any) => x.isReached === true)
+            !trip?.places.find((x: any) => x.isReached === true)
                 ? true
                 : false,
         createdAt: trip.createdAt,

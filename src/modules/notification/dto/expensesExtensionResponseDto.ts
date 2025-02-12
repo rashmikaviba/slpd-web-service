@@ -9,12 +9,6 @@ interface ExpensesExtensionResponseDto {
     tripConfirmedNumber: string;
     description: string;
     createdAt: Date;
-    // bankName: string
-    // bankId: string
-    // branch: string
-    // accountNumber: string
-    // accountHolderName: string
-    // accountHolderAddress: string
 }
 
 export default ExpensesExtensionResponseDto;

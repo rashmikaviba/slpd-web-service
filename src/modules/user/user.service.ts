@@ -1,5 +1,7 @@
+import constants from '../../constant';
 import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
 import Auth from '../auth/auth.model';
+import InternalTrip from '../internalTrip/internalTrip.model';
 import User from './user.model';
 
 const Save = async (user: any, session: any) => {
@@ -151,6 +153,40 @@ const findAllByRoleId = async (roleId: string) => {
     return users || [];
 };
 
+const findDriversByNotInInternalTrips = async (
+    roleId: string,
+    startDate: any,
+    endDate: any
+) => {
+    let internalTripDrivers: string[] = [];
+    if (startDate && endDate) {
+        internalTripDrivers = await InternalTrip.find({
+            $or: [
+                { startDate: { $gte: startDate, $lt: endDate } },
+                { endDate: { $gte: startDate, $lt: endDate } },
+                { startDate: { $lte: startDate }, endDate: { $gte: endDate } },
+            ],
+            status: WellKnownStatus.ACTIVE,
+        })
+            .select('driver')
+            .lean()
+            .then((trips) => trips.map((trip) => trip.driver.toString()));
+    }
+
+    let users: any = await Auth.find({
+        role: roleId,
+        status: WellKnownStatus.ACTIVE,
+        isBlocked: false,
+        user: { $nin: internalTripDrivers },
+    }).populate('user');
+
+    users = users.map((user: any) => {
+        return user.user;
+    });
+
+    return users || [];
+};
+
 export default {
     Save,
     validateUserData,
@@ -160,4 +196,5 @@ export default {
     findAll,
     findAllWithGenderRole,
     findAllByRoleId,
+    findDriversByNotInInternalTrips,
 };

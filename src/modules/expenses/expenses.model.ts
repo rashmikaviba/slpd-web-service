@@ -78,6 +78,11 @@ const expensesSchema = new mongoose.Schema(
             default: false,
         },
 
+        batchId: {
+            type: Number,
+            default: 0,
+        },
+
         // driver salary information
         // salaryPerDay, NoOfDays, TotalSalary, otherExpenses, createdBy, lastModifiedBy, createdAt, updatedAt
         driverSalary: {

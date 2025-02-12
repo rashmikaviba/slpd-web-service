@@ -25,6 +25,7 @@ import { WellKnownTripStatus } from '../../util/enums/well-known-trip-status.enu
 import tripUtil from '../trip/trip.util';
 import expensesService from '../expenses/expenses.service';
 import assert from 'assert';
+import internalTripService from '../internalTrip/internalTrip.service';
 
 const createNewDate = async (req: Request, res: Response) => {
     const auth: any = req.auth;
@@ -38,23 +39,37 @@ const createNewDate = async (req: Request, res: Response) => {
     try {
         session.startTransaction();
 
+        // generate batchId
+        const batchId = await monthAuditService.generateBatchId();
+
         await monthEndDoneForLeave(
             lastCompanyInfo.workingMonth,
             lastCompanyInfo.workingYear,
             session,
-            auth?.id
+            auth?.id,
+            batchId
         );
 
         await monthEndDoneForTrip(
             lastCompanyInfo.workingMonth,
             lastCompanyInfo.workingYear,
             session,
-            auth?.id
+            auth?.id,
+            batchId
+        );
+
+        await monthEndDoneForInternalTrip(
+            lastCompanyInfo.workingMonth,
+            lastCompanyInfo.workingYear,
+            session,
+            auth?.id,
+            batchId
         );
 
         if (lastCompanyInfo) {
             lastCompanyInfo.status = WellKnownStatus.DELETED;
-
+            lastCompanyInfo.updatedBy = auth.id;
+            lastCompanyInfo.batchId = batchId;
             await companyWorkingInfoService.save(lastCompanyInfo, session);
         }
 
@@ -70,6 +85,7 @@ const createNewDate = async (req: Request, res: Response) => {
 
         const monthAuditNew = new monthAudit({
             newWorkingDate: new Date(year, month - 1, 1),
+            batchId: batchId,
             createdBy: auth.id,
             updatedBy: auth.id,
         });
@@ -97,7 +113,8 @@ const monthEndDoneForLeave = async (
     currMonth: number,
     currYear: number,
     session: any,
-    userId: string
+    userId: string,
+    batchId: number
 ) => {
     const leaves: any[] =
         await leaveService.findAllLeavesByMonthYearAndStatusIn(
@@ -114,7 +131,30 @@ const monthEndDoneForLeave = async (
     for (const leave of leaves) {
         leave.isMonthEndDone = true;
         leave.updatedBy = userId;
+        leave.batchId = batchId;
         await leaveService.save(leave, session);
+    }
+};
+
+const monthEndDoneForInternalTrip = async (
+    currMonth: number,
+    currYear: number,
+    session: any,
+    userId: string,
+    batchId: number
+) => {
+    const internalTrips: any[] =
+        await internalTripService.findAllByEndMonthAndStatusIn(
+            currMonth,
+            currYear,
+            [WellKnownStatus.ACTIVE, WellKnownStatus.INACTIVE]
+        );
+
+    for (const internalTrip of internalTrips) {
+        internalTrip.isMonthEndDone = true;
+        internalTrip.batchId = batchId;
+        internalTrip.updatedBy = userId;
+        await internalTripService.save(internalTrip, session);
     }
 };
 
@@ -122,7 +162,8 @@ const monthEndDoneForTrip = async (
     currMonth: number,
     currYear: number,
     session: any,
-    userId: string
+    userId: string,
+    batchId: number
 ) => {
     const trips: any[] = await tripService.findAllByEndMonthAndStatusIn(
         currMonth,
@@ -137,6 +178,7 @@ const monthEndDoneForTrip = async (
 
     for (let trip of trips) {
         trip.isMonthEndDone = true;
+        trip.batchId = batchId;
         trip.updatedBy = userId;
 
         if (trip.status == WellKnownTripStatus.FINISHED) {
@@ -149,6 +191,7 @@ const monthEndDoneForTrip = async (
             if (expenseHeader) {
                 expenseHeader.isMonthEndDone = true;
                 expenseHeader.updatedBy = userId;
+                expenseHeader.batchId = batchId;
                 await expensesService.save(expenseHeader, session);
             }
         }
