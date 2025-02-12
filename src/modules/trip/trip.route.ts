@@ -15,6 +15,7 @@ import {
     getPlacesByTripId,
     markPlaceAsReached,
     getTripForReport,
+    getDestinationSummaryPrint,
 } from './trip.controller';
 
 const TripRouter = Router();
@@ -110,6 +111,12 @@ TripRouter.get(
     applicationRoutes.trip.getTripForPrint,
     authMiddleware.authorize([]),
     getTripForReport
+);
+
+TripRouter.get(
+    applicationRoutes.trip.getDestinationSummary,
+    authMiddleware.authorize([]),
+    getDestinationSummaryPrint
 );
 
 export default TripRouter;

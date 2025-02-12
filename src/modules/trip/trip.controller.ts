@@ -858,6 +858,8 @@ const markPlaceAsReached = async (req: Request, res: Response) => {
         place.reachedDate = new Date();
         place.reachedBy = auth.id;
         place.location = body.location;
+        place.startMilage = selectedVehicle?.currentMileage;
+        place.endMilage = body.currentMilage;
         place.calcDistance = calcDistance;
 
         selectedVehicle.currentMileage += calcDistance;
@@ -947,6 +949,22 @@ const getTripForReport = async (req: Request, res: Response) => {
     }
 };
 
+const getDestinationSummaryPrint = async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const trip = await tripService.findTripPlacesByTripIdAndStatusIn(id, [
+        WellKnownTripStatus.PENDING,
+        WellKnownTripStatus.START,
+        WellKnownTripStatus.FINISHED,
+    ]);
+
+    if (!trip) {
+        throw new BadRequestError('Invalid trip!');
+    }
+
+    CommonResponse(res, true, StatusCodes.OK, '', trip.places || []);
+};
+
 export {
     saveTrip,
     updateTrip,
@@ -960,4 +978,5 @@ export {
     getPlacesByTripId,
     markPlaceAsReached,
     getTripForReport,
+    getDestinationSummaryPrint,
 };

@@ -77,6 +77,7 @@ const findTripPlacesByTripIdAndStatusIn = async (
         path: 'places.reachedBy',
         model: 'User',
         match: { 'places.isReached': true },
+        select: '_id fullName userName',
     });
 };
 

@@ -87,6 +87,9 @@ const applicationRoutes = {
         // places routes
         getPlacesByTrip: '/places/:id',
         markAsReached: '/:tripId/markAsReached/:placeId',
+
+        // summary report
+        getDestinationSummary: '/destinationSummary/:id',
     },
 
     expenses: {

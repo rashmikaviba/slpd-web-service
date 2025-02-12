@@ -206,6 +206,16 @@ const tripSchema = new mongoose.Schema(
                     default: 0,
                 },
 
+                startMilage: {
+                    type: Number,
+                    default: 0,
+                },
+
+                endMilage: {
+                    type: Number,
+                    default: 0,
+                },
+
                 location: {
                     type: Object,
                     default: null,
