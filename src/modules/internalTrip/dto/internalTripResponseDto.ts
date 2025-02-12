@@ -6,6 +6,7 @@ interface InternalTripResponseDto {
     reason: string;
     createdBy: string;
     createdAt: Date;
+    isMonthEndDone: boolean;
     createdByUser: string;
     updatedBy: string;
     updatedAt: Date;

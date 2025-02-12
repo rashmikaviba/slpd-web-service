@@ -40,6 +40,11 @@ const internalTripSchema = new mongoose.Schema(
             required: [true, 'Driver is required'],
         },
 
+        isMonthEndDone: {
+            type: Boolean,
+            default: false,
+        },
+
         reason: {
             type: String,
             required: [true, 'Reason is required'],

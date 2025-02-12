@@ -34,8 +34,25 @@ const findAllByVehicleId = async (vehicleId: any) => {
         .sort({ startDate: -1 });
 };
 
+const findAllByEndMonthAndStatusIn = async (
+    endMonth: number,
+    currYear: number,
+    status: number[]
+) => {
+    let endDate = new Date();
+    endDate.setFullYear(currYear);
+    endDate.setMonth(endMonth);
+    endDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+
+    return internalTrip.find({
+        createdAt: { $lt: endDate },
+        status: { $in: status },
+        isMonthEndDone: false,
+    });
+};
 export default {
     save,
     findByIdAndStatusIn,
     findAllByVehicleId,
+    findAllByEndMonthAndStatusIn,
 };

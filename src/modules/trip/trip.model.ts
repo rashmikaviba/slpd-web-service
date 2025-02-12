@@ -375,6 +375,11 @@ const tripSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+
+        batchId: {
+            type: Number,
+            default: 0,
+        },
     },
     {
         timestamps: true,

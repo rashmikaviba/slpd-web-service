@@ -9,6 +9,7 @@ const modelToInternalTripResponseDto = (
         endDate: internalTrip.endDate,
         driver: internalTrip.driver.fullName,
         reason: internalTrip.reason,
+        isMonthEndDone: internalTrip.isMonthEndDone || false,
         createdBy: internalTrip.createdBy?._id,
         createdAt: internalTrip.createdAt,
         createdByUser: internalTrip.createdBy?.userName,
