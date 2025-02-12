@@ -92,6 +92,7 @@ interface TripResponseDtoGetAll {
     endDate: Date;
     dateCount: number;
     totalCost: number;
+    paymentMode: string;
     totalCostLocalCurrency: number;
     isActiveDriver: boolean;
     isCheckListDone: boolean;

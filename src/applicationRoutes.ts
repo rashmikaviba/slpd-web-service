@@ -25,6 +25,7 @@ const applicationRoutes = {
         unblockUser: '/unblock/:id',
         validateUser: '/validateUser',
         getUsersByRole: '/userByRole/:id',
+        getDriversForTrip: '/getDriversForTrip',
     },
 
     auth: {
@@ -87,6 +88,9 @@ const applicationRoutes = {
         // places routes
         getPlacesByTrip: '/places/:id',
         markAsReached: '/:tripId/markAsReached/:placeId',
+
+        // summary report
+        getDestinationSummary: '/destinationSummary/:id',
     },
 
     expenses: {
@@ -118,6 +122,15 @@ const applicationRoutes = {
         monthlyExpensesReport: '/monthlyExpensesReport',
         monthlyDriverSalary: '/monthlyDriverSalary',
         monthlyIncomeReport: '/monthlyIncomeReport',
+    },
+
+    internalTrip: {
+        base: '/internalTrip',
+        save: '/',
+        getByVehicle: '/getByVehicle/:id',
+        getById: '/:id',
+        update: '/:id',
+        deleteById: '/:id',
     },
 };
 

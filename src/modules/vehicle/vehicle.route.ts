@@ -61,4 +61,5 @@ VehicleRouter.get(
     authMiddleware.authorize([]),
     getVehiclesByPassengersCount
 );
+
 export default VehicleRouter;

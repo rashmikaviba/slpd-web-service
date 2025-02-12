@@ -14,6 +14,7 @@ import BadRequestError from '../../error/BadRequestError';
 import VehicleResponseDto from './dto/vehicleResponseDto';
 import vehicleUtil from './vehicle.util';
 import vehicleValidation from './vehicle.validation';
+import { vehicleTypes } from '../../util/data/commonData';
 
 // Save vehicle
 const saveVehicle = async (req: Request, res: Response) => {
@@ -26,6 +27,12 @@ const saveVehicle = async (req: Request, res: Response) => {
         availableSeats,
         description,
         vehicleOwner,
+        licenseRenewalDate,
+        insuranceRenewalDate,
+        gearOil,
+        airFilter,
+        oilFilter,
+        initialMileage,
     } = req.body;
 
     // Validate request body
@@ -65,6 +72,13 @@ const saveVehicle = async (req: Request, res: Response) => {
             capacity,
             availableSeats,
             description,
+            licenseRenewalDate,
+            insuranceRenewalDate,
+            gearOil,
+            airFilter,
+            oilFilter,
+            initialMileage,
+            currentMileage: initialMileage,
             status: WellKnownStatus.ACTIVE,
             createdBy: auth.id,
             updatedBy: auth.id,
@@ -96,6 +110,12 @@ const updateVehicle = async (req: Request, res: Response) => {
         availableSeats,
         description,
         vehicleOwner,
+        licenseRenewalDate,
+        insuranceRenewalDate,
+        gearOil,
+        airFilter,
+        oilFilter,
+        initialMileage,
     } = req.body;
 
     // Validate request body
@@ -146,6 +166,16 @@ const updateVehicle = async (req: Request, res: Response) => {
         vehicle.description = description;
         vehicle.updatedBy = auth.id;
         vehicle.vehicleOwner = vehicleOwner;
+        vehicle.licenseRenewalDate = licenseRenewalDate;
+        vehicle.insuranceRenewalDate = insuranceRenewalDate;
+        vehicle.gearOil = gearOil;
+        vehicle.airFilter = airFilter;
+        vehicle.oilFilter = oilFilter;
+
+        if (vehicle.initialMileage != initialMileage) {
+            vehicle.currentMileage = initialMileage;
+            vehicle.initialMileage = initialMileage;
+        }
 
         let updatedVehicle = await vehicleService.save(vehicle, null);
 
@@ -170,15 +200,11 @@ const getVehicleById = async (req: Request, res: Response) => {
         WellKnownStatus.INACTIVE,
     ]);
 
-    let response: any = null;
-
     if (!vehicle) {
         throw new BadRequestError('Vehicle not found!');
-    } else {
-        response = vehicleUtil.vehicleModelToVehicleResponseDto(vehicle);
     }
 
-    if (vehicle) CommonResponse(res, true, StatusCodes.OK, '', response);
+    if (vehicle) CommonResponse(res, true, StatusCodes.OK, '', vehicle);
 };
 
 // Get all
@@ -284,8 +310,24 @@ const activeInactiveVehicle = async (req: Request, res: Response) => {
 
 const getVehiclesByPassengersCount = async (req: Request, res: Response) => {
     const count = req.params.count || '0';
+    const startDate = req.query.startDate;
+    const endDate = req.query.endDate;
 
-    const vehicles = await vehicleService.findVehiclesBySheetCount(+count);
+    const vehicles =
+        await vehicleService.findVehiclesBySheetCountAndNotInInternalTrips(
+            +count,
+            startDate,
+            endDate
+        );
+
+    if (vehicles.length > 0) {
+        vehicles.map((vehicle: any) => {
+            vehicle.typeName =
+                vehicleTypes.find(
+                    (vehicleType) => vehicleType.id === vehicle.vehicleType
+                )?.name || '';
+        });
+    }
 
     CommonResponse(res, true, StatusCodes.OK, '', vehicles);
 };

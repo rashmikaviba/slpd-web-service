@@ -16,6 +16,7 @@ const vehicleModelToVehicleResponseDto = (vehicle: any): VehicleResponseDto => {
         gpsTracker: vehicle.gpsTracker,
         capacity: vehicle.capacity,
         availableSeats: vehicle.availableSeats,
+        currentMileage: vehicle.currentMileage,
         description: vehicle.description,
         status: vehicle.status,
         statusName: helperUtil.getNameFromEnum(WellKnownStatus, vehicle.status),

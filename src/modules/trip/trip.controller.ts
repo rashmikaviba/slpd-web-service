@@ -78,6 +78,8 @@ const saveTrip = async (req: Request, res: Response) => {
             endDate: body.endDate,
             dateCount: body.dateCount,
             totalCost: body.totalCost,
+            specialRequirement: body.specialRequirement,
+            paymentMode: body.paymentMode,
             totalCostLocalCurrency: body.totalCostLocalCurrency,
             contactPerson: body.contactPerson,
             estimatedExpense: body.estimatedExpense,
@@ -242,6 +244,8 @@ const updateTrip = async (req: Request, res: Response) => {
         trip.endDate = body.endDate;
         trip.dateCount = body.dateCount;
         trip.totalCost = body.totalCost;
+        trip.specialRequirement = body.specialRequirement;
+        trip.paymentMode = body.paymentMode;
         trip.totalCostLocalCurrency = body.totalCostLocalCurrency;
         trip.estimatedExpense = body.estimatedExpense;
         trip.passengers = passengers;
@@ -326,6 +330,23 @@ const getTripById = async (req: Request, res: Response) => {
 
 const getAllTripsByRole = async (req: Request, res: Response) => {
     const auth = req.auth;
+    const status = req.query.status || '-1';
+
+    let statusArr: number[] = [];
+    if (+status == -1) {
+        statusArr = [
+            WellKnownTripStatus.PENDING,
+            WellKnownTripStatus.START,
+            WellKnownTripStatus.FINISHED,
+        ];
+    } else if (+status == WellKnownTripStatus.PENDING) {
+        statusArr = [WellKnownTripStatus.PENDING];
+    } else if (+status == WellKnownTripStatus.START) {
+        statusArr = [WellKnownTripStatus.START];
+    } else if (+status == WellKnownTripStatus.FINISHED) {
+        statusArr = [WellKnownTripStatus.FINISHED];
+    }
+
     let response: any = [];
     // admin, trip manager, super admin
     if (
@@ -333,11 +354,7 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
         auth.role === constants.USER.ROLES.TRIPMANAGER ||
         auth.role === constants.USER.ROLES.SUPERADMIN
     ) {
-        const trips = await tripService.findAllByStatusIn([
-            WellKnownTripStatus.PENDING,
-            WellKnownTripStatus.START,
-            WellKnownTripStatus.FINISHED,
-        ]);
+        const trips = await tripService.findAllByStatusIn(statusArr);
 
         await Promise.all(
             trips.map(async (trip: any) => {
@@ -363,11 +380,7 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
     } else if (auth.role === constants.USER.ROLES.DRIVER) {
         const trips: any = await tripService.findAllByDriverIdAndStatusIn(
             auth.id,
-            [
-                WellKnownTripStatus.PENDING,
-                WellKnownTripStatus.START,
-                WellKnownTripStatus.FINISHED,
-            ]
+            statusArr
         );
 
         trips.map((trip: any) => {
@@ -512,18 +525,18 @@ const assignDriverAndVehicle = async (req: Request, res: Response) => {
                     }
                 }
             }
-
-            await tripService.save(trip, null);
-
-            let message =
-                body?.driverId && body?.vehicleId
-                    ? 'Driver and vehicle assigned successfully!'
-                    : body?.driverId
-                        ? 'Driver assigned successfully!'
-                        : 'Vehicle assigned successfully!';
-
-            CommonResponse(res, true, StatusCodes.OK, message, null);
         }
+
+        await tripService.save(trip, null);
+
+        let message =
+            body?.driverId && body?.vehicleId
+                ? 'Driver and vehicle assigned successfully!'
+                : body?.driverId
+                ? 'Driver assigned successfully!'
+                : 'Vehicle assigned successfully!';
+
+        CommonResponse(res, true, StatusCodes.OK, message, null);
     } catch (error) {
         throw error;
     }
@@ -788,7 +801,11 @@ const markPlaceAsReached = async (req: Request, res: Response) => {
         throw new BadRequestError(error.message);
     }
 
+    const session = await startSession();
     try {
+        //start transaction in session
+        session.startTransaction();
+
         // get trip by status running
         let trip = await tripService.findByIdAndStatusIn(tripId, [
             WellKnownTripStatus.START,
@@ -824,25 +841,62 @@ const markPlaceAsReached = async (req: Request, res: Response) => {
             throw new BadRequestError('Place already reached!');
         }
 
+        let activeVehicle: any = trip.vehicles.find(
+            (vehicle: any) => vehicle.isActive == true
+        );
+
+        let selectedVehicle: any = await vehicleService.findByIdAndStatusIn(
+            activeVehicle.vehicle.toString(),
+            [WellKnownStatus.ACTIVE]
+        );
+
+        if (!selectedVehicle) {
+            throw new BadRequestError('Selected vehicle not found!');
+        }
+
+        if (selectedVehicle.currentMileage >= body.currentMilage) {
+            throw new BadRequestError(
+                'Current mileage should be greater than previous mileage!'
+            );
+        }
+
+        let calcDistance = body.currentMilage - selectedVehicle?.currentMileage;
+
         // udpate place as reached
         place.isReached = true;
         place.reachedDate = new Date();
         place.reachedBy = auth.id;
         place.location = body.location;
+        place.startMilage = selectedVehicle?.currentMileage;
+        place.endMilage = body.currentMilage;
+        place.calcDistance = calcDistance;
+
+        selectedVehicle.currentMileage += calcDistance;
 
         // save trip
-        await tripService.save(trip, null);
+        await tripService.save(trip, session);
 
-        CommonResponse(
-            res,
-            true,
-            StatusCodes.OK,
-            'Place marked as reached successfully!',
-            null
-        );
-    } catch (error) {
-        throw error;
+        // save vehicle
+        await vehicleService.save(selectedVehicle, session);
+
+        //commit transaction
+        await session.commitTransaction();
+    } catch (e) {
+        //abort transaction
+        await session.abortTransaction();
+        throw e;
+    } finally {
+        //end session
+        session.endSession();
     }
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        'Place marked as reached successfully!',
+        null
+    );
 };
 
 const getTripForReport = async (req: Request, res: Response) => {
@@ -904,6 +958,22 @@ const getTripForReport = async (req: Request, res: Response) => {
     }
 };
 
+const getDestinationSummaryPrint = async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const trip = await tripService.findTripPlacesByTripIdAndStatusIn(id, [
+        WellKnownTripStatus.PENDING,
+        WellKnownTripStatus.START,
+        WellKnownTripStatus.FINISHED,
+    ]);
+
+    if (!trip) {
+        throw new BadRequestError('Invalid trip!');
+    }
+
+    CommonResponse(res, true, StatusCodes.OK, '', trip.places || []);
+};
+
 export {
     saveTrip,
     updateTrip,
@@ -917,4 +987,5 @@ export {
     getPlacesByTripId,
     markPlaceAsReached,
     getTripForReport,
+    getDestinationSummaryPrint,
 };

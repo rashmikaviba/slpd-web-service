@@ -77,6 +77,11 @@ const leaveSchema = new mongoose.Schema(
             default: false,
         },
 
+        batchId: {
+            type: Number,
+            default: 0,
+        },
+
         updatedBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',

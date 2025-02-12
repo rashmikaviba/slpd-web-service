@@ -12,6 +12,7 @@ import ReportRouter from './modules/report/report.route';
 import ExpensesRouter from './modules/expenses/expenses.route';
 import ExpensesRequestRouter from './modules/expenseRequest/expenseRequest.route';
 import NotificationRouter from './modules/notification/notification.route';
+import InternalTripRouter from './modules/internalTrip/internalTrip.route';
 
 const router = Router();
 
@@ -28,5 +29,6 @@ router.use(applicationRoutes.expenses.base, ExpensesRouter);
 router.use(applicationRoutes.report.base, ReportRouter);
 router.use(applicationRoutes.expenseRequest.base, ExpensesRequestRouter);
 router.use(applicationRoutes.notification.base, NotificationRouter);
+router.use(applicationRoutes.internalTrip.base, InternalTripRouter);
 
 export default router;
