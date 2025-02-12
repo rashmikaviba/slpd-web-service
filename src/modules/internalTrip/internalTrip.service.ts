@@ -14,10 +14,24 @@ const findByIdAndStatusIn = async (id: any, status: any) => {
 };
 
 const findAllByVehicleId = async (vehicleId: any) => {
-    return await internalTrip.find({
-        vehicle: vehicleId,
-        status: WellKnownStatus.ACTIVE,
-    });
+    return await internalTrip
+        .find({
+            vehicle: vehicleId,
+            status: WellKnownStatus.ACTIVE,
+        })
+        .populate({
+            path: 'driver',
+            select: '_id fullName',
+        })
+        .populate({
+            path: 'createdBy',
+            select: '_id userName',
+        })
+        .populate({
+            path: 'updatedBy',
+            select: '_id userName',
+        })
+        .sort({ startDate: -1 });
 };
 
 export default {

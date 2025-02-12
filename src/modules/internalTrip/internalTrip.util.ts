@@ -11,10 +11,10 @@ const modelToInternalTripResponseDto = (
         reason: internalTrip.reason,
         createdBy: internalTrip.createdBy?._id,
         createdAt: internalTrip.createdAt,
-        createdByUser: internalTrip.createdBy?.useName,
+        createdByUser: internalTrip.createdBy?.userName,
         updatedBy: internalTrip.updatedBy?._id,
         updatedAt: internalTrip.updatedAt,
-        updatedByUser: internalTrip.updatedBy?.useName,
+        updatedByUser: internalTrip.updatedBy?.userName,
     };
 };
 
