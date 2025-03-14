@@ -370,7 +370,7 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
                         );
                     if (expense) {
                         trip.isDriverSalaryDone =
-                            expense.toObject()?.driverSalary != null; //  expense.toObject()?.driverSalary != null;
+                            expense.toObject()?.driverSalaries.length > 0; //  expense.toObject()?.driverSalary != null;
                     }
                 }
             })
@@ -397,6 +397,8 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
         sortTrips(trips);
         response = tripUtil.tripModelArrToTripResponseDtoGetAlls(trips);
     }
+
+    response.sort((a: any, b: any) => b.updatedAt - a.updatedAt);
 
     CommonResponse(res, true, StatusCodes.OK, '', response);
 };
@@ -580,7 +582,7 @@ const changeTripStatus = async (req: Request, res: Response) => {
                     createdBy: auth.id,
                     updatedBy: auth.id,
                     expenses: [],
-                    driverSalary: null,
+                    driverSalaries: [],
                 });
 
                 await expensesService.save(expenses, session);

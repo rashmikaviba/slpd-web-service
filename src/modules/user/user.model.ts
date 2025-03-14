@@ -58,6 +58,11 @@ const userSchema = new mongoose.Schema(
             },
         },
 
+        isFreelanceDriver: {
+            type: Boolean,
+            default: false,
+        },
+
         profileImageUrl: {
             type: String,
         },

@@ -285,7 +285,20 @@ const saveDriverSalary = async (req: Request, res: Response) => {
     const auth: any = req.auth;
     const body: any = req.body;
 
+    const { error } = expensesValidation.saveDriverSalarySchema.validate(body);
+    if (error) {
+        throw new BadRequestError(error.message);
+    }
+
     try {
+        let trip = await tripService.findByIdAndStatusIn(tripId, [
+            WellKnownTripStatus.FINISHED,
+        ]);
+
+        if (!trip) {
+            throw new BadRequestError('Trip not found!');
+        }
+
         let expense: any = await expensesService.findByTripIdAndStatusIn(
             tripId,
             [WellKnownStatus.ACTIVE]
@@ -295,9 +308,25 @@ const saveDriverSalary = async (req: Request, res: Response) => {
             throw new BadRequestError('No expense header found for this trip!');
         }
 
-        let expenseDriverSalary: any = expense.toObject()?.driverSalary == null;
-        if (expenseDriverSalary) {
+        // check driver available in trip
+        let driver = trip.drivers.find(
+            (driver: any) => driver.driver.toString() === body.driver
+        );
+
+        if (!driver) {
+            throw new BadRequestError('Driver not found in trip!');
+        }
+
+        let expenseDriverSalary: any =
+            expense
+                .toObject()
+                ?.driverSalaries.find(
+                    (driverSalary: any) =>
+                        driverSalary.driver.toString() === body.driver
+                ) || null;
+        if (!expenseDriverSalary) {
             let driverSalary: any = {};
+            driverSalary.driver = body.driver;
             driverSalary.salaryPerDay = body.salaryPerDay;
             driverSalary.noOfDays = body.noOfDays;
             driverSalary.totalSalary = calculateDriverSalary(
@@ -321,11 +350,15 @@ const saveDriverSalary = async (req: Request, res: Response) => {
             driverSalary.createdAt = new Date();
             driverSalary.updatedAt = new Date();
 
-            expense.driverSalary = driverSalary;
+            expense.driverSalaries.push(driverSalary);
         } else {
-            expense.driverSalary.salaryPerDay = body.salaryPerDay;
-            expense.driverSalary.noOfDays = body.noOfDays;
-            expense.driverSalary.totalSalary = calculateDriverSalary(
+            let index = expense.driverSalaries.findIndex(
+                (driverSalary: any) =>
+                    driverSalary.driver.toString() === body.driver
+            );
+            expenseDriverSalary.salaryPerDay = body.salaryPerDay;
+            expenseDriverSalary.noOfDays = body.noOfDays;
+            expenseDriverSalary.totalSalary = calculateDriverSalary(
                 expense?.tripId,
                 expense.expenses,
                 body.salaryPerDay,
@@ -334,15 +367,17 @@ const saveDriverSalary = async (req: Request, res: Response) => {
                 body.totalDeduction,
                 body.isRemainingToDriver
             );
-            expense.driverSalary.totalAddition = body.totalAddition;
-            expense.driverSalary.totalDeduction = body.totalDeduction;
-            expense.driverSalary.remainingExpenses = calcRemainingExpenses(
+            expenseDriverSalary.totalAddition = body.totalAddition;
+            expenseDriverSalary.totalDeduction = body.totalDeduction;
+            expenseDriverSalary.remainingExpenses = calcRemainingExpenses(
                 expense?.tripId,
                 expense.expenses
             );
-            expense.driverSalary.isRemainingToDriver = body.isRemainingToDriver;
-            expense.driverSalary.updatedBy = auth.id;
-            expense.driverSalary.updatedAt = new Date();
+            expenseDriverSalary.isRemainingToDriver = body.isRemainingToDriver;
+            expenseDriverSalary.updatedBy = auth.id;
+            expenseDriverSalary.updatedAt = new Date();
+
+            expense.driverSalaries[index] = expenseDriverSalary;
         }
 
         await expensesService.save(expense, null);

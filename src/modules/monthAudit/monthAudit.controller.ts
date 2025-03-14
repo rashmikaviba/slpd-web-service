@@ -304,7 +304,7 @@ const getTripInfoForWorkingMonth = async (req: Request, res: Response) => {
                 );
                 if (expense) {
                     trip.isDriverSalaryDone =
-                        expense.toObject()?.driverSalary != null; //  expense.toObject()?.driverSalary != null;
+                        expense.toObject()?.driverSalaries.length > 0; //  expense.toObject()?.driverSalary != null;
                 }
             }
         })

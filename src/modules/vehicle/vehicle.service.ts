@@ -1,5 +1,7 @@
 import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
+import { WellKnownTripStatus } from '../../util/enums/well-known-trip-status.enum';
 import InternalTrip from '../internalTrip/internalTrip.model';
+import Trip from '../trip/trip.model';
 import Vehicle from './vehicle.model';
 
 const save = async (vehicle: any, session: any) => {
@@ -63,12 +65,14 @@ const findByIdNotAndGpsTrackerAndStatusIn = async (
     });
 };
 
-const findVehiclesBySheetCountAndNotInInternalTrips = async (
+const findVehiclesBySheetCountAndNotInInternalTripsAndNormalTrips = async (
     count: number,
     startDate: any,
-    endDate: any
+    endDate: any,
+    tripId: string
 ) => {
     let internalTripVehicles: string[] = [];
+    let normalTripVehicles: string[] = [];
     if (startDate && endDate) {
         internalTripVehicles = await InternalTrip.find({
             $or: [
@@ -81,12 +85,36 @@ const findVehiclesBySheetCountAndNotInInternalTrips = async (
             .select('vehicle')
             .lean()
             .then((trips) => trips.map((trip) => trip.vehicle.toString()));
+
+        normalTripVehicles = await Trip.find({
+            $or: [
+                { startDate: { $gte: startDate, $lt: endDate } },
+                { endDate: { $gte: startDate, $lt: endDate } },
+                { startDate: { $lte: startDate }, endDate: { $gte: endDate } },
+            ],
+            _id: { $ne: tripId },
+            status: {
+                $in: [WellKnownTripStatus.PENDING, WellKnownTripStatus.START],
+            },
+        })
+            .select('vehicles.vehicle vehicles.isActive')
+            .lean()
+            .then((trips) =>
+                trips.flatMap((trip) =>
+                    trip.vehicles
+                        .filter((vehicleObj: any) => vehicleObj.isActive)
+                        .map((vehicleObj: any) =>
+                            vehicleObj?.vehicle.toString()
+                        )
+                )
+            );
     }
 
+    let excludedVehicles = [...internalTripVehicles, ...normalTripVehicles];
     return await Vehicle.find({
         availableSeats: { $gte: count },
         status: WellKnownStatus.ACTIVE,
-        _id: { $nin: internalTripVehicles },
+        _id: { $nin: excludedVehicles },
     }).lean();
 };
 
@@ -98,5 +126,5 @@ export default {
     findAllAndStatusIn,
     findByGpsTrackerAndStatusIn,
     findByIdNotAndGpsTrackerAndStatusIn,
-    findVehiclesBySheetCountAndNotInInternalTrips,
+    findVehiclesBySheetCountAndNotInInternalTripsAndNormalTrips,
 };

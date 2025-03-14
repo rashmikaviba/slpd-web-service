@@ -85,56 +85,114 @@ const expensesSchema = new mongoose.Schema(
 
         // driver salary information
         // salaryPerDay, NoOfDays, TotalSalary, otherExpenses, createdBy, lastModifiedBy, createdAt, updatedAt
-        driverSalary: {
-            salaryPerDay: {
-                type: Number,
-            },
+        // driverSalary: {
+        //     salaryPerDay: {
+        //         type: Number,
+        //     },
 
-            noOfDays: {
-                type: Number,
-            },
+        //     noOfDays: {
+        //         type: Number,
+        //     },
 
-            totalSalary: {
-                type: Number,
-            },
+        //     totalSalary: {
+        //         type: Number,
+        //     },
 
-            totalAddition: {
-                type: Number,
-            },
+        //     totalAddition: {
+        //         type: Number,
+        //     },
 
-            totalDeduction: {
-                type: Number,
-            },
+        //     totalDeduction: {
+        //         type: Number,
+        //     },
 
-            remainingExpenses: {
-                type: Number,
-            },
+        //     remainingExpenses: {
+        //         type: Number,
+        //     },
 
-            isRemainingToDriver: {
-                type: Boolean,
-                default: false,
-            },
+        //     isRemainingToDriver: {
+        //         type: Boolean,
+        //         default: false,
+        //     },
 
-            createdBy: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'User',
-            },
+        //     createdBy: {
+        //         type: mongoose.Schema.Types.ObjectId,
+        //         ref: 'User',
+        //     },
 
-            updatedBy: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'User',
-            },
+        //     updatedBy: {
+        //         type: mongoose.Schema.Types.ObjectId,
+        //         ref: 'User',
+        //     },
 
-            createdAt: {
-                type: Date,
-                default: Date.now,
-            },
+        //     createdAt: {
+        //         type: Date,
+        //         default: Date.now,
+        //     },
 
-            updatedAt: {
-                type: Date,
-                default: Date.now,
+        //     updatedAt: {
+        //         type: Date,
+        //         default: Date.now,
+        //     },
+        // },
+
+        driverSalaries: [
+            {
+                driver: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'User',
+                },
+
+                salaryPerDay: {
+                    type: Number,
+                },
+
+                noOfDays: {
+                    type: Number,
+                },
+
+                totalSalary: {
+                    type: Number,
+                },
+
+                totalAddition: {
+                    type: Number,
+                },
+
+                totalDeduction: {
+                    type: Number,
+                },
+
+                remainingExpenses: {
+                    type: Number,
+                },
+
+                isRemainingToDriver: {
+                    type: Boolean,
+                    default: false,
+                },
+
+                createdBy: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'User',
+                },
+
+                updatedBy: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'User',
+                },
+
+                createdAt: {
+                    type: Date,
+                    default: Date.now,
+                },
+
+                updatedAt: {
+                    type: Date,
+                    default: Date.now,
+                },
             },
-        },
+        ],
 
         // additional information
         // status. createdBy, lastModifiedBy, createdAt, updatedAt

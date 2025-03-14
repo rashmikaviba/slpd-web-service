@@ -1,3 +1,4 @@
+import constants from '../../constant';
 import UserResponseDto from './dto/userResponseDto';
 
 const userModelToUserResponseDto = (user: any): UserResponseDto => {
@@ -30,7 +31,13 @@ const userModelToUserResponseDto = (user: any): UserResponseDto => {
         languages: user.languages,
         isBlackListed: user.isBlock ? true : false,
         role: user.role.id,
-        roleName: user.role.name,
+        isFreelanceDriver: user.isFreelanceDriver ? true : false,
+        roleName:
+            user.role.id == constants.USER.ROLES.DRIVER
+                ? `${user.role.name}${
+                      user.isFreelanceDriver ? ' (Freelance)' : ' (Permanent)'
+                  }`
+                : user.role.name,
         createdBy: user.createdBy?._id,
         createdUser: user.createdBy?.fullName,
         updatedBy: user.updatedBy?._id,

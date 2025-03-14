@@ -26,6 +26,7 @@ interface UserResponseDto {
     leaveCount: number;
     languages: string[];
     role: string;
+    isFreelanceDriver: boolean;
     roleName: string;
     isBlackListed: boolean;
     createdBy: string;

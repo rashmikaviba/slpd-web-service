@@ -312,12 +312,14 @@ const getVehiclesByPassengersCount = async (req: Request, res: Response) => {
     const count = req.params.count || '0';
     const startDate = req.query.startDate;
     const endDate = req.query.endDate;
+    const tripId: string = (req.query.tripId as string) || '';
 
     const vehicles =
-        await vehicleService.findVehiclesBySheetCountAndNotInInternalTrips(
+        await vehicleService.findVehiclesBySheetCountAndNotInInternalTripsAndNormalTrips(
             +count,
             startDate,
-            endDate
+            endDate,
+            tripId
         );
 
     if (vehicles.length > 0) {

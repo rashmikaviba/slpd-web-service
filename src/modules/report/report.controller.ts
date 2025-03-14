@@ -1,16 +1,16 @@
-import { Request, Response } from "express";
-import reportService from "./report.service";
-import { WellKnownTripStatus } from "../../util/enums/well-known-trip-status.enum";
-import expensesService from "../expenses/expenses.service";
-import { WellKnownStatus } from "../../util/enums/well-known-status.enum";
-import TripExpensesResponseDto from "../expenses/dto/tripExpensesResponseDto";
-import expensesUtil from "../expenses/expenses.util";
-import CommonResponse from "../../util/commonResponse";
-import { StatusCodes } from "http-status-codes";
-import ExpensesReportResponseDto from "./dto/expensesReportResponseDto";
-import reportUtil from "./report.util";
-import { DriverSalaryReportResponseDto } from "./dto/driverSalaryReportResponseDto";
-import MonthlyIncomeReportResponseDto from "./dto/monthlyIncomeReportResponseDto";
+import { Request, Response } from 'express';
+import reportService from './report.service';
+import { WellKnownTripStatus } from '../../util/enums/well-known-trip-status.enum';
+import expensesService from '../expenses/expenses.service';
+import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
+import TripExpensesResponseDto from '../expenses/dto/tripExpensesResponseDto';
+import expensesUtil from '../expenses/expenses.util';
+import CommonResponse from '../../util/commonResponse';
+import { StatusCodes } from 'http-status-codes';
+import ExpensesReportResponseDto from './dto/expensesReportResponseDto';
+import reportUtil from './report.util';
+import { DriverSalaryReportResponseDto } from './dto/driverSalaryReportResponseDto';
+import MonthlyIncomeReportResponseDto from './dto/monthlyIncomeReportResponseDto';
 
 // Monthly Trip report - Full trip report
 const monthlyTripReport = async (req: Request, res: Response) => {
@@ -18,16 +18,23 @@ const monthlyTripReport = async (req: Request, res: Response) => {
 
     try {
         let selectedDate = date ? new Date(date) : new Date();
-        let trips: any[] = await reportService.findAllTripsByDateAndStatusIn(selectedDate, [WellKnownTripStatus.PENDING, WellKnownTripStatus.START, WellKnownTripStatus.FINISHED]);
-
+        let trips: any[] = await reportService.findAllTripsByDateAndStatusIn(
+            selectedDate,
+            [
+                WellKnownTripStatus.PENDING,
+                WellKnownTripStatus.START,
+                WellKnownTripStatus.FINISHED,
+            ]
+        );
 
         if (trips.length > 0) {
             for (let trip of trips) {
                 //  get expense by trip id and status active
-                let expense: any = await expensesService.findByTripIdAndStatusIn(
-                    trip._id.toString(),
-                    [WellKnownStatus.ACTIVE]
-                );
+                let expense: any =
+                    await expensesService.findByTripIdAndStatusIn(
+                        trip._id.toString(),
+                        [WellKnownStatus.ACTIVE]
+                    );
 
                 let response: TripExpensesResponseDto | null = null;
 
@@ -43,7 +50,8 @@ const monthlyTripReport = async (req: Request, res: Response) => {
                     );
 
                     expense.expenses = activeExpenses;
-                    expense.tripExpensesAmount = expense?.tripId?.estimatedExpense;
+                    expense.tripExpensesAmount =
+                        expense?.tripId?.estimatedExpense;
                     expense.totalTripExpensesAmount = totalExpensesAmount;
                     expense.remainingTripExpensesAmount =
                         expense?.tripExpensesAmount - totalExpensesAmount;
@@ -56,7 +64,6 @@ const monthlyTripReport = async (req: Request, res: Response) => {
 
                 trip.expenses = response;
             }
-
         }
 
         CommonResponse(res, true, StatusCodes.OK, '', trips);
@@ -71,14 +78,25 @@ const monthlyExpensesReport = async (req: Request, res: Response) => {
 
     try {
         let selectedDate = date ? new Date(date) : new Date();
-        let trips: any[] = await reportService.findAllTripsByDateAndStatusIn(selectedDate, [WellKnownTripStatus.PENDING, WellKnownTripStatus.START, WellKnownTripStatus.FINISHED]);
-        let response: ExpensesReportResponseDto[] = []
+        let trips: any[] = await reportService.findAllTripsByDateAndStatusIn(
+            selectedDate,
+            [
+                WellKnownTripStatus.PENDING,
+                WellKnownTripStatus.START,
+                WellKnownTripStatus.FINISHED,
+            ]
+        );
+        let response: ExpensesReportResponseDto[] = [];
         if (trips.length > 0) {
             let tripIds = trips.map((trip: any) => trip._id.toString());
 
-            const expensesData: any = await reportService.findAllExpensesByTripIds(tripIds);
+            const expensesData: any =
+                await reportService.findAllExpensesByTripIds(tripIds);
 
-            response = reportUtil.expensesModelsToExpensesReportResponseDtos(expensesData);
+            response =
+                reportUtil.expensesModelsToExpensesReportResponseDtos(
+                    expensesData
+                );
         }
 
         CommonResponse(res, true, StatusCodes.OK, '', response);
@@ -93,14 +111,21 @@ const monthlyDriverSalary = async (req: Request, res: Response) => {
 
     try {
         let selectedDate = date ? new Date(date) : new Date();
-        let trips: any[] = await reportService.findAllTripsByDateAndStatusIn(selectedDate, [WellKnownTripStatus.FINISHED]);
-        let response: DriverSalaryReportResponseDto[] = []
+        let trips: any[] = await reportService.findAllTripsByDateAndStatusIn(
+            selectedDate,
+            [WellKnownTripStatus.FINISHED]
+        );
+        let response: DriverSalaryReportResponseDto[] = [];
         if (trips.length > 0) {
             let tripIds = trips.map((trip: any) => trip._id.toString());
 
-            const driverSalaries: any = await reportService.findAllDriverSalaryByTripIds(tripIds);
+            const driverSalaries: any =
+                await reportService.findAllDriverSalaryByTripIds(tripIds);
 
-            response = reportUtil.driverModelsToDriverSalaryReportResponseDtos(driverSalaries);
+            response =
+                reportUtil.driverModelsToDriverSalaryReportResponseDtos(
+                    driverSalaries
+                );
         }
 
         CommonResponse(res, true, StatusCodes.OK, '', response);
@@ -115,12 +140,17 @@ const monthlyIncomeReport = async (req: Request, res: Response) => {
 
     try {
         let selectedDate = date ? new Date(date) : new Date();
-        let trips: any[] = await reportService.findAllTripsByDateAndStatusIn(selectedDate, [WellKnownTripStatus.FINISHED, WellKnownTripStatus.START]);
-        let response: MonthlyIncomeReportResponseDto[] = []
+        let trips: any[] = await reportService.findAllTripsByDateAndStatusIn(
+            selectedDate,
+            [WellKnownTripStatus.FINISHED, WellKnownTripStatus.START]
+        );
+        let response: MonthlyIncomeReportResponseDto[] = [];
         if (trips.length > 0) {
             let tripIds = trips.map((trip: any) => trip._id.toString());
 
-            const expenses: any = await reportService.findAllExpensesByTripIds(tripIds);
+            const expenses: any = await reportService.findAllExpensesByTripIds(
+                tripIds
+            );
 
             if (expenses.length > 0) {
                 for (let expense of expenses) {
@@ -128,20 +158,32 @@ const monthlyIncomeReport = async (req: Request, res: Response) => {
 
                     let data: any = {
                         tripId: expense?.tripId?._id,
-                        confirmationNumber: `DK-${expense?.tripId?.tripConfirmedNumber.toString().padStart(3, '0')}`,
+                        confirmationNumber: `DK-${expense?.tripId?.tripConfirmedNumber
+                            .toString()
+                            .padStart(3, '0')}`,
                         startDate: expense?.tripId?.startDate,
                         endDate: expense?.tripId?.endDate,
                         expenseId: expense?._id,
                         totalCost: expense?.tripId?.totalCost || 0,
-                        totalCostLocalCurrency: expense?.tripId?.totalCostLocalCurrency || 0,
-                        totalIncomeLocalCurrency: calcTotals.totalIncomeLocalCurrency,
+                        totalCostLocalCurrency:
+                            expense?.tripId?.totalCostLocalCurrency || 0,
+                        totalIncomeLocalCurrency:
+                            calcTotals.totalIncomeLocalCurrency,
                         estimatedExpense: expense?.tripId?.estimatedExpense,
                         remainingExpenses: calcTotals?.remainingExpenses,
                         totalExpense: calcTotals?.totalExpensesAmount,
                         totalDriverSalary: calcTotals?.totalDriverSalary,
-                        isRemainingToDriver: expense?.driverSalary?.isRemainingToDriver === true ? true : false,
-                        tripIncome: calcTotals?.totalIncome
-                    }
+                        isRemainingToDriver: expense?.driverSalaries.find(
+                            (driver: any) =>
+                                driver?.isRemainingToDriver === true
+                        )
+                            ? true
+                            : false,
+                        // expense?.driverSalary?.isRemainingToDriver === true
+                        //     ? true
+                        //     : false,
+                        tripIncome: calcTotals?.totalIncome,
+                    };
 
                     response.push(data);
                 }
@@ -154,14 +196,13 @@ const monthlyIncomeReport = async (req: Request, res: Response) => {
     }
 };
 
-
 const calculateIncome = async (expense: any) => {
     let data = {
         totalExpensesAmount: 0,
         totalDriverSalary: 0,
         totalIncome: 0,
-        remainingExpenses: 0
-    }
+        remainingExpenses: 0,
+    };
     // calculate expense amount
     let activeExpenses = expense.expenses.filter(
         (exp: any) => exp.status === WellKnownStatus.ACTIVE
@@ -172,7 +213,8 @@ const calculateIncome = async (expense: any) => {
         0
     );
 
-    let remainingExpenses = expense?.tripId?.estimatedExpense - totalExpensesAmount;
+    let remainingExpenses =
+        expense?.tripId?.estimatedExpense - totalExpensesAmount;
 
     data.totalExpensesAmount = totalExpensesAmount;
     data.remainingExpenses = remainingExpenses;
@@ -180,19 +222,23 @@ const calculateIncome = async (expense: any) => {
     // calculate driver salary
     // calculate total income
     let totalIncome = expense?.tripId?.totalCostLocalCurrency || 0;
-    if (expense.driverSalary) {
-        totalIncome = totalIncome - expense?.driverSalary?.totalSalary;
-        data.totalDriverSalary = expense.driverSalary?.totalSalary;
+    if (expense.driverSalaries) {
+        let driverTotalSalary = expense.driverSalaries.reduce(
+            (total: number, exp: any) => total + exp.totalSalary,
+            0
+        );
+        totalIncome = totalIncome - driverTotalSalary;
+        data.totalDriverSalary = driverTotalSalary;
     } else {
         totalIncome = totalIncome - totalExpensesAmount;
     }
     data.totalIncome = totalIncome;
     return data;
-}
+};
 
 export {
     monthlyTripReport,
     monthlyExpensesReport,
     monthlyDriverSalary,
-    monthlyIncomeReport
-}
+    monthlyIncomeReport,
+};

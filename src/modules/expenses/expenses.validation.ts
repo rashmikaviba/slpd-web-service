@@ -57,6 +57,10 @@ const updateExpenseSchema = Joi.object({
 });
 
 const saveDriverSalarySchema = Joi.object({
+    driver: Joi.string().required().messages({
+        'any.required': 'Driver Id is required',
+        'string.base': 'Driver Id is invalid',
+    }),
     salaryPerDay: Joi.number().required().messages({
         'any.required': 'Salary Per Day is required',
         'number.base': 'Salary Per Day is invalid',

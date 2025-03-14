@@ -46,6 +46,7 @@ const saveUser = async (req: Request, res: Response) => {
         leaveCount,
         languages,
         role,
+        isFreelanceDriver,
     } = req.body;
     const userAuth: any = req.auth;
 
@@ -108,6 +109,7 @@ const saveUser = async (req: Request, res: Response) => {
             basicSalary,
             leaveCount,
             languages,
+            isFreelanceDriver,
             role: roleData._id,
             createdBy: userAuth?.id,
             updatedBy: userAuth?.id,
@@ -179,6 +181,7 @@ const updateUser = async (req: Request, res: Response) => {
         leaveCount,
         languages,
         role,
+        isFreelanceDriver,
     } = req.body;
 
     // validate userName
@@ -254,6 +257,7 @@ const updateUser = async (req: Request, res: Response) => {
         user.basicSalary = basicSalary;
         user.leaveCount = leaveCount;
         user.languages = languages;
+        user.isFreelanceDriver = isFreelanceDriver;
         user.role = roleData._id;
         user.updatedBy = userAuth?.id;
 
@@ -489,16 +493,18 @@ const getAllUsersByRole = async (req: Request, res: Response) => {
 const getDriversForTrip = async (req: Request, res: Response) => {
     const startDate = req.query.startDate;
     const endDate = req.query.endDate;
+    const tripId: string = (req.query.tripId as string) || '';
 
     const role: any = await roleService.findByCustomId(
         constants.USER.ROLES.DRIVER.toString()
     );
     let users: any[] = [];
 
-    users = await userService.findDriversByNotInInternalTrips(
+    users = await userService.findDriversByNotInInternalTripsAndNormalTrips(
         role?._id,
         startDate,
-        endDate
+        endDate,
+        tripId
     );
 
     CommonResponse(res, true, StatusCodes.OK, '', users);

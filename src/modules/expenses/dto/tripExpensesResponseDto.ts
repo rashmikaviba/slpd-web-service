@@ -2,7 +2,7 @@ interface TripExpensesResponseDto {
     _id: string;
     tripId: string;
     expenses: any[];
-    driverSalary: any;
+    driverSalaries: any[];
     isMonthEndDone: boolean;
     tripExpensesAmount: number;
     totalTripExpensesAmount: number;

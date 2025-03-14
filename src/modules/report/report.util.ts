@@ -45,7 +45,10 @@ const expensesModelsToExpensesReportResponseDtos = (
     return response;
 };
 
-const driverModelToDriverSalaryReportResponseDto = (driver: any): any => {
+const driverModelToDriverSalaryReportResponseDto = (
+    driver: any,
+    driverSalary: any
+): any => {
     let response: DriverSalaryReportResponseDto = Object.create(null);
 
     if (driver) {
@@ -54,22 +57,21 @@ const driverModelToDriverSalaryReportResponseDto = (driver: any): any => {
             tripConfirmationNumber: `DK-${driver?.tripId?.tripConfirmedNumber
                 .toString()
                 .padStart(3, '0')}`,
-            driverId: driver?.tripId?.drivers[0]?.driver?._id.toString() || '',
+            driverId: driverSalary?.driver?._id.toString() || '',
             driverName:
-                `${driver?.tripId?.drivers[0]?.driver?.userName} (${driver?.tripId?.drivers[0]?.driver?.fullName})` ||
+                `${driverSalary?.driver?.userName} (${driverSalary?.driver?.fullName})` ||
                 '',
-            salaryPerDay: driver?.driverSalary?.salaryPerDay || 0,
-            remainingExpenses: driver?.driverSalary?.remainingExpenses || 0,
-            totalDeduction: driver?.driverSalary?.totalDeduction || 0,
-            totalAddition: driver?.driverSalary?.totalAddition || 0,
-            totalSalary: driver?.driverSalary?.totalSalary || 0,
-            noOfDays: driver?.driverSalary?.noOfDays || 0,
-            isRemainingToDriver:
-                driver?.driverSalary?.isRemainingToDriver || false,
-            createdDate: driver?.driverSalary?.createdAt,
-            createdUser: `${driver?.driverSalary?.createdBy?.userName} (${driver?.driverSalary?.createdBy?.fullName})`,
-            updatedDate: driver?.driverSalary?.updatedAt,
-            updatedUser: `${driver?.driverSalary?.updatedBy?.userName} (${driver?.driverSalary?.updatedBy?.fullName})`,
+            salaryPerDay: driverSalary?.salaryPerDay || 0,
+            remainingExpenses: driverSalary?.remainingExpenses || 0,
+            totalDeduction: driverSalary?.totalDeduction || 0,
+            totalAddition: driverSalary?.totalAddition || 0,
+            totalSalary: driverSalary?.totalSalary || 0,
+            noOfDays: driverSalary?.noOfDays || 0,
+            isRemainingToDriver: driverSalary?.isRemainingToDriver || false,
+            createdDate: driverSalary?.createdAt,
+            createdUser: `${driverSalary?.createdBy?.userName} (${driverSalary?.createdBy?.fullName})`,
+            updatedDate: driverSalary?.updatedAt,
+            updatedUser: `${driverSalary?.updatedBy?.userName} (${driverSalary?.updatedBy?.fullName})`,
         };
     }
 
@@ -83,8 +85,13 @@ const driverModelsToDriverSalaryReportResponseDtos = (
 
     if (drivers.length > 0) {
         for (let driver of drivers) {
-            let driverInfo = driverModelToDriverSalaryReportResponseDto(driver);
-            response.push(driverInfo);
+            for (let driverSalary of driver.driverSalaries) {
+                let driverInfo = driverModelToDriverSalaryReportResponseDto(
+                    driver,
+                    driverSalary
+                );
+                response.push(driverInfo);
+            }
         }
     }
 

@@ -7,7 +7,7 @@ const ExpensesModelToTripExpensesResponseDto = (
         _id: expense._id,
         tripId: expense.tripId._id,
         expenses: expense.expenses,
-        driverSalary: expense.driverSalary,
+        driverSalaries: expense.driverSalaries,
         isMonthEndDone: expense.isMonthEndDone,
         tripExpensesAmount: expense.tripExpensesAmount,
         totalTripExpensesAmount: expense.totalTripExpensesAmount,

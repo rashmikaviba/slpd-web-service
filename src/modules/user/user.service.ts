@@ -1,7 +1,9 @@
 import constants from '../../constant';
 import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
+import { WellKnownTripStatus } from '../../util/enums/well-known-trip-status.enum';
 import Auth from '../auth/auth.model';
 import InternalTrip from '../internalTrip/internalTrip.model';
+import Trip from '../trip/trip.model';
 import User from './user.model';
 
 const Save = async (user: any, session: any) => {
@@ -153,12 +155,14 @@ const findAllByRoleId = async (roleId: string) => {
     return users || [];
 };
 
-const findDriversByNotInInternalTrips = async (
+const findDriversByNotInInternalTripsAndNormalTrips = async (
     roleId: string,
     startDate: any,
-    endDate: any
+    endDate: any,
+    tripId: string
 ) => {
     let internalTripDrivers: string[] = [];
+    let normalTripDrivers: string[] = [];
     if (startDate && endDate) {
         internalTripDrivers = await InternalTrip.find({
             $or: [
@@ -171,13 +175,36 @@ const findDriversByNotInInternalTrips = async (
             .select('driver')
             .lean()
             .then((trips) => trips.map((trip) => trip.driver.toString()));
+
+        normalTripDrivers = await Trip.find({
+            $or: [
+                { startDate: { $gte: startDate, $lt: endDate } },
+                { endDate: { $gte: startDate, $lt: endDate } },
+                { startDate: { $lte: startDate }, endDate: { $gte: endDate } },
+            ],
+            _id: { $ne: tripId },
+            status: {
+                $in: [WellKnownTripStatus.PENDING, WellKnownTripStatus.START],
+            },
+        })
+            .select('drivers.driver drivers.isActive')
+            .lean()
+            .then((trips) =>
+                trips.flatMap((trip) =>
+                    trip.drivers
+                        .filter((driverObj: any) => driverObj.isActive)
+                        .map((driverObj: any) => driverObj?.driver.toString())
+                )
+            );
     }
+
+    const excludedUsers = [...internalTripDrivers, ...normalTripDrivers];
 
     let users: any = await Auth.find({
         role: roleId,
         status: WellKnownStatus.ACTIVE,
         isBlocked: false,
-        user: { $nin: internalTripDrivers },
+        user: { $nin: excludedUsers },
     }).populate('user');
 
     users = users.map((user: any) => {
@@ -196,5 +223,5 @@ export default {
     findAll,
     findAllWithGenderRole,
     findAllByRoleId,
-    findDriversByNotInInternalTrips,
+    findDriversByNotInInternalTripsAndNormalTrips,
 };
