@@ -32,6 +32,18 @@ const saveTrip = async (req: Request, res: Response) => {
     }
 
     try {
+        let isTripConfirmedNumberExists =
+            await tripService.isTripConfirmedNumberExists(
+                body.tripConfirmedNumber,
+                ''
+            );
+
+        if (isTripConfirmedNumberExists) {
+            throw new BadRequestError(
+                'This trip confirmed number already used in another trip!'
+            );
+        }
+
         let passengers: any[] =
             body.passengers && body.passengers?.length > 0
                 ? body.passengers
@@ -72,7 +84,7 @@ const saveTrip = async (req: Request, res: Response) => {
             });
         }
 
-        let tripConfirmedNumber = await tripService.generateTripId();
+        // let tripConfirmedNumber = await tripService.generateTripId();
         let newTrip = new Trip({
             startDate: body.startDate,
             endDate: body.endDate,
@@ -83,8 +95,9 @@ const saveTrip = async (req: Request, res: Response) => {
             totalCostLocalCurrency: body.totalCostLocalCurrency,
             contactPerson: body.contactPerson,
             estimatedExpense: body.estimatedExpense,
-            tripConfirmedNumber: tripConfirmedNumber,
+            tripConfirmedNumber: body.tripConfirmedNumber,
             passengers: passengers,
+            isPaymentCollected: body.isPaymentCollected,
             activities: activities,
             places: places,
             arrivalInfo: arrivalInfo,
@@ -136,6 +149,18 @@ const updateTrip = async (req: Request, res: Response) => {
     }
 
     try {
+        let isTripConfirmedNumberExists =
+            await tripService.isTripConfirmedNumberExists(
+                body.tripConfirmedNumber,
+                id
+            );
+
+        if (isTripConfirmedNumberExists) {
+            throw new BadRequestError(
+                'This trip confirmed number already used in another trip!'
+            );
+        }
+
         let passengers =
             body.passengers && body.passengers?.length > 0
                 ? body.passengers
@@ -156,15 +181,97 @@ const updateTrip = async (req: Request, res: Response) => {
             passengers.map((p: any) => delete p._id);
         }
 
-        if (activities.length > 0) {
-            activities.map((a: any) => delete a._id);
-        }
+        // if (activities.length > 0) {
+        //     activities.map((a: any) => delete a._id);
+        // }
 
-        if (hotels.length > 0) {
-            hotels.map((hotel: any) => {
-                delete hotel._id;
+        // if (hotels.length > 0) {
+        //     hotels.map((hotel: any) => {
+        //         delete hotel._id;
+        //     });
+        // }
+
+        let savedActivities = [...trip.activities];
+
+        //  Validate deleted activities has isPaymentDone is true
+        let deletedActivityIds: string[] =
+            savedActivities
+                .filter((a: any) => {
+                    return !activities.find((activity: any) => {
+                        return activity._id.toString() === a._id.toString();
+                    });
+                })
+                .map((a: any) => a._id.toString()) || [];
+
+        // delete  deletedActivityIds
+        deletedActivityIds.forEach((activityId: string) => {
+            savedActivities.forEach((a: any, index: number) => {
+                if (a._id.toString() === activityId) {
+                    if (a.isPaymentDone) {
+                        throw new BadRequestError(
+                            `Cannot delete activity ${a.description}, because payment is already done!`
+                        );
+                    }
+
+                    savedActivities.splice(index, 1);
+                }
             });
-        }
+        });
+
+        // add new activities
+        activities.forEach((activity: any) => {
+            if (
+                !savedActivities.find(
+                    (a: any) => a?._id && a?._id.toString() === activity?._id
+                )
+            ) {
+                delete activity._id;
+                savedActivities.push(activity);
+            }
+        });
+
+        activities = savedActivities;
+
+        let savedHotels = [...trip.hotels];
+
+        //  Validate deleted activities has isPaymentDone is true
+        let deletedHotelIds: string[] =
+            savedHotels
+                .filter((h: any) => {
+                    return !hotels.find((hotel: any) => {
+                        return hotel._id.toString() === h._id.toString();
+                    });
+                })
+                .map((h: any) => h._id.toString()) || [];
+
+        // delete  deletedActivityIds
+        deletedHotelIds.forEach((hotelId: string) => {
+            savedHotels.forEach((h: any, index: number) => {
+                if (h._id.toString() === hotelId) {
+                    if (h.isPaymentDone) {
+                        throw new BadRequestError(
+                            `Cannot delete hotel ${h.hotelName}, because payment is already done!`
+                        );
+                    }
+
+                    savedHotels.splice(index, 1);
+                }
+            });
+        });
+
+        // add new activities
+        hotels.forEach((hotel: any) => {
+            if (
+                !savedHotels.find(
+                    (h: any) => h?._id && h?._id.toString() === hotel?._id
+                )
+            ) {
+                delete hotel._id;
+                savedHotels.push(hotel);
+            }
+        });
+
+        hotels = savedHotels;
 
         if (places.length > 0) {
             let isReachedPlaces = places.filter((p: any) => {
@@ -244,10 +351,12 @@ const updateTrip = async (req: Request, res: Response) => {
         trip.endDate = body.endDate;
         trip.dateCount = body.dateCount;
         trip.totalCost = body.totalCost;
+        trip.tripConfirmedNumber = body.tripConfirmedNumber;
         trip.specialRequirement = body.specialRequirement;
         trip.paymentMode = body.paymentMode;
         trip.totalCostLocalCurrency = body.totalCostLocalCurrency;
         trip.estimatedExpense = body.estimatedExpense;
+        trip.isPaymentCollected = body.isPaymentCollected;
         trip.passengers = passengers;
         trip.activities = activities;
         trip.places = places;
@@ -370,7 +479,8 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
                         );
                     if (expense) {
                         trip.isDriverSalaryDone =
-                            expense.toObject()?.driverSalaries.length > 0; //  expense.toObject()?.driverSalary != null;
+                            expense.toObject()?.driverSalaries.length > 0 ||
+                            false; //  expense.toObject()?.driverSalary != null;
                     }
                 }
             })
@@ -856,30 +966,41 @@ const markPlaceAsReached = async (req: Request, res: Response) => {
             throw new BadRequestError('Selected vehicle not found!');
         }
 
-        if (selectedVehicle.currentMileage >= body.currentMilage) {
-            throw new BadRequestError(
-                'Current mileage should be greater than previous mileage!'
-            );
+        if (selectedVehicle.isFreelanceVehicle) {
+            place.isReached = true;
+            place.reachedDate = new Date();
+            place.reachedBy = auth.id;
+            place.location = body.location;
+            place.startMilage = selectedVehicle?.currentMileage;
+            place.endMilage = body.currentMilage;
+            place.calcDistance = 0;
+        } else {
+            if (selectedVehicle.currentMileage >= body.currentMilage) {
+                throw new BadRequestError(
+                    'Current mileage should be greater than previous mileage!'
+                );
+            }
+
+            let calcDistance =
+                body.currentMilage - selectedVehicle?.currentMileage;
+
+            // udpate place as reached
+            place.isReached = true;
+            place.reachedDate = new Date();
+            place.reachedBy = auth.id;
+            place.location = body.location;
+            place.startMilage = selectedVehicle?.currentMileage;
+            place.endMilage = body.currentMilage;
+            place.calcDistance = calcDistance;
+
+            selectedVehicle.currentMileage += calcDistance;
+
+            // save vehicle
+            await vehicleService.save(selectedVehicle, session);
         }
-
-        let calcDistance = body.currentMilage - selectedVehicle?.currentMileage;
-
-        // udpate place as reached
-        place.isReached = true;
-        place.reachedDate = new Date();
-        place.reachedBy = auth.id;
-        place.location = body.location;
-        place.startMilage = selectedVehicle?.currentMileage;
-        place.endMilage = body.currentMilage;
-        place.calcDistance = calcDistance;
-
-        selectedVehicle.currentMileage += calcDistance;
 
         // save trip
         await tripService.save(trip, session);
-
-        // save vehicle
-        await vehicleService.save(selectedVehicle, session);
 
         //commit transaction
         await session.commitTransaction();
@@ -976,6 +1097,121 @@ const getDestinationSummaryPrint = async (req: Request, res: Response) => {
     CommonResponse(res, true, StatusCodes.OK, '', trip.places || []);
 };
 
+const getTripHotelsAndActivities = async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    try {
+        const trip = await tripService.findByIdAndStatusIn(id, [
+            WellKnownTripStatus.PENDING,
+            WellKnownTripStatus.START,
+            WellKnownTripStatus.FINISHED,
+        ]);
+
+        let response: any = {
+            hotels: [],
+            activities: [],
+        };
+
+        if (trip) {
+            response.hotels =
+                trip.hotels.filter((h: any) => h.isPaymentByCompany === true) ||
+                [];
+            response.activities =
+                trip.activities.filter(
+                    (a: any) => a.isPaymentByCompany === true
+                ) || [];
+        }
+
+        CommonResponse(res, true, StatusCodes.OK, '', response);
+    } catch (error) {
+        throw error;
+    }
+};
+
+const updateHotelActivityPayment = async (req: Request, res: Response) => {
+    const tripId = req.params.id;
+    const auth = req.auth;
+    const body: any = req.body;
+
+    try {
+        const trip = await tripService.findByIdAndStatusIn(tripId, [
+            WellKnownTripStatus.PENDING,
+            WellKnownTripStatus.START,
+            WellKnownTripStatus.FINISHED,
+        ]);
+
+        if (!trip) {
+            throw new BadRequestError('Trip not found!');
+        }
+
+        if (trip.isMonthEndDone) {
+            throw new BadRequestError('Cannot update trip after month end!');
+        }
+
+        let message: string = '';
+        // Type 1 = Hotel, Type 2 = Activity
+        if (body.type === 1) {
+            const hotel = trip.hotels.find(
+                (h: any) => h._id.toString() === body.objectId
+            );
+
+            if (!hotel) {
+                throw new BadRequestError('Hotel not found!');
+            } else if (hotel.isPaymentByCompany === false) {
+                throw new BadRequestError(
+                    'Selected hotel is not paid by company!'
+                );
+            } else if (hotel.isPaymentDone) {
+                throw new BadRequestError('Selected hotel is already paid!');
+            }
+
+            hotel.isPaymentDone = true;
+            hotel.paymentDate = body.paymentDate;
+            hotel.paymentAmount = body.paymentAmount;
+            hotel.paymentRemark = body.paymentRemark;
+            hotel.paymentMode = body.paymentMode;
+            hotel.receiptImageUrl = body.receiptImageUrl;
+            hotel.updatedBy = auth.id;
+
+            await tripService.save(trip, null);
+
+            message = 'Hotel payment updated successfully!';
+        } else if (body.type === 2) {
+            const activity = trip.activities.find(
+                (a: any) => a._id.toString() === body.objectId
+            );
+
+            if (!activity) {
+                throw new BadRequestError('Activity not found!');
+            } else if (activity.isPaymentByCompany === false) {
+                throw new BadRequestError(
+                    'Selected activity is not paid by company!'
+                );
+            } else if (activity.isPaymentDone) {
+                throw new BadRequestError('Selected activity is already paid!');
+            }
+
+            activity.isPaymentDone = true;
+            activity.paymentDate = body.paymentDate;
+            activity.paymentAmount = body.paymentAmount;
+            activity.paymentRemark = body.paymentRemark;
+            activity.paymentMode = body.paymentMode;
+            activity.receiptImageUrl = body.receiptImageUrl;
+            activity.updatedBy = auth.id;
+
+            await tripService.save(trip, null);
+
+            message = 'Activity payment updated successfully!';
+        } else {
+            throw new BadRequestError('Invalid request type!');
+        }
+
+        CommonResponse(res, true, StatusCodes.OK, message, null);
+    } catch (error) {
+        throw error;
+    }
+};
+
 export {
     saveTrip,
     updateTrip,
@@ -990,4 +1226,6 @@ export {
     markPlaceAsReached,
     getTripForReport,
     getDestinationSummaryPrint,
+    getTripHotelsAndActivities,
+    updateHotelActivityPayment,
 };

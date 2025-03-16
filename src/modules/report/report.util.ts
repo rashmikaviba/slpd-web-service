@@ -10,9 +10,7 @@ const expensesModelToExpensesReportResponseDto = (
         for (let expenseInfo of expense.expenses) {
             response.push({
                 tripId: expense.tripId._id.toString() || '',
-                confirmationNumber: `DK-${expense?.tripId?.tripConfirmedNumber
-                    .toString()
-                    .padStart(3, '0')}`,
+                confirmationNumber: expense?.tripId?.tripConfirmedNumber,
                 expenseId: expenseInfo._id.toString() || '',
                 typeId: expenseInfo.typeId,
                 typeName: expenseInfo?.typeName || '',
@@ -54,9 +52,7 @@ const driverModelToDriverSalaryReportResponseDto = (
     if (driver) {
         response = {
             tripId: driver.tripId._id.toString() || '',
-            tripConfirmationNumber: `DK-${driver?.tripId?.tripConfirmedNumber
-                .toString()
-                .padStart(3, '0')}`,
+            tripConfirmationNumber: driver?.tripId?.tripConfirmedNumber,
             driverId: driverSalary?.driver?._id.toString() || '',
             driverName:
                 `${driverSalary?.driver?.userName} (${driverSalary?.driver?.fullName})` ||

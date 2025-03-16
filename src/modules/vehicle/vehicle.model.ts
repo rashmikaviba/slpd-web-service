@@ -72,6 +72,11 @@ const vehicleSchema = new mongoose.Schema(
             maxlength: [500, 'Description cannot be more than 500 characters'],
         },
 
+        isFreelanceVehicle: {
+            type: Boolean,
+            default: false,
+        },
+
         status: {
             type: Number,
             required: [true, 'Status is required'],

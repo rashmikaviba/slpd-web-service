@@ -78,8 +78,10 @@ const applicationRoutes = {
         deleteById: '/:id',
         assignDriver: '/assignDriver/:id',
         changeTripStatus: '/:id/status/:status',
+        updateHotelActivityPayment: '/updateHotelActivityPayment/:id',
         undoTripStatus: '/:id/undoStatus/:status',
         getTripForPrint: '/tripForPrint/:id',
+        getTripHotelsAndActivities: '/hotelsAndActivities/:id',
 
         // checklist routes
         saveCheckList: '/checkList/:id',

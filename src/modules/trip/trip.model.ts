@@ -16,8 +16,13 @@ const tripSchema = new mongoose.Schema(
         },
 
         tripConfirmedNumber: {
-            type: Number,
+            type: String,
             default: 0,
+        },
+
+        isPaymentCollected: {
+            type: Boolean,
+            default: false,
         },
 
         dateCount: {
@@ -165,6 +170,47 @@ const tripSchema = new mongoose.Schema(
                 totalCost: {
                     type: Number,
                 },
+
+                isPaymentByCompany: {
+                    type: Boolean,
+                    default: false,
+                },
+
+                isPaymentDone: {
+                    type: Boolean,
+                    default: false,
+                },
+
+                paymentAmount: {
+                    type: Number,
+                    default: 0,
+                },
+
+                paymentDate: {
+                    type: Date,
+                    default: null,
+                },
+
+                paymentRemark: {
+                    type: String,
+                    default: '',
+                },
+
+                updatedBy: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'User',
+                    default: null,
+                },
+
+                paymentMode: {
+                    type: String,
+                    default: 0,
+                },
+
+                receiptImageUrl: {
+                    type: String,
+                    default: '',
+                },
             },
         ],
 
@@ -255,6 +301,47 @@ const tripSchema = new mongoose.Schema(
                 city: {
                     type: String,
                     required: [true, 'City is required'],
+                },
+
+                isPaymentByCompany: {
+                    type: Boolean,
+                    default: false,
+                },
+
+                isPaymentDone: {
+                    type: Boolean,
+                    default: false,
+                },
+
+                paymentAmount: {
+                    type: Number,
+                    default: 0,
+                },
+
+                paymentDate: {
+                    type: Date,
+                    default: null,
+                },
+
+                paymentRemark: {
+                    type: String,
+                    default: '',
+                },
+
+                updatedBy: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'User',
+                    default: null,
+                },
+
+                paymentMode: {
+                    type: String,
+                    default: 0,
+                },
+
+                receiptImageUrl: {
+                    type: String,
+                    default: '',
                 },
             },
         ],

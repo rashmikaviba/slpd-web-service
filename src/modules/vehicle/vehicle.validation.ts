@@ -16,7 +16,7 @@ const vehicleSchema = Joi.object({
         'string.base': 'Registration Number is invalid',
     }),
 
-    capacity: Joi.number().required().messages({
+    capacity: Joi.number().required().default(0).messages({
         'any.required': 'Capacity is required',
         'number.base': 'Capacity is invalid',
     }),
@@ -58,10 +58,12 @@ const vehicleSchema = Joi.object({
         'string.max': 'Air Filter cannot be more than 200 characters',
     }),
 
-    initialMileage: Joi.number().required().messages({
+    initialMileage: Joi.number().required().default(0).messages({
         'any.required': 'Initial Mileage is required',
         'number.base': 'Initial Mileage is invalid',
     }),
+
+    isFreelanceVehicle: Joi.boolean().default(false),
 });
 
 export default { vehicleSchema };

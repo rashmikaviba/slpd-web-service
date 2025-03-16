@@ -1,6 +1,10 @@
 import Joi from 'joi';
 
 const tripSchema = Joi.object({
+    tripConfirmedNumber: Joi.string().required().messages({
+        'any.required': 'Trip Confirmed Number is required',
+        'string.base': 'Trip Confirmed Number is invalid',
+    }),
     startDate: Joi.date().required().messages({
         'any.required': 'Start Date is required!',
         'date.base': 'Start Date is invalid!',
@@ -30,7 +34,9 @@ const tripSchema = Joi.object({
         'any.required': 'Estimated Expense is required',
         'number.base': 'Estimated Expense is invalid',
     }),
-
+    isPaymentCollected: Joi.boolean().default(false).messages({
+        'boolean.base': 'isPaymentCollected is invalid',
+    }),
     specialRequirement: Joi.string().allow(null).allow('').messages({
         'string.base': 'Special Requirement is invalid',
         'string.max':
@@ -104,6 +110,12 @@ const tripSchema = Joi.object({
                     'any.required': 'Total Cost is required',
                     'number.base': 'Total Cost is invalid',
                 }),
+
+                isActivityPaymentByCompany: Joi.boolean()
+                    .default(false)
+                    .messages({
+                        'boolean.base': 'isActivityPaymentByCompany is invalid',
+                    }),
             })
         )
         .messages({
@@ -128,6 +140,9 @@ const tripSchema = Joi.object({
                 city: Joi.string().required().messages({
                     'any.required': 'City is required',
                     'string.base': 'City is invalid',
+                }),
+                isHotelPaymentByCompany: Joi.boolean().default(false).messages({
+                    'boolean.base': 'isHotelPaymentByCompany is invalid',
                 }),
             })
         )
@@ -331,9 +346,38 @@ const markPlaceSchema = Joi.object({
     }),
 });
 
+const tripHotelActivityPaymentSchema = Joi.object({
+    objectId: Joi.string().required().messages({
+        'any.required': 'Object Id is required',
+        'string.base': 'Object Id is invalid',
+    }),
+    paymentAmount: Joi.number().required().messages({
+        'any.required': 'Payment Amount is required',
+        'number.base': 'Payment Amount is invalid',
+    }),
+    paymentDate: Joi.date().required().messages({
+        'any.required': 'Payment Date is required',
+        'date.base': 'Payment Date is invalid',
+    }),
+    paymentRemark: Joi.string().allow(null).allow('').messages({
+        'string.base': 'Payment Remarks is invalid',
+    }),
+    paymentMode: Joi.number().required().messages({
+        'any.required': 'Payment Mode is required',
+        'number.base': 'Payment Mode is invalid',
+    }),
+    receiptImageUrl: Joi.string().allow(null).allow('').messages({
+        'string.base': 'Receipt URL is invalid',
+    }),
+    type: Joi.number().required().messages({
+        'any.required': 'Type is required',
+    }),
+});
+
 export default {
     tripSchema,
     assignDriverVehicleSchema,
     checkListAnswerSchema,
     markPlaceSchema,
+    tripHotelActivityPaymentSchema,
 };

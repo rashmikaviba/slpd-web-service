@@ -94,6 +94,7 @@ interface TripResponseDtoGetAll {
     totalCost: number;
     paymentMode: string;
     totalCostLocalCurrency: number;
+    isPaymentCollected: boolean;
     isActiveDriver: boolean;
     isCheckListDone: boolean;
     activeDriverId: string;
@@ -108,6 +109,7 @@ interface TripResponseDtoGetAll {
     activeVehicleId: string;
     activeRegistrationNumber: string;
     passengersCount: number;
+    paidByCompanyCount: number;
     email: string;
     phoneNumber: string | null;
     status: number;

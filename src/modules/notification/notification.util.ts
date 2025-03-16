@@ -15,11 +15,11 @@ const modelToExpensesExtensionResponseDto = (
         description: expenseRequest?.description || '',
         requestedAmount: expenseRequest?.requestedAmount || 0,
         requestedUserId: expenseRequest?.createdBy?._id || '',
-        requestedUserName: expenseRequest?.createdBy?.fullName || '',
-        tripConfirmedNumber:
-            `DK-${expenseRequest?.tripId?.tripConfirmedNumber
-                .toString()
-                .padStart(3, '0')}` || '',
+        requestedUserName:
+            expenseRequest?.createdBy?.fullName +
+                ' ' +
+                `(${expenseRequest?.createdBy?.userName})` || '',
+        tripConfirmedNumber: expenseRequest?.tripId?.tripConfirmedNumber,
         createdAt: expenseRequest?.createdAt,
     };
 };
@@ -74,9 +74,7 @@ const modelToPendingTripResponseDto = (trip: any): PendingTripResponseDto => {
     return {
         _id: trip._id,
         type: WellKnownNotificationType.PendingTrip,
-        tripConfirmedNumber: `DK-${trip?.tripConfirmedNumber
-            .toString()
-            .padStart(3, '0')}`,
+        tripConfirmedNumber: trip?.tripConfirmedNumber,
         typeName: 'Driver and Vehicle assign',
         description: '',
         startDate: trip.startDate, // trip start date

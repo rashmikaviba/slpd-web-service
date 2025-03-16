@@ -123,6 +123,13 @@ const tripModelArrToTripResponseDtos = (trips: any[]): TripResponseDto[] => {
 };
 
 const tripModelToTripResponseDtoGetAll = (trip: any): TripResponseDtoGetAll => {
+    let activeDriver = trip?.drivers?.find((x: any) => x.isActive) || null;
+
+    let paidByCompanyCount = [
+        ...(trip?.hotels || []),
+        ...(trip?.activities || []),
+    ].reduce((count, item) => count + (item?.isPaymentByCompany ? 1 : 0), 0);
+
     return {
         id: trip._id || '',
         startDate: trip.startDate,
@@ -133,6 +140,7 @@ const tripModelToTripResponseDtoGetAll = (trip: any): TripResponseDtoGetAll => {
         paymentMode: trip?.paymentMode || '',
         isActiveDriver: trip.isActiveDriver || false,
         isCheckListDone: trip.checkListAnswers != null ? true : false,
+        isPaymentCollected: trip.isPaymentCollected || false,
         email: trip.email,
         phoneNumber: trip.phoneNumber || null,
         status: trip.status,
@@ -141,9 +149,7 @@ const tripModelToTripResponseDtoGetAll = (trip: any): TripResponseDtoGetAll => {
             WellKnownTripStatus,
             trip.status
         ),
-        tripConfirmedNumber: `DK-${trip?.tripConfirmedNumber
-            .toString()
-            .padStart(3, '0')}`,
+        tripConfirmedNumber: trip?.tripConfirmedNumber,
         contactPerson: trip?.contactPerson || '',
         createdBy: trip.createdBy?._id || '',
         updatedBy: trip.updatedBy?._id || '',
@@ -162,15 +168,17 @@ const tripModelToTripResponseDtoGetAll = (trip: any): TripResponseDtoGetAll => {
                 : false,
         createdAt: trip.createdAt,
         updatedAt: trip.updatedAt,
+        paidByCompanyCount: paidByCompanyCount || 0,
         activeVehicleId:
             trip?.vehicles.find((x: any) => x.isActive)?.vehicle?._id || '',
         activeRegistrationNumber:
             trip?.vehicles.find((x: any) => x.isActive)?.vehicle
                 ?.registrationNumber || '',
-        activeDriverId:
-            trip?.drivers?.find((x: any) => x.isActive)?.driver?._id || '',
-        activeDriverName:
-            trip?.drivers?.find((x: any) => x.isActive)?.driver?.fullName || '',
+        activeDriverId: activeDriver ? activeDriver?.driver?._id : '',
+        activeDriverName: activeDriver
+            ? activeDriver?.driver?.fullName +
+              ` (${activeDriver.driver?.userName})`
+            : '',
         drivers: trip.drivers.map((x: any) => mapDriverToDriverDto(x)),
         vehicles: trip.vehicles.map((x: any) => mapVehicleToVehicleDto(x)),
     };

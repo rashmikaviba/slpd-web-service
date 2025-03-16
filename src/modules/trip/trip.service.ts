@@ -1,5 +1,7 @@
 import { start } from 'repl';
 import Trip from './trip.model';
+import { isValidObjectId } from 'mongoose';
+import { WellKnownTripStatus } from '../../util/enums/well-known-trip-status.enum';
 
 const save = async (trip: any, session: any) => {
     if (session) {
@@ -124,6 +126,22 @@ const findAllByEndMonthAndStatusIn = async (
         .sort({ startDate: 1 });
 };
 
+const isTripConfirmedNumberExists = (
+    tripConfirmedNumber: string,
+    tripId: string
+) => {
+    const query: any = {
+        tripConfirmedNumber,
+        status: { $ne: WellKnownTripStatus.CANCELED },
+    };
+
+    if (tripId && isValidObjectId(tripId)) {
+        query._id = { $ne: tripId };
+    }
+
+    return Trip.findOne(query);
+};
+
 export default {
     save,
     findByIdAndStatusIn,
@@ -132,4 +150,5 @@ export default {
     findAllByDriverIdAndStatusIn,
     findTripPlacesByTripIdAndStatusIn,
     findAllByEndMonthAndStatusIn,
+    isTripConfirmedNumberExists,
 };

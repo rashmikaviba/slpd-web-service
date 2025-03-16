@@ -11,6 +11,7 @@ interface VehicleResponseDto {
     currentMileage: number;
     status: number;
     statusName: string;
+    isFreelanceVehicle: boolean;
     createdBy: string;
     createdUser: string;
     updatedBy: string;

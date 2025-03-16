@@ -10,6 +10,7 @@ import { StatusCodes } from 'http-status-codes';
 import CommonResponse from '../../util/commonResponse';
 import TripExpensesResponseDto from './dto/tripExpensesResponseDto';
 import expensesUtils from './expenses.util';
+import constants from '../../constant';
 
 const saveExpense = async (req: Request, res: Response) => {
     const tripId: any = req.params.tripId;
@@ -25,12 +26,11 @@ const saveExpense = async (req: Request, res: Response) => {
         // check trip expanses available
         const trip: any = await tripService.findByIdAndStatusIn(tripId, [
             WellKnownTripStatus.START,
+            WellKnownTripStatus.FINISHED,
         ]);
 
         if (!trip) {
-            throw new BadRequestError(
-                'No trip found or trip not in started status!'
-            );
+            throw new BadRequestError('No trip found!');
         }
 
         let expense: any = await expensesService.findByTripIdAndStatusIn(
@@ -52,6 +52,25 @@ const saveExpense = async (req: Request, res: Response) => {
                 'Cannot add new expense after month end!'
             );
         }
+
+        if (
+            auth.role == constants.USER.ROLES.DRIVER &&
+            trip.status == WellKnownTripStatus.FINISHED
+        ) {
+            throw new BadRequestError(
+                'Cannot add new expense after trip finished!'
+            );
+        }
+
+        // else if (
+        //     [
+        //         constants.USER.ROLES.ADMIN,
+        //         constants.USER.ROLES.SUPERADMIN,
+        //         constants.USER.ROLES.TRIPMANAGER,
+        //         constants.USER.ROLES.FINANCEOFFICER,
+        //     ].includes(auth.role)
+        // ) {
+        // }
 
         // save expense
         let newExpense: any = {

@@ -18,10 +18,7 @@ const modelToExpensesRequestByIdResponseDto = (
         accountHolderName: expenseRequest?.createdBy?.accountHolderName || '',
         accountHolderAddress:
             expenseRequest?.createdBy?.accountHolderAddress || '',
-        tripConfirmedNumber:
-            `DK-${expenseRequest?.tripId?.tripConfirmedNumber
-                .toString()
-                .padStart(3, '0')}` || '',
+        tripConfirmedNumber: expenseRequest?.tripId?.tripConfirmedNumber,
         createdAt: expenseRequest?.createdAt,
     };
 };

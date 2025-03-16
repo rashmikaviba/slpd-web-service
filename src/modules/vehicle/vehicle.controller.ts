@@ -33,6 +33,7 @@ const saveVehicle = async (req: Request, res: Response) => {
         airFilter,
         oilFilter,
         initialMileage,
+        isFreelanceVehicle,
     } = req.body;
 
     // Validate request body
@@ -53,15 +54,18 @@ const saveVehicle = async (req: Request, res: Response) => {
         );
     }
 
-    const isGpsTrackerExist = await vehicleService.findByGpsTrackerAndStatusIn(
-        gpsTracker,
-        [WellKnownStatus.ACTIVE, WellKnownStatus.INACTIVE]
-    );
+    if (!isFreelanceVehicle) {
+        const isGpsTrackerExist =
+            await vehicleService.findByGpsTrackerAndStatusIn(gpsTracker, [
+                WellKnownStatus.ACTIVE,
+                WellKnownStatus.INACTIVE,
+            ]);
 
-    if (isGpsTrackerExist) {
-        throw new BadRequestError(
-            'Vehicle already exists with this GPS Tracker!'
-        );
+        if (isGpsTrackerExist) {
+            throw new BadRequestError(
+                'Vehicle already exists with this GPS Tracker!'
+            );
+        }
     }
 
     try {
@@ -74,6 +78,7 @@ const saveVehicle = async (req: Request, res: Response) => {
             description,
             licenseRenewalDate,
             insuranceRenewalDate,
+            isFreelanceVehicle,
             gearOil,
             airFilter,
             oilFilter,
@@ -116,6 +121,7 @@ const updateVehicle = async (req: Request, res: Response) => {
         airFilter,
         oilFilter,
         initialMileage,
+        isFreelanceVehicle,
     } = req.body;
 
     // Validate request body
@@ -145,18 +151,21 @@ const updateVehicle = async (req: Request, res: Response) => {
         );
     }
 
-    const isGpsTrackerExist =
-        await vehicleService.findByIdNotAndGpsTrackerAndStatusIn(
-            id,
-            gpsTracker,
-            [WellKnownStatus.ACTIVE, WellKnownStatus.INACTIVE]
-        );
+    if (!isFreelanceVehicle) {
+        const isGpsTrackerExist =
+            await vehicleService.findByIdNotAndGpsTrackerAndStatusIn(
+                id,
+                gpsTracker,
+                [WellKnownStatus.ACTIVE, WellKnownStatus.INACTIVE]
+            );
 
-    if (isGpsTrackerExist) {
-        throw new BadRequestError(
-            'Vehicle already exists with this GPS Tracker!'
-        );
+        if (isGpsTrackerExist) {
+            throw new BadRequestError(
+                'Vehicle already exists with this GPS Tracker!'
+            );
+        }
     }
+
     try {
         vehicle.vehicleType = vehicleType;
         vehicle.registrationNumber = registrationNumber.toUpperCase();
@@ -171,6 +180,7 @@ const updateVehicle = async (req: Request, res: Response) => {
         vehicle.gearOil = gearOil;
         vehicle.airFilter = airFilter;
         vehicle.oilFilter = oilFilter;
+        vehicle.isFreelanceVehicle = isFreelanceVehicle;
 
         if (vehicle.initialMileage != initialMileage) {
             vehicle.currentMileage = initialMileage;

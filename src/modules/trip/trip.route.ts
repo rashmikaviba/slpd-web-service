@@ -16,6 +16,8 @@ import {
     markPlaceAsReached,
     getTripForReport,
     getDestinationSummaryPrint,
+    getTripHotelsAndActivities,
+    updateHotelActivityPayment,
 } from './trip.controller';
 
 const TripRouter = Router();
@@ -85,6 +87,16 @@ TripRouter.get(
 );
 
 TripRouter.put(
+    applicationRoutes.trip.updateHotelActivityPayment,
+    authMiddleware.authorize([
+        constants.USER.ROLES.TRIPMANAGER,
+        constants.USER.ROLES.SUPERADMIN,
+        constants.USER.ROLES.ADMIN,
+    ]),
+    updateHotelActivityPayment
+);
+
+TripRouter.put(
     applicationRoutes.trip.changeTripStatus,
     authMiddleware.authorize([
         constants.USER.ROLES.TRIPMANAGER,
@@ -111,6 +123,12 @@ TripRouter.get(
     applicationRoutes.trip.getTripForPrint,
     authMiddleware.authorize([]),
     getTripForReport
+);
+
+TripRouter.get(
+    applicationRoutes.trip.getTripHotelsAndActivities,
+    authMiddleware.authorize([]),
+    getTripHotelsAndActivities
 );
 
 TripRouter.get(

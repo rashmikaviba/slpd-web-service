@@ -158,9 +158,8 @@ const monthlyIncomeReport = async (req: Request, res: Response) => {
 
                     let data: any = {
                         tripId: expense?.tripId?._id,
-                        confirmationNumber: `DK-${expense?.tripId?.tripConfirmedNumber
-                            .toString()
-                            .padStart(3, '0')}`,
+                        confirmationNumber:
+                            expense?.tripId?.tripConfirmedNumber,
                         startDate: expense?.tripId?.startDate,
                         endDate: expense?.tripId?.endDate,
                         expenseId: expense?._id,
