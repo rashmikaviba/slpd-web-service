@@ -16,8 +16,7 @@ const tripSummarySchema = Joi.object({
         'date.base': 'Start Time is invalid',
     }),
 
-    endTime: Joi.date().required().messages({
-        'any.required': 'End Time is required',
+    endTime: Joi.date().messages({
         'date.base': 'End Time is invalid',
     }),
 
@@ -26,13 +25,11 @@ const tripSummarySchema = Joi.object({
         'number.base': 'Starting Km is invalid',
     }),
 
-    endingKm: Joi.number().required().messages({
-        'any.required': 'Ending Km is required',
+    endingKm: Joi.number().messages({
         'number.base': 'Ending Km is invalid',
     }),
 
-    totalKm: Joi.number().required().messages({
-        'any.required': 'Total Km is required',
+    totalKm: Joi.number().messages({
         'number.base': 'Total Km is invalid',
     }),
 

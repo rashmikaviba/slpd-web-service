@@ -12,6 +12,8 @@ const modelToTripSummaryResponseDto = (
         startingKm: tripSummary.startingKm,
         endingKm: tripSummary.endingKm,
         totalKm: tripSummary.totalKm,
+        fuel: tripSummary.fuel,
+        description: tripSummary.description,
     };
 };
 

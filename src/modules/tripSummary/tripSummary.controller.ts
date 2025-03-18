@@ -135,7 +135,7 @@ const getAllSummaryByTrip = async (req: Request, res: Response) => {
     const tripId = req.params.tripId;
 
     try {
-        let trip = await tripService.findByIdAndStatusIn(tripId, [
+        let trip = await tripSummaryService.findTripByIdAndStatusIn(tripId, [
             WellKnownTripStatus.START,
             WellKnownTripStatus.FINISHED,
         ]);

@@ -7,6 +7,8 @@ interface TripSummaryResponseDto {
     startingKm: number;
     endingKm: number;
     totalKm: number;
+    fuel: number;
+    description: string;
 }
 
 export default TripSummaryResponseDto;

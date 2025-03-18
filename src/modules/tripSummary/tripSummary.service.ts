@@ -1,3 +1,4 @@
+import Trip from '../trip/trip.model';
 import TripSummary from './tripSummary.model';
 
 const save = async (tripSummary: any, session: any) => {
@@ -24,8 +25,22 @@ const findAllTripSummaryByTripIdAndStatusIn = async (
         status: { $in: status },
     });
 };
+
+const findTripByIdAndStatusIn = async (id: string, status: number[]) => {
+    return Trip.findOne({ _id: id, status: { $in: status } })
+        .populate('createdBy updatedBy startedBy endedBy')
+        .populate({
+            path: 'drivers.driver',
+            model: 'User',
+        })
+        .populate({
+            path: 'drivers.driverAssignedBy',
+            model: 'User',
+        });
+};
 export default {
     save,
     getTripSummaryByIdAndStatusIn,
     findAllTripSummaryByTripIdAndStatusIn,
+    findTripByIdAndStatusIn,
 };
