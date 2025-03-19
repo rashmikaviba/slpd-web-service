@@ -15,13 +15,12 @@ const tripSummarySchema = new mongoose.Schema(
         },
 
         startingTime: {
-            type: String,
+            type: Date,
             required: [true, 'Starting Time is required'],
         },
 
         endingTime: {
-            type: String,
-            required: [true, 'Ending Time is required'],
+            type: Date,
         },
 
         startingKm: {
@@ -31,12 +30,10 @@ const tripSummarySchema = new mongoose.Schema(
 
         endingKm: {
             type: Number,
-            required: [true, 'Ending Km is required'],
         },
 
         totalKm: {
             type: Number,
-            required: [true, 'Total Km is required'],
         },
 
         fuel: {

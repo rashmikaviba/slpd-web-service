@@ -16,7 +16,7 @@ const tripSummarySchema = Joi.object({
         'date.base': 'Start Time is invalid',
     }),
 
-    endTime: Joi.date().messages({
+    endTime: Joi.date().allow(null).allow('').messages({
         'date.base': 'End Time is invalid',
     }),
 
