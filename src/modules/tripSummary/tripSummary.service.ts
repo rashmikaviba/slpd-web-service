@@ -36,6 +36,10 @@ const findTripByIdAndStatusIn = async (id: string, status: number[]) => {
         .populate({
             path: 'drivers.driverAssignedBy',
             model: 'User',
+        })
+        .populate({
+            path: 'vehicles.vehicle',
+            model: 'Vehicle',
         });
 };
 export default {
