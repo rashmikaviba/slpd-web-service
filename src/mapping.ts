@@ -13,6 +13,7 @@ import ExpensesRouter from './modules/expenses/expenses.route';
 import ExpensesRequestRouter from './modules/expenseRequest/expenseRequest.route';
 import NotificationRouter from './modules/notification/notification.route';
 import InternalTripRouter from './modules/internalTrip/internalTrip.route';
+import TripSummaryRouter from './modules/tripSummary/tripSummary.route';
 
 const router = Router();
 
@@ -30,5 +31,6 @@ router.use(applicationRoutes.report.base, ReportRouter);
 router.use(applicationRoutes.expenseRequest.base, ExpensesRequestRouter);
 router.use(applicationRoutes.notification.base, NotificationRouter);
 router.use(applicationRoutes.internalTrip.base, InternalTripRouter);
+router.use(applicationRoutes.tripSummary.base, TripSummaryRouter);
 
 export default router;
