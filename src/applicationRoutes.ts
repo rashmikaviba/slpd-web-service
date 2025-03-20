@@ -95,6 +95,15 @@ const applicationRoutes = {
         getDestinationSummary: '/destinationSummary/:id',
     },
 
+    tripSummary: {
+        base: '/tripSummary',
+        save: '/',
+        getAllByTrip: '/trip/:tripId',
+        getById: '/:id',
+        update: '/:id',
+        deleteById: '/:id',
+    },
+
     expenses: {
         base: '/expense',
         save: '/:tripId',
