@@ -111,11 +111,9 @@ const tripSchema = Joi.object({
                     'number.base': 'Total Cost is invalid',
                 }),
 
-                isActivityPaymentByCompany: Joi.boolean()
-                    .default(false)
-                    .messages({
-                        'boolean.base': 'isActivityPaymentByCompany is invalid',
-                    }),
+                isPaymentByCompany: Joi.boolean().default(false).messages({
+                    'boolean.base': 'isActivityPaymentByCompany is invalid',
+                }),
             })
         )
         .messages({
@@ -141,7 +139,7 @@ const tripSchema = Joi.object({
                     'any.required': 'City is required',
                     'string.base': 'City is invalid',
                 }),
-                isHotelPaymentByCompany: Joi.boolean().default(false).messages({
+                isPaymentByCompany: Joi.boolean().default(false).messages({
                     'boolean.base': 'isHotelPaymentByCompany is invalid',
                 }),
             })
