@@ -136,6 +136,7 @@ const tripModelToTripResponseDtoGetAll = (trip: any): TripResponseDtoGetAll => {
         endDate: trip.endDate,
         dateCount: trip.dateCount,
         totalCost: trip.totalCost,
+        requestedVehicle: trip?.requestedVehicle || '',
         totalCostLocalCurrency: trip.totalCostLocalCurrency,
         paymentMode: trip?.paymentMode || '',
         isActiveDriver: trip.isActiveDriver || false,

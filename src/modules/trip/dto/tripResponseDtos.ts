@@ -93,6 +93,7 @@ interface TripResponseDtoGetAll {
     dateCount: number;
     totalCost: number;
     paymentMode: string;
+    requestedVehicle: string;
     totalCostLocalCurrency: number;
     isPaymentCollected: boolean;
     isActiveDriver: boolean;

@@ -43,6 +43,10 @@ const tripSchema = Joi.object({
             'Special Requirement should not be more than 500 characters',
     }),
 
+    requestedVehicle: Joi.string().allow(null).allow('').messages({
+        'string.base': 'Requested Vehicle is invalid',
+    }),
+
     paymentMode: Joi.string().required().messages({
         'any.required': 'Payment Mode is required',
         'string.base': 'Payment Mode is invalid',

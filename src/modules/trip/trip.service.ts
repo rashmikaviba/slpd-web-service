@@ -24,8 +24,24 @@ const findByIdAndStatusIn = async (id: string, status: number[]) => {
     // });
 };
 
-const findAllByStatusIn = async (status: number[]) => {
-    return Trip.find({ status: { $in: status } })
+const findAllByStatusIn = async (
+    status: number[],
+    startDate: string,
+    endDate: string
+) => {
+    let sDate = new Date(startDate);
+    let eDate = new Date(endDate);
+
+    sDate.setHours(0, 0, 0, 0); // Set time to midnight
+    eDate.setHours(23, 59, 59, 999); // Set time to 23:59:59.999
+    return Trip.find({
+        status: { $in: status },
+        $or: [
+            { startDate: { $gte: sDate, $lte: eDate } },
+            { endDate: { $gte: sDate, $lte: eDate } },
+        ],
+        // isMonthEndDone: false,
+    })
         .populate('createdBy updatedBy startedBy endedBy')
         .populate({
             path: 'drivers.driver',
@@ -43,7 +59,11 @@ const findAllByDriverIdAndStatusIn = async (
     driverId: string,
     status: number[]
 ) => {
-    return Trip.find({ 'drivers.driver': driverId, status: { $in: status } })
+    return Trip.find({
+        'drivers.driver': driverId,
+        status: { $in: status },
+        isMonthEndDone: false,
+    })
         .populate('createdBy updatedBy startedBy endedBy')
         .populate({
             path: 'drivers.driver',

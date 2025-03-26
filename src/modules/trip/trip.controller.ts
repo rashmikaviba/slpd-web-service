@@ -91,6 +91,7 @@ const saveTrip = async (req: Request, res: Response) => {
             dateCount: body.dateCount,
             totalCost: body.totalCost,
             specialRequirement: body.specialRequirement,
+            requestedVehicle: body.requestedVehicle,
             paymentMode: body.paymentMode,
             totalCostLocalCurrency: body.totalCostLocalCurrency,
             contactPerson: body.contactPerson,
@@ -353,6 +354,7 @@ const updateTrip = async (req: Request, res: Response) => {
         trip.totalCost = body.totalCost;
         trip.tripConfirmedNumber = body.tripConfirmedNumber;
         trip.specialRequirement = body.specialRequirement;
+        trip.requestedVehicle = body.requestedVehicle;
         trip.paymentMode = body.paymentMode;
         trip.totalCostLocalCurrency = body.totalCostLocalCurrency;
         trip.estimatedExpense = body.estimatedExpense;
@@ -440,6 +442,8 @@ const getTripById = async (req: Request, res: Response) => {
 const getAllTripsByRole = async (req: Request, res: Response) => {
     const auth = req.auth;
     const status = req.query.status || '-1';
+    const startDate = req.query.startDate as string;
+    const endDate = req.query.endDate as string;
 
     let statusArr: number[] = [];
     if (+status == -1) {
@@ -463,7 +467,11 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
         auth.role === constants.USER.ROLES.TRIPMANAGER ||
         auth.role === constants.USER.ROLES.SUPERADMIN
     ) {
-        const trips = await tripService.findAllByStatusIn(statusArr);
+        const trips = await tripService.findAllByStatusIn(
+            statusArr,
+            startDate,
+            endDate
+        );
 
         await Promise.all(
             trips.map(async (trip: any) => {
@@ -508,15 +516,15 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
         response = tripUtil.tripModelArrToTripResponseDtoGetAlls(trips);
     }
 
-    response.sort((a: any, b: any) => b.updatedAt - a.updatedAt);
+    // response.sort((a: any, b: any) => b.updatedAt - a.updatedAt);
 
     CommonResponse(res, true, StatusCodes.OK, '', response);
 };
 
 const sortTrips = (trips: any[]) => {
     const priorityMap: any = {
-        [WellKnownTripStatus.START]: 1,
-        [WellKnownTripStatus.PENDING]: 2,
+        [WellKnownTripStatus.PENDING]: 1,
+        [WellKnownTripStatus.START]: 2,
         [WellKnownTripStatus.FINISHED]: 3,
     };
 

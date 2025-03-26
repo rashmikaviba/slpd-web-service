@@ -30,6 +30,11 @@ const tripSchema = new mongoose.Schema(
             required: [true, 'Date Count is required'],
         },
 
+        requestedVehicle: {
+            type: String,
+            default: '',
+        },
+
         totalCost: {
             type: Number,
             required: [true, 'Total Cost is required'],
