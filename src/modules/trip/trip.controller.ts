@@ -219,6 +219,29 @@ const updateTrip = async (req: Request, res: Response) => {
             });
         });
 
+        // update not deleted activities
+        activities.forEach((activity: any) => {
+            savedActivities.forEach((a: any, index: number) => {
+                if (a._id.toString() === activity._id) {
+                    if (
+                        a.isPaymentDone &&
+                        a.isPaymentByCompany &&
+                        !activity.isPaymentByCompany
+                    ) {
+                        throw new BadRequestError(
+                            `Cannot update activity ${a.description} as not payment by company, because payment is already done!`
+                        );
+                    }
+                    a.date = activity.date;
+                    a.description = activity.description;
+                    a.adultCount = activity.adultCount;
+                    a.childCount = activity.childCount;
+                    a.totalCost = activity.totalCost;
+                    a.isPaymentByCompany = activity.isPaymentByCompany;
+                }
+            });
+        });
+
         // add new activities
         activities.forEach((activity: any) => {
             if (
@@ -232,6 +255,13 @@ const updateTrip = async (req: Request, res: Response) => {
         });
 
         activities = savedActivities;
+
+        // arrange activities by date
+        activities.sort((a: any, b: any) => {
+            let earliestDateA: any = new Date(a.date);
+            let earliestDateB: any = new Date(b.date);
+            return earliestDateA - earliestDateB; // Sort in ascending order
+        });
 
         let savedHotels = [...trip.hotels];
 
@@ -260,6 +290,27 @@ const updateTrip = async (req: Request, res: Response) => {
             });
         });
 
+        // Update not deleted hotels by _id
+        hotels.forEach((hotel: any) => {
+            savedHotels.forEach((h: any) => {
+                if (hotel._id.toString() === h._id.toString()) {
+                    if (
+                        h.isPaymentByCompany &&
+                        h.isPaymentDone &&
+                        !hotel.isPaymentByCompany
+                    ) {
+                        throw new BadRequestError(
+                            `Cannot update hotel ${h.hotelName} as not payment by company, because payment is already done!`
+                        );
+                    }
+                    h.hotelName = hotel.hotelName;
+                    h.dates = hotel.dates;
+                    h.city = hotel.city;
+                    h.isPaymentByCompany = hotel.isPaymentByCompany;
+                }
+            });
+        });
+
         // add new activities
         hotels.forEach((hotel: any) => {
             if (
@@ -273,6 +324,24 @@ const updateTrip = async (req: Request, res: Response) => {
         });
 
         hotels = savedHotels;
+
+        // arrange hotels by dates sort
+        hotels.sort((a: any, b: any) => {
+            let earliestDateA: any = new Date(
+                a.dates
+                    .split(',')
+                    .map((date: string) => date.trim())
+                    .sort()[0]
+            );
+            let earliestDateB: any = new Date(
+                b.dates
+                    .split(',')
+                    .map((date: string) => date.trim())
+                    .sort()[0]
+            );
+
+            return earliestDateA - earliestDateB;
+        });
 
         if (places.length > 0) {
             let isReachedPlaces = places.filter((p: any) => {
