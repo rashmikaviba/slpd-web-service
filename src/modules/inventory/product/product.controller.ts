@@ -30,14 +30,14 @@ const saveProduct = async (req: Request, res: Response) => {
         throw new BadRequestError(error.message);
     }
 
-    const duplicate: any = await productService.isShortCodeOrProductNameExists(productShortCode, productName, '');
+    const duplicate: any = await productService.isShortCodeOrProductNameExists(productShortCode, productName, "");
     if (duplicate) {
         if (
-            duplicate.productShortCode.toLowerCase() === productShortCode.toLowerCase()
+            duplicate.shortCodeDuplicate && duplicate.shortCodeDuplicate.productShortCode.toLowerCase() === productShortCode.toLowerCase()
         ) {
             throw new BadRequestError('Product short code cannot be duplicate!');
         }
-        if (duplicate.productName.toLowerCase() === productName.toLowerCase()) {
+        if (duplicate.productDuplicate && duplicate.productDuplicate.productName.toLowerCase() === productName.toLowerCase()) {
             throw new BadRequestError('Product name cannot be duplicate!');
         }
     }
@@ -53,8 +53,8 @@ const saveProduct = async (req: Request, res: Response) => {
                 measureUnit: measureUnit,
                 isReturnableProduct: isReturnableProduct,
                 unitPrice: unitPrice,
-                createdBy: auth.userId,
-                updatedBy: auth.userId,
+                createdBy: auth.id,
+                updatedBy: auth.id,
                 status: WellKnownStatus.ACTIVE
             }
         );
@@ -105,11 +105,11 @@ const updateProduct = async (req: Request, res: Response) => {
     const duplicate: any = await productService.isShortCodeOrProductNameExists(productShortCode, productName, id);
     if (duplicate) {
         if (
-            duplicate.productShortCode.toLowerCase() === productShortCode.toLowerCase()
+            duplicate.shortCodeDuplicate && duplicate.shortCodeDuplicate.productShortCode.toLowerCase() === productShortCode.toLowerCase()
         ) {
             throw new BadRequestError('Product short code cannot be duplicate!');
         }
-        if (duplicate.productName.toLowerCase() === productName.toLowerCase()) {
+        if (duplicate.productDuplicate && duplicate.productDuplicate.productName.toLowerCase() === productName.toLowerCase()) {
             throw new BadRequestError('Product name cannot be duplicate!');
         }
     }
@@ -122,7 +122,7 @@ const updateProduct = async (req: Request, res: Response) => {
         product.productShortCode = productShortCode;
         product.isReturnableProduct = isReturnableProduct;
         product.unitPrice = unitPrice;
-        product.updatedBy = auth.userId;
+        product.updatedBy = auth.id;
 
         await productService.save(product, session);
 
@@ -176,7 +176,7 @@ const activeInactiveProduct = async (req: Request, res: Response) => {
             message = "Product activated successfully!";
         }
 
-        product.updatedBy = auth.userId;
+        product.updatedBy = auth.id;
 
         await productService.save(product, session);
 
@@ -213,7 +213,7 @@ const deleteProductById = async (req: Request, res: Response) => {
         session.startTransaction();
 
         product.status = WellKnownStatus.DELETED;
-        product.updatedBy = auth.userId;
+        product.updatedBy = auth.id;
 
         await productService.save(product, session);
 

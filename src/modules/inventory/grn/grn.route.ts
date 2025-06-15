@@ -6,6 +6,13 @@ import { saveGrn, updatedGrn, approveGrn, rejectGrn, cancelGrn, getGrnById, grnA
 
 const GrnRouter = Router()
 
+GrnRouter.get(
+    applicationRoutes.inventory.grn.getNextGrnNumber,
+    authMiddleware.authorize([]),
+    getNextGrnNumber
+)
+
+
 GrnRouter.post(
     applicationRoutes.inventory.grn.save,
     authMiddleware.authorize([constants.USER.ROLES.SUPERADMIN, constants.USER.ROLES.ADMIN, constants.USER.ROLES.FINANCEOFFICER, constants.USER.ROLES.TRIPMANAGER]),
@@ -46,12 +53,6 @@ GrnRouter.get(
     applicationRoutes.inventory.grn.getById,
     authMiddleware.authorize([constants.USER.ROLES.SUPERADMIN, constants.USER.ROLES.ADMIN, constants.USER.ROLES.SUPERADMIN, constants.USER.ROLES.ADMIN, constants.USER.ROLES.FINANCEOFFICER, constants.USER.ROLES.TRIPMANAGER]),
     getGrnById
-)
-
-GrnRouter.get(
-    applicationRoutes.inventory.grn.getNextGrnNumber,
-    authMiddleware.authorize([]),
-    getNextGrnNumber
 )
 
 export default GrnRouter

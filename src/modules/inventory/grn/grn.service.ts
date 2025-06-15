@@ -40,8 +40,8 @@ const advanceSearch = async (startDate: string, endDate: string, status: number)
     sDate.setHours(0, 0, 0, 0);           // start of the day
     eDate.setHours(23, 59, 59, 999);      // end of the day
 
-    return await GRN.find({
-        createdAt: { $gte: sDate, $lte: eDate },
+    let grns = await GRN.find({
+        grnDate: { $gte: sDate, $lte: eDate },
         status: { $in: statusArray }
     }).populate({
         path: 'products.productId',
@@ -59,6 +59,8 @@ const advanceSearch = async (startDate: string, endDate: string, status: number)
             path: 'rejectedBy',
             select: 'userName'
         });
+
+    return grns;
 };
 
 export default {

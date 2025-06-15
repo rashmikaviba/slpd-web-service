@@ -25,7 +25,7 @@ const InventoryGRNSchema = new mongoose.Schema({
     products: [{
         productId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'Product',
+            ref: 'InventoryProduct',
             required: [true, 'Product is required'],
         },
 

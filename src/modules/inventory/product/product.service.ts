@@ -8,27 +8,59 @@ const save = async (product: any, session: any) => {
     }
 };
 
+// const isShortCodeOrProductNameExists = async (shortCode: string, name: string, productId: string) => {
+//     const query: any = {
+//         $or: [
+//             { ProductShortCode: { $regex: new RegExp(`^${shortCode}$`, 'i') } },
+//             { ProductName: { $regex: new RegExp(`^${name}$`, 'i') } }
+//         ]
+//     };
+
+//     if (productId) {
+//         query._id = { $ne: productId };
+//     }
+
+//     const duplicate = await InventoryProduct.findOne(query);
+
+//     return duplicate;
+// };
+
 const isShortCodeOrProductNameExists = async (shortCode: string, name: string, productId: string) => {
-    const duplicate = await InventoryProduct.findOne({
-        _id: { $ne: productId },
-        $or: [
-            { ProductShortCode: { $regex: new RegExp(`^${shortCode}$`, 'i') } },
-            { ProductName: { $regex: new RegExp(`^${name}$`, 'i') } }
-        ]
-    });
+    const baseFilter = productId ? { _id: { $ne: productId } } : {};
+
+    const [productDuplicate, shortCodeDuplicate] = await Promise.all([
+        InventoryProduct.findOne({
+            ...baseFilter,
+            productName: { $regex: `^${name}$`, $options: 'i' }
+        }).collation({ locale: 'en', strength: 2 }),
+
+        InventoryProduct.findOne({
+            ...baseFilter,
+            productShortCode: { $regex: `^${shortCode}$`, $options: 'i' }
+        }).collation({ locale: 'en', strength: 2 })
+    ]);
+
+    return { productDuplicate, shortCodeDuplicate };
 };
+
 
 const findByIdAndStatusIn = async (id: string, status: number[]) => {
     return await InventoryProduct.findOne({
         _id: id,
         status: { $in: status },
-    }, { inventoryLogs: 0 } // projection: exclude inventoryLogs field
-    );
+    });
 }
+
 
 const findAllAndByStatusIn = async (status: number[]) => {
     return await InventoryProduct.find({ status: { $in: status } }, { inventoryLogs: 0 } // projection: exclude inventoryLogs field
-    );
+    ).populate({
+        path: 'createdBy',
+        select: 'userName'
+    }).populate({
+        path: 'updatedBy',
+        select: 'userName'
+    });
 }
 
 const findProductsLogByProductId = async (productId: string) => {
@@ -36,7 +68,7 @@ const findProductsLogByProductId = async (productId: string) => {
 
     logs.inventoryLogs.sort((a: any, b: any) => new Date(b.inventoryLogDate).getTime() - new Date(a.inventoryLogDate).getTime());
 
-    return logs;
+    return logs.inventoryLogs;
 }
 
 

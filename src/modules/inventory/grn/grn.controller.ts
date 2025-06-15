@@ -42,9 +42,10 @@ const saveGrn = async (req: Request, res: Response) => {
             if (selectedProduct) {
                 let obj: any = {
                     productId: selectedProduct._id,
-                    enteredMeasureUnitId: product.enteredUnitId,
+                    enteredMeasureUnitId: product.enteredMeasureUnitId,
                     actualMeasureUnitId: selectedProduct.measureUnit,
                     siConvertedQuantity: fromMeasureUnitToSiMeasureUnit(product.enteredMeasureUnitId, product.quantity),
+                    quantity: product.quantity,
                     remarks: product.remarks,
                 }
 
@@ -70,8 +71,8 @@ const saveGrn = async (req: Request, res: Response) => {
                 grnRemarks: grnRemarks,
                 products: toBeSavedProducts,
                 status: WellKnownGrnStatus.PENDING,
-                createdBy: auth.userId,
-                updatedBy: auth.userId
+                createdBy: auth.id,
+                updatedBy: auth.id
             }
         )
 
@@ -143,7 +144,7 @@ const updatedGrn = async (req: Request, res: Response) => {
 
         grn.grnRemarks = grnRemarks;
         grn.products = toBeSavedProducts;
-        grn.updatedBy = auth.userId;
+        grn.updatedBy = auth.id;
 
         await grnService.save(grn, session);
 
@@ -187,9 +188,9 @@ const approveGrn = async (req: Request, res: Response) => {
     try {
         session.startTransaction();
 
-        grn.approvedBy = auth.userId;
+        grn.approvedBy = auth.id;
         grn.approvedDate = new Date();
-        grn.updatedBy = auth.userId;
+        grn.updatedBy = auth.id;
         grn.approvedRejectedRemarks = remark;
         grn.status = WellKnownGrnStatus.APPROVED;
 
@@ -199,8 +200,8 @@ const approveGrn = async (req: Request, res: Response) => {
         for (let product of grn.products) {
             let selectedProduct = await productService.findByIdAndStatusIn(product.productId, [WellKnownStatus.ACTIVE]);
             if (selectedProduct) {
-                selectedProduct.inventory += product.siConvertedQuantity;
-                selectedProduct.updatedBy = auth.userId;
+                selectedProduct.inventory = selectedProduct.inventory + product.siConvertedQuantity;
+                selectedProduct.updatedBy = auth.id;
 
                 let productMeasureUnit: any = measureUnit.find((item: any) => item.unitId === selectedProduct.measureUnit);
                 let siUnitCode = "";
@@ -217,8 +218,8 @@ const approveGrn = async (req: Request, res: Response) => {
                     inventoryLogDate: new Date(),
                     inventoryLogQuantity: product.siConvertedQuantity,
                     inventoryLogProductId: product.productId,
-                    inventoryLogCreatedBy: auth.userId,
-                    message: `Inventory updated: ${product.siConvertedQuantity} ${siUnitCode} added for product "${selectedProduct.productName}" via approved GRN ${grn.grnNumberWithPrefix}.`
+                    inventoryLogCreatedBy: auth.id,
+                    message: `Inventory updated: ${product.siConvertedQuantity}${siUnitCode} added for product "${selectedProduct.productName}" via approved GRN ${grn.grnNumberWithPrefix}.`
                 }
 
                 selectedProduct.inventoryLogs.push(inventoryLogMsg);
@@ -267,9 +268,9 @@ const rejectGrn = async (req: Request, res: Response) => {
     try {
         session.startTransaction();
 
-        grn.approvedBy = auth.userId;
+        grn.approvedBy = auth.id;
         grn.approvedDate = new Date();
-        grn.updatedBy = auth.userId;
+        grn.updatedBy = auth.id;
         grn.approvedRejectedRemarks = remark;
         grn.status = WellKnownGrnStatus.REJECTED;
 
@@ -308,7 +309,7 @@ const cancelGrn = async (req: Request, res: Response) => {
     try {
         session.startTransaction();
 
-        grn.updatedBy = auth.userId;
+        grn.updatedBy = auth.id;
         grn.status = WellKnownGrnStatus.CANCELLED;
 
         await grnService.save(grn, session);
@@ -371,7 +372,7 @@ const getNextGrnNumber = async (req: Request, res: Response) => {
     CommonResponse(res, true, StatusCodes.OK, '', grnNumberWithPrefix);
 }
 
-const fromMeasureUnitToSiMeasureUnit = async (fromUnitId: number, quantity: number) => {
+const fromMeasureUnitToSiMeasureUnit = (fromUnitId: number, quantity: number) => {
     let quantityInSiUnit = 0;
 
     let fromUnit = measureUnit.find((item: any) => item.unitId === fromUnitId);
@@ -389,7 +390,7 @@ const fromMeasureUnitToSiMeasureUnit = async (fromUnitId: number, quantity: numb
     return quantityInSiUnit;
 }
 
-const fromMeasureUnitToOtherMeasureUnit = async (fromUnitId: number, toUnitId: number, quantity: number) => {
+const fromMeasureUnitToOtherMeasureUnit = (fromUnitId: number, toUnitId: number, quantity: number) => {
     let quantityInOtherUnit = 0;
 
     let fromUnit = measureUnit.find((item: any) => item.unitId === fromUnitId);
@@ -401,7 +402,7 @@ const fromMeasureUnitToOtherMeasureUnit = async (fromUnitId: number, toUnitId: n
     }
 
     if (fromUnit?.conversionToSi && toUnit?.conversionToSi) {
-        let fromQuantityInSiUnit = await fromMeasureUnitToSiMeasureUnit(fromUnitId, quantity);
+        let fromQuantityInSiUnit = fromMeasureUnitToSiMeasureUnit(fromUnitId, quantity);
 
         quantityInOtherUnit = fromQuantityInSiUnit / toUnit?.conversionToSi;
     } else {
@@ -411,7 +412,7 @@ const fromMeasureUnitToOtherMeasureUnit = async (fromUnitId: number, toUnitId: n
     return quantityInOtherUnit;
 }
 
-const fromSiMeasureUnitToOtherMeasureUnit = async (fromUnitId: number, toUnitId: number, siQuantity: number) => {
+const fromSiMeasureUnitToOtherMeasureUnit = (fromUnitId: number, toUnitId: number, siQuantity: number) => {
     let quantityInOtherUnit = 0;
 
     let fromUnit = measureUnit.find((item: any) => item.unitId === fromUnitId);

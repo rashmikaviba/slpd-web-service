@@ -19,8 +19,8 @@ const modelToProductResponseDto = (product: any): ProductResponseDto => {
         statusName: helperUtil.getNameFromEnum(WellKnownStatus, product.status),
         createdBy: product.createdBy?._id || "",
         updatedBy: product.updatedBy?._id || "",
-        createdUser: product.createdUser?.userName || "",
-        updatedByUser: product.updatedByUser?.userName || "",
+        createdUser: product.createdBy?.userName || "",
+        updatedByUser: product.updatedBy?.userName || "",
         createdAt: product.createdAt,
         updatedAt: product.updatedAt
     }
