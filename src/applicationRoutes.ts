@@ -155,17 +155,20 @@ const applicationRoutes = {
             activeInactive: '/activeInactive/:id',
             update: '/:id',
             deleteById: '/:id',
+            getProductAuditLog: '/productAuditLog/:id',
         },
 
         grn: {
             base: '/inventory/grn',
             save: '/',
-            getAll: '/',
-            getById: '/:id',
+            advanceSearch: '/advanceSearch',
             update: '/:id',
-            deleteById: '/:id',
+            approveGrn: '/approve/:id',
+            rejectGrn: '/reject/:id',
+            getById: '/:id',
+            getNextGrnNumber: '/getNextGrnNumber',
+            cancelById: '/:id',
         }
-
     }
 };
 

@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import { StatusCodes } from 'http-status-codes';
 
 import { WellKnownStatus } from "../../../util/enums/well-known-status.enum";
-import constants from "../../../constant";
 import BadRequestError from "../../../error/BadRequestError";
 import NotFoundError from "../../../error/NotFoundError";
 import CommonResponse from "../../../util/commonResponse";
@@ -253,6 +252,14 @@ const getAllProducts = async (req: Request, res: Response) => {
     CommonResponse(res, true, StatusCodes.OK, '', response);
 };
 
+const getProductAuditLog = async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const productLogs = await productService.findProductsLogByProductId(id);
+
+    CommonResponse(res, true, StatusCodes.OK, '', productLogs);
+}
+
 export {
-    saveProduct, updateProduct, getProductById, deleteProductById, getAllProducts, activeInactiveProduct
+    saveProduct, updateProduct, getProductById, deleteProductById, getAllProducts, activeInactiveProduct, getProductAuditLog
 }

@@ -12,6 +12,10 @@ const constants = {
             TRIPMANAGER: 5,
         },
     },
+
+    NUMBERPREFIX: {
+        GRN: 'GRN-',
+    },
 };
 
 export default constants;

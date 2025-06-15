@@ -22,11 +22,21 @@ const findByIdAndStatusIn = async (id: string, status: number[]) => {
     return await InventoryProduct.findOne({
         _id: id,
         status: { $in: status },
-    });
+    }, { inventoryLogs: 0 } // projection: exclude inventoryLogs field
+    );
 }
 
 const findAllAndByStatusIn = async (status: number[]) => {
-    return await InventoryProduct.find({ status: { $in: status } });
+    return await InventoryProduct.find({ status: { $in: status } }, { inventoryLogs: 0 } // projection: exclude inventoryLogs field
+    );
+}
+
+const findProductsLogByProductId = async (productId: string) => {
+    let logs: any = await InventoryProduct.findOne({ _id: productId }).select('inventoryLogs')
+
+    logs.inventoryLogs.sort((a: any, b: any) => new Date(b.inventoryLogDate).getTime() - new Date(a.inventoryLogDate).getTime());
+
+    return logs;
 }
 
 
@@ -34,5 +44,6 @@ export default {
     isShortCodeOrProductNameExists,
     save,
     findByIdAndStatusIn,
-    findAllAndByStatusIn
+    findAllAndByStatusIn,
+    findProductsLogByProductId
 }

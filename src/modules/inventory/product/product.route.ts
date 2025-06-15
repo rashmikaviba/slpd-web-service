@@ -3,7 +3,7 @@ import applicationRoutes from "../../../applicationRoutes";
 import authMiddleware from "../../../middleware/auth.middleware";
 import constants from "../../../constant";
 
-import { saveProduct, updateProduct, getProductById, deleteProductById, getAllProducts, activeInactiveProduct } from "./product.controller";
+import { saveProduct, updateProduct, getProductById, deleteProductById, getAllProducts, activeInactiveProduct, getProductAuditLog } from "./product.controller";
 
 const ProductRoute = Router();
 
@@ -43,9 +43,11 @@ ProductRoute.get(
 )
 
 
-
-
-
+ProductRoute.get(
+    applicationRoutes.inventory.product.getProductAuditLog,
+    authMiddleware.authorize([]),
+    getProductAuditLog
+)
 
 
 export default ProductRoute;
