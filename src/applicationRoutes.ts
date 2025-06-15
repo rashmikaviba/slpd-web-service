@@ -6,6 +6,7 @@ const applicationRoutes = {
         getAllGenders: '/gender',
         getAllRoles: '/role',
         getCommonData: '/data',
+        getAllMeasureUnits: '/measureUnits',
     },
 
     store: {
@@ -143,6 +144,29 @@ const applicationRoutes = {
         update: '/:id',
         deleteById: '/:id',
     },
+
+    inventory: {
+        base: '/inventory',
+        product: {
+            base: '/inventory/product',
+            save: '/',
+            getAll: '/',
+            getById: '/:id',
+            activeInactive: '/activeInactive/:id',
+            update: '/:id',
+            deleteById: '/:id',
+        },
+
+        grn: {
+            base: '/inventory/grn',
+            save: '/',
+            getAll: '/',
+            getById: '/:id',
+            update: '/:id',
+            deleteById: '/:id',
+        }
+
+    }
 };
 
 export default applicationRoutes;

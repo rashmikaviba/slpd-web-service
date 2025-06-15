@@ -1,0 +1,61 @@
+import mongoose from 'mongoose';
+import { WellKnownStatus } from '../../../util/enums/well-known-status.enum';
+
+const InventoryProductSchema = new mongoose.Schema(
+    {
+        productName: {
+            type: String,
+            required: [true, 'Product Name is required'],
+        },
+
+        productShortCode: {
+            type: String,
+            required: [true, 'Product Short Code is required'],
+        },
+
+        measureUnit: {
+            type: Number,
+            required: [true, 'Measure Unit is required'],
+        },
+
+        isReturnableProduct: {
+            type: Boolean,
+            required: [true, 'Is Returnable Product is required'],
+        },
+
+        unitPrice: {
+            type: Number,
+            required: [true, 'Unit Price is required'],
+        },
+
+        inventory: {
+            type: Number,
+            default: 0,
+        },
+
+        inventoryLogs: {
+            type: [Object],
+            default: [],
+        },
+
+        status: {
+            type: Number,
+            required: [true, 'Status is required'],
+            default: WellKnownStatus.ACTIVE,
+        },
+
+        createdBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+        },
+
+        updatedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+        },
+    }, {
+    timestamps: true,
+    versionKey: false,
+});
+
+export default mongoose.model('InventoryProduct', InventoryProductSchema);

@@ -5,6 +5,7 @@ import {
     GetAllGenders,
     GetAllRoles,
     GetDataByType,
+    GetAllMeasureUnits
 } from '../controller/common.controller';
 import authMiddleware from '../../../middleware/auth.middleware';
 
@@ -18,6 +19,12 @@ CommonRouter.get(
     applicationRoutes.common.getCommonData,
     authMiddleware.authorize([]),
     GetDataByType
+);
+
+CommonRouter.get(
+    applicationRoutes.common.getAllMeasureUnits,
+    authMiddleware.authorize([]),
+    GetAllMeasureUnits
 );
 
 export default CommonRouter;

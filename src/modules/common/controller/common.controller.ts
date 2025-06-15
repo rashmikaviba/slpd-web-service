@@ -5,6 +5,7 @@ import { WellKnownStatus } from '../../../util/enums/well-known-status.enum';
 import CommonResponse from '../../../util/commonResponse';
 import { StatusCodes } from 'http-status-codes';
 import { vehicleTypes } from '../../../util/data/commonData';
+import { measureUnit } from '../../../util/data/measureUnitData';
 
 // Get All Active Genders
 const GetAllGenders = async (req: Request, res: Response) => {
@@ -34,4 +35,11 @@ const GetDataByType = async (req: Request, res: Response) => {
     CommonResponse(res, true, StatusCodes.OK, '', response);
 };
 
-export { GetAllGenders, GetAllRoles, GetDataByType };
+
+const GetAllMeasureUnits = async (req: Request, res: Response) => {
+    const measureUnits = measureUnit;
+
+    CommonResponse(res, true, StatusCodes.OK, '', measureUnits);
+};
+
+export { GetAllGenders, GetAllRoles, GetDataByType, GetAllMeasureUnits };
