@@ -38,7 +38,23 @@ export const superAdminMenu = [
         id: 8,
         name: 'Super Admin Report Management',
         status: 1,
+    },
+    {
+        id: 9,
+        name: 'Super Admin Inventory Management',
+        status: 1,
+    },
+    {
+        id: 10,
+        name: 'Super Admin Product Management',
+        status: 1,
+    },
+    {
+        id: 11,
+        name: 'Super Admin Good Received Note',
+        status: 1,
     }
+
 ];
 
 export const adminMenu = [
@@ -60,6 +76,21 @@ export const adminMenu = [
     {
         id: 33,
         name: 'Admin Report Management',
+        status: 1,
+    },
+    {
+        id: 34,
+        name: 'Admin Inventory Management',
+        status: 1,
+    },
+    {
+        id: 35,
+        name: 'Admin Product Management',
+        status: 1,
+    },
+    {
+        id: 36,
+        name: 'Admin Good Received Note',
         status: 1,
     }
 ];
@@ -87,6 +118,17 @@ export const financeOfficerMenu = [
         id: 33,
         name: 'Admin Report Management',
         status: 1,
+    },
+    {
+        id: 34,
+        name: 'Admin Inventory Management',
+        status: 1,
+    },
+    ,
+    {
+        id: 36,
+        name: 'Admin Good Received Note',
+        status: 1,
     }
 ];
 
@@ -109,6 +151,16 @@ export const tripManagerMenu = [
     {
         id: 33,
         name: 'Admin Report Management',
+        status: 1,
+    },
+    {
+        id: 34,
+        name: 'Admin Inventory Management',
+        status: 1,
+    },
+    {
+        id: 36,
+        name: 'Admin Good Received Note',
         status: 1,
     }
 ];

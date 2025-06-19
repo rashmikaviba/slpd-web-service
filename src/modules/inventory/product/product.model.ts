@@ -28,6 +28,11 @@ const InventoryProductSchema = new mongoose.Schema(
             required: [true, 'Unit Price is required'],
         },
 
+        description: {
+            type: String,
+            maxlength: [500, 'Description cannot be more than 500 characters'],
+        },
+
         inventory: {
             type: Number,
             default: 0,

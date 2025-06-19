@@ -1,3 +1,4 @@
+import { WellKnownStatus } from "../../../util/enums/well-known-status.enum";
 import InventoryProduct from "./product.model";
 
 const save = async (product: any, session: any) => {
@@ -31,12 +32,14 @@ const isShortCodeOrProductNameExists = async (shortCode: string, name: string, p
     const [productDuplicate, shortCodeDuplicate] = await Promise.all([
         InventoryProduct.findOne({
             ...baseFilter,
-            productName: { $regex: `^${name}$`, $options: 'i' }
+            productName: { $regex: `^${name}$`, $options: 'i' },
+            status: { $ne: WellKnownStatus.DELETED }
         }).collation({ locale: 'en', strength: 2 }),
 
         InventoryProduct.findOne({
             ...baseFilter,
-            productShortCode: { $regex: `^${shortCode}$`, $options: 'i' }
+            productShortCode: { $regex: `^${shortCode}$`, $options: 'i' },
+            status: { $ne: WellKnownStatus.DELETED }
         }).collation({ locale: 'en', strength: 2 })
     ]);
 

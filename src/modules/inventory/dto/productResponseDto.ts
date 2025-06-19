@@ -5,6 +5,7 @@ interface ProductResponseDto {
     measureUnit: number;
     measureUnitDetails: any;
     isReturnableProduct: boolean;
+    description: string;
     unitPrice: number;
     inventory: number;
     status: number;

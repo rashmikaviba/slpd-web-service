@@ -21,6 +21,10 @@ const productSaveSchema = Joi.object({
         'any.required': 'Unit Price is required',
         'number.base': 'Unit Price is invalid',
     }),
+    description: Joi.string().max(500).allow(null).allow('').messages({
+        'string.max': 'Description should not be more than 500 characters',
+        'string.base': 'Description is invalid',
+    }),
 });
 
 export default {

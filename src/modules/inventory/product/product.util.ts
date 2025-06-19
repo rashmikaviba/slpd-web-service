@@ -13,6 +13,7 @@ const modelToProductResponseDto = (product: any): ProductResponseDto => {
         measureUnitDetails: measureUnit.find((item: any) => item.unitId === product.measureUnit),
         isReturnableProduct: product.isReturnableProduct,
         unitPrice: product.unitPrice,
+        description: product.description,
         // inventory: product.inventory,
         inventory: fromSiMeasureUnitToOtherMeasureUnit(product.measureUnit, product.inventory),
         status: product.status,

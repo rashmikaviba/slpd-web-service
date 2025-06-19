@@ -19,7 +19,8 @@ const saveProduct = async (req: Request, res: Response) => {
         productShortCode,
         isReturnableProduct,
         measureUnit,
-        unitPrice
+        unitPrice,
+        description
     } = req.body;
 
     const auth = req.auth;
@@ -55,6 +56,7 @@ const saveProduct = async (req: Request, res: Response) => {
                 unitPrice: unitPrice,
                 createdBy: auth.id,
                 updatedBy: auth.id,
+                description: description,
                 status: WellKnownStatus.ACTIVE
             }
         );
@@ -87,7 +89,8 @@ const updateProduct = async (req: Request, res: Response) => {
         productShortCode,
         isReturnableProduct,
         measureUnit,
-        unitPrice
+        unitPrice,
+        description
     } = req.body;
 
     // Validate request body
@@ -123,6 +126,7 @@ const updateProduct = async (req: Request, res: Response) => {
         product.isReturnableProduct = isReturnableProduct;
         product.unitPrice = unitPrice;
         product.updatedBy = auth.id;
+        product.description = description;
 
         await productService.save(product, session);
 
