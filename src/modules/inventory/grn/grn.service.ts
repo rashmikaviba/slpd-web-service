@@ -63,9 +63,20 @@ const advanceSearch = async (startDate: string, endDate: string, status: number)
     return grns;
 };
 
+const findByIdAndStatusInWithData = async (id: string, status: number[]) => {
+    return await GRN.findOne({
+        _id: id,
+        status: { $in: status },
+    }).populate({
+        path: 'products.productId',
+        model: 'InventoryProduct',
+    });
+}
+
 export default {
     getNextGrnNumber,
     save,
     findByIdAndStatusIn,
-    advanceSearch
+    advanceSearch,
+    findByIdAndStatusInWithData
 }

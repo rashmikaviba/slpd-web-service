@@ -268,8 +268,8 @@ const rejectGrn = async (req: Request, res: Response) => {
     try {
         session.startTransaction();
 
-        grn.approvedBy = auth.id;
-        grn.approvedDate = new Date();
+        grn.rejectedBy = auth.id;
+        grn.rejectedDate = new Date();
         grn.updatedBy = auth.id;
         grn.approvedRejectedRemarks = remark;
         grn.status = WellKnownGrnStatus.REJECTED;
@@ -335,13 +335,13 @@ const cancelGrn = async (req: Request, res: Response) => {
 const getGrnById = async (req: Request, res: Response) => {
     const id = req.params.id;
 
-    let grn: any = await grnService.findByIdAndStatusIn(id, [WellKnownGrnStatus.PENDING, WellKnownGrnStatus.APPROVED, WellKnownGrnStatus.REJECTED, WellKnownGrnStatus.CANCELLED]);
+    let grn: any = await grnService.findByIdAndStatusInWithData(id, [WellKnownGrnStatus.PENDING, WellKnownGrnStatus.APPROVED, WellKnownGrnStatus.REJECTED, WellKnownGrnStatus.CANCELLED]);
 
     if (!grn) {
         throw new NotFoundError('Good Receipt Note not found!');
     }
 
-    return CommonResponse(res, true, StatusCodes.OK, '', grn);
+    return CommonResponse(res, true, StatusCodes.OK, '', grnUtil.modelToGrnResponseDto(grn));
 }
 
 const grnAdvanceSearch = async (req: Request, res: Response) => {
