@@ -16,6 +16,7 @@ import CommonResponse from '../../util/commonResponse';
 import { StatusCodes } from 'http-status-codes';
 import WorkingInfoResponseDto from './dto/workingInfoResponseDto';
 import monthAuditUtil from './monthAudit.util';
+
 import {
     TripPlaceResponseDto,
     TripResponseDtoGetAll,
@@ -26,6 +27,8 @@ import tripUtil from '../trip/trip.util';
 import expensesService from '../expenses/expenses.service';
 import assert from 'assert';
 import internalTripService from '../internalTrip/internalTrip.service';
+import MonthlyExpenses from '../monthlyExpenses/monthlyExpenses.model';
+import monthlyExpensesService from '../monthlyExpenses/monthlyExpenses.service';
 
 const createNewDate = async (req: Request, res: Response) => {
     const auth: any = req.auth;
@@ -66,6 +69,14 @@ const createNewDate = async (req: Request, res: Response) => {
             batchId
         );
 
+        await monthEndDoneForMonthlyExpenses(
+            lastCompanyInfo.workingMonth,
+            lastCompanyInfo.workingYear,
+            session,
+            auth?.id,
+            batchId
+        );
+
         if (lastCompanyInfo) {
             lastCompanyInfo.status = WellKnownStatus.DELETED;
             lastCompanyInfo.updatedBy = auth.id;
@@ -82,6 +93,20 @@ const createNewDate = async (req: Request, res: Response) => {
         });
 
         await companyWorkingInfoService.save(newCompanyInfo, session);
+
+        // Crete mew monthly expenses
+        const monthlyExpenses = new MonthlyExpenses({
+            month: new Date(year, month, 1),
+            expenses: [],
+            totalExpenses: 0,
+            status: WellKnownStatus.ACTIVE,
+            isMonthEndDone: false,
+            batchId: 0,
+            createdBy: auth.id,
+            updatedBy: auth.id
+        });
+
+        await monthlyExpensesService.save(monthlyExpenses, session);
 
         const monthAuditNew = new monthAudit({
             newWorkingDate: new Date(year, month - 1, 1),
@@ -158,6 +183,27 @@ const monthEndDoneForInternalTrip = async (
     }
 };
 
+const monthEndDoneForMonthlyExpenses = async (
+    currMonth: number,
+    currYear: number,
+    session: any,
+    userId: string,
+    batchId: number
+) => {
+    const monthlyExpenses: any[] = await monthlyExpensesService.findAllByEndMonthAndStatusIn(
+        currMonth,
+        currYear,
+        [WellKnownStatus.ACTIVE, WellKnownStatus.INACTIVE]
+    );
+
+    for (let monthlyExpense of monthlyExpenses) {
+        monthlyExpense.isMonthEndDone = true;
+        monthlyExpense.batchId = batchId;
+        monthlyExpense.updatedBy = userId;
+        await monthlyExpensesService.save(monthlyExpense, session);
+    }
+};
+
 const monthEndDoneForTrip = async (
     currMonth: number,
     currYear: number,
@@ -230,8 +276,8 @@ const getPendingLeaves = async (req: Request, res: Response) => {
                 if (
                     (appliedUser?.role?.id == constants.USER.ROLES.ADMIN ||
                         appliedUser?.role?.id ==
-                            constants.USER.ROLES.TRIPMANAGER,
-                    appliedUser?.role?.id ==
+                        constants.USER.ROLES.TRIPMANAGER,
+                        appliedUser?.role?.id ==
                         constants.USER.ROLES.FINANCEOFFICER)
                 ) {
                     const availableLeaveCount =

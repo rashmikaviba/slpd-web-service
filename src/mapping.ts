@@ -16,6 +16,7 @@ import InternalTripRouter from './modules/internalTrip/internalTrip.route';
 import TripSummaryRouter from './modules/tripSummary/tripSummary.route';
 import ProductRoute from './modules/inventory/product/product.route';
 import GrnRouter from './modules/inventory/grn/grn.route';
+import MonthlyExpensesRouter from './modules/monthlyExpenses/monthlyExpenses.route';
 
 const router = Router();
 
@@ -36,5 +37,6 @@ router.use(applicationRoutes.internalTrip.base, InternalTripRouter);
 router.use(applicationRoutes.tripSummary.base, TripSummaryRouter);
 router.use(applicationRoutes.inventory.product.base, ProductRoute);
 router.use(applicationRoutes.inventory.grn.base, GrnRouter);
+router.use(applicationRoutes.monthlyExpenses.base, MonthlyExpensesRouter);
 
 export default router;

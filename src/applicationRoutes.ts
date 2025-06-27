@@ -169,6 +169,15 @@ const applicationRoutes = {
             getNextGrnNumber: '/getNextGrnNumber',
             cancelById: '/:id',
         }
+    },
+
+    monthlyExpenses: {
+        base: '/monthlyExpenses',
+        save: '/save/:id',
+        advanceSearch: '/advanceSearch',
+        update: '/update/:id/expense/:expenseId',
+        deleteById: '/delete/:id/expense/:expenseId',
+        getById: '/:id',
     }
 };
 
