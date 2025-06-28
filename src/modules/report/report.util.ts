@@ -28,6 +28,32 @@ const expensesModelToExpensesReportResponseDto = (
     return response;
 };
 
+const monthlyExpenseModelsToExpensesReportResponseDto = (expense: any[]): ExpensesReportResponseDto[] => {
+    let response: ExpensesReportResponseDto[] = [];
+
+    if (expense.length > 0) {
+        for (let expenseInfo of expense) {
+            response.push({
+                tripId: '',
+                confirmationNumber: '',
+                expenseId: expenseInfo._id.toString() || '',
+                typeId: expenseInfo.expenseType,
+                typeName: expenseInfo?.expenseTypeName || '',
+                amount: expenseInfo?.amount || 0,
+                description: expenseInfo?.description || '',
+                date: expenseInfo?.date,
+                createdDate: expenseInfo?.createdAt,
+                createdUser: `${expenseInfo?.createdBy?.userName} (${expenseInfo?.createdBy?.fullName})`,
+                updatedDate: expenseInfo?.updatedAt,
+                updatedUser: `${expenseInfo?.updatedBy?.userName} (${expenseInfo?.updatedBy?.fullName})`,
+            });
+        }
+    }
+
+    return response;
+};
+
+
 const expensesModelsToExpensesReportResponseDtos = (
     expenses: any[]
 ): ExpensesReportResponseDto[] => {
@@ -99,4 +125,5 @@ export default {
     expensesModelsToExpensesReportResponseDtos,
     driverModelToDriverSalaryReportResponseDto,
     driverModelsToDriverSalaryReportResponseDtos,
+    monthlyExpenseModelsToExpensesReportResponseDto
 };

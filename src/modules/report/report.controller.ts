@@ -86,6 +86,11 @@ const monthlyExpensesReport = async (req: Request, res: Response) => {
                 WellKnownTripStatus.FINISHED,
             ]
         );
+
+        let monthlyExpenses: any[] = await reportService.findMonthlyExpensesByMonth(
+            selectedDate,
+        ) || [];
+
         let response: ExpensesReportResponseDto[] = [];
         if (trips.length > 0) {
             let tripIds = trips.map((trip: any) => trip._id.toString());
@@ -97,6 +102,14 @@ const monthlyExpensesReport = async (req: Request, res: Response) => {
                 reportUtil.expensesModelsToExpensesReportResponseDtos(
                     expensesData
                 );
+        }
+
+        if (monthlyExpenses.length > 0) {
+            response = response.concat(
+                reportUtil.monthlyExpenseModelsToExpensesReportResponseDto(
+                    monthlyExpenses
+                )
+            );
         }
 
         CommonResponse(res, true, StatusCodes.OK, '', response);

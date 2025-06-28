@@ -1,6 +1,7 @@
 import Trip from '../trip/trip.model';
 import Expenses from '../expenses/expenses.model';
 import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
+import MonthlyExpenses from '../monthlyExpenses/monthlyExpenses.model';
 
 const findAllTripsByDateAndStatusIn = async (date: Date, status: number[]) => {
     let monthStartDate = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -29,6 +30,20 @@ const findAllExpensesByTripIds = async (tripIds: string[]) => {
     });
 
     return expenses;
+};
+
+const findMonthlyExpensesByMonth = async (date: Date) => {
+    let monthStartDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), 1))
+
+    let monthlyExpenses = await MonthlyExpenses.findOne({
+        month: monthStartDate,
+    }).populate({
+        path: 'expenses.createdBy',
+        model: 'User',
+        select: 'fullName userName',
+    }).lean();
+
+    return monthlyExpenses?.expenses.filter((exp: any) => exp.status === WellKnownStatus.ACTIVE) || [];
 };
 
 const findAllDriverSalaryByTripIds = async (tripIds: string[]) => {
@@ -67,4 +82,5 @@ export default {
     findAllTripsByDateAndStatusIn,
     findAllExpensesByTripIds,
     findAllDriverSalaryByTripIds,
+    findMonthlyExpensesByMonth
 };

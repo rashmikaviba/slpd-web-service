@@ -222,6 +222,8 @@ const advanceSearchMonthlyExpense = async (req: Request, res: Response) => {
 
     if (monthlyExpenses && monthlyExpenses.length > 0) {
         response = monthlyExpensesUtil.modelToMonthlyExpensesResponseDtoList(monthlyExpenses);
+
+        response = response.sort((a: any, b: any) => new Date(b.month).getTime() - new Date(a.month).getTime());
     }
 
     return CommonResponse(
