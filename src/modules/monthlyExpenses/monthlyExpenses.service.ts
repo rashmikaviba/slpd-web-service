@@ -33,7 +33,7 @@ const findByIdAndStatusIn = async (id: any, status: any) => {
 
 
 const advanceSearch = async (startMonth: Date, endMonth: Date) => {
-    return await MonthlyExpenses.find({ month: { $gte: startMonth, $lt: endMonth } })
+    return await MonthlyExpenses.find({ month: { $gte: startMonth, $lte: endMonth } })
         .populate('createdBy updatedBy')
         .sort({ startDate: 1 });
 };

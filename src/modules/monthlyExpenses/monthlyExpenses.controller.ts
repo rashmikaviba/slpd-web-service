@@ -240,6 +240,7 @@ const getMonthlyExpenseById = async (req: Request, res: Response) => {
 
     if (monthlyExpense) {
         monthlyExpense.expenses = monthlyExpense.expenses.filter((exp: any) => exp.status !== WellKnownStatus.DELETED);
+        monthlyExpense.expenses.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }
 
     return CommonResponse(

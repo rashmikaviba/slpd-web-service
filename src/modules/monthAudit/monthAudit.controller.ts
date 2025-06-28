@@ -96,7 +96,9 @@ const createNewDate = async (req: Request, res: Response) => {
 
         // Crete mew monthly expenses
         const monthlyExpenses = new MonthlyExpenses({
-            month: new Date(year, month, 1),
+            month: new Date(Date.UTC(year, month - 1, 1)),
+            monthName: month,
+            year: year,
             expenses: [],
             totalExpenses: 0,
             status: WellKnownStatus.ACTIVE,

@@ -8,6 +8,16 @@ const monthlyExpensesSchema = new mongoose.Schema(
             required: true,
         },
 
+        year: {
+            type: Number,
+            required: [true, 'Year is required'],
+
+        },
+        monthName: {
+            type: Number,
+            required: [true, 'Month is required'],
+        },
+
         expenses: [{
             expenseType: {
                 type: String,
