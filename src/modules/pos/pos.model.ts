@@ -26,6 +26,11 @@ const PosSchema = new mongoose.Schema({
                 default: 0
             },
 
+            productUnitOfMeasure: {
+                type: Number,
+                default: 0
+            },
+
             enteredUnitOfMeasure: {
                 type: Number,
                 default: 0
