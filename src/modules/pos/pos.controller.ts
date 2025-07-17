@@ -16,6 +16,7 @@ import productService from "../inventory/product/product.service";
 import { measureUnit } from "../../util/data/measureUnitData";
 import { WellKnownGrnLogType } from "../../util/enums/well-known-grn-log-type.enum";
 import { PosGetByIdReponseDto } from "./dto/posGetByIdReponseDto";
+import posUtils from "./pos.utils";
 
 
 const saveProductForPos = async (req: Request, res: Response) => {
@@ -43,12 +44,16 @@ const saveProductForPos = async (req: Request, res: Response) => {
         throw new BadRequestError('You can not save pos transaction, because trip is not in started status!');
     }
 
+    let posTransactionQtyWithSiUnit = fromMeasureUnitToSiMeasureUnit(unitOfMeasure, quantity);
+
     let product: any = await productService.findByIdAndStatusIn(productId, [
         WellKnownStatus.ACTIVE
     ]);
 
     if (!product) {
         throw new BadRequestError('Product is not found!');
+    } else if (product.inventory < posTransactionQtyWithSiUnit) {
+        throw new BadRequestError('You can not save pos transaction, because product inventory is not enough!');
     }
 
     let tripPosData: any = await posService.findByTripIdAndStatusIn(tripId, [
@@ -59,7 +64,6 @@ const saveProductForPos = async (req: Request, res: Response) => {
     try {
         session.startTransaction();
 
-        let posTransactionQtyWithSiUnit = fromMeasureUnitToSiMeasureUnit(unitOfMeasure, quantity);
         if (!tripPosData) {
 
             // create new pos object to
@@ -77,7 +81,7 @@ const saveProductForPos = async (req: Request, res: Response) => {
             );
 
             let newProduct = {
-                productId: productId,
+                product: productId,
                 isReturnableProduct: product.isReturnableProduct,
                 unitPrice: product.unitPrice,
                 productUnitOfMeasure: product.measureUnit,
@@ -97,7 +101,7 @@ const saveProductForPos = async (req: Request, res: Response) => {
         } else {
 
             let newProduct = {
-                productId: productId,
+                product: productId,
                 isReturnableProduct: product.isReturnableProduct,
                 unitPrice: product.unitPrice,
                 productUnitOfMeasure: product.measureUnit,
@@ -189,10 +193,10 @@ const voidProductInPos = async (req: Request, res: Response) => {
     try {
         session.startTransaction();
 
-        let selectedPosData: any = tripPosData.products.find((item: any) => item._id == posId);
+        let selectedPosData: any = tripPosData.products.find((item: any) => item._id.toString() === posId);
 
         if (!selectedPosData) {
-            throw new BadRequestError('Pos transaction not found!');
+            throw new BadRequestError('Pos transaction not found to void!');
         }
 
         selectedPosData.status = WellKnownStatus.DELETED;
@@ -209,7 +213,7 @@ const voidProductInPos = async (req: Request, res: Response) => {
         tripPosData = await posService.save(tripPosData, session);
 
         // Add inventory log
-        let product: any = await productService.findByIdAndStatusIn(selectedPosData.productId, [
+        let product: any = await productService.findByIdAndStatusIn(selectedPosData.product, [
             WellKnownStatus.ACTIVE
         ]);
 
@@ -258,7 +262,6 @@ const voidProductInPos = async (req: Request, res: Response) => {
     }
 }
 
-// "/tripEndAudit/:tripId",
 const tripEndPosAudit = async (req: Request, res: Response) => {
     const tripId = req.params.tripId;
 
@@ -288,7 +291,7 @@ const getPosByTrip = async (req: Request, res: Response) => {
         response.tripConfirmedNumber = trip?.tripConfirmedNumber;
         response.status = 0;
     } else {
-
+        response = posUtils.modelToPosGetByIdReponseDto(tripPosData);
     }
 
     return CommonResponse(res, true, StatusCodes.OK, '', response);

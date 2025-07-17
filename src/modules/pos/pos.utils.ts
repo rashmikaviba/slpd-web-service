@@ -7,7 +7,7 @@ const modelToPosGetByIdReponseDto = (pos: any): PosGetByIdReponseDto => {
         productdtos.push({
             _id: product._id,
             productName: product.product?.productName,
-            productId: product.product?._id,
+            product: product.product?._id,
             isReturnableProduct: product.isReturnableProduct,
             unitPrice: product.unitPrice,
             productUnitOfMeasure: product.productUnitOfMeasure,
@@ -29,4 +29,9 @@ const modelToPosGetByIdReponseDto = (pos: any): PosGetByIdReponseDto => {
         endAuditProducts: pos.endAuditProducts,
         status: pos.status
     }
+}
+
+
+export default {
+    modelToPosGetByIdReponseDto
 }

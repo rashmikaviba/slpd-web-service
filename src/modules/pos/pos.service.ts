@@ -28,11 +28,12 @@ const findByTripIdAndStatusInWIthProducts = async (tripId: string, status: numbe
         select: '_id tripConfirmedNumber status'
     }).populate({
         path: 'products.product',
+        model: 'InventoryProduct',
         select: '_id productName',
     });
 
     if (pos) {
-        pos.products = pos.products.filter((p: any) => p.product?.status === WellKnownStatus.ACTIVE);
+        pos.products = pos.products.filter((p: any) => p?.status === WellKnownStatus.ACTIVE);
     }
 
     return pos;

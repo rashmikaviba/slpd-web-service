@@ -14,7 +14,7 @@ interface PosGetByIdReponseDto {
 interface PosProductDto {
     _id: string;
     productName: string;
-    productId: string;
+    product: string;
     isReturnableProduct: boolean;
     unitPrice: number;
     productUnitOfMeasure: number;

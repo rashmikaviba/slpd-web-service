@@ -6,13 +6,14 @@ const PosSchema = new mongoose.Schema({
     tripId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Trip',
+        required: [true, 'Trip is required'],
     },
 
     products: [
         {
             product: {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: 'Product',
+                ref: 'InventoryProduct',
                 required: [true, 'Product is required'],
             },
 
