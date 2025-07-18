@@ -1,3 +1,4 @@
+import { measureUnit } from "../../util/data/measureUnitData";
 import { PosGetByIdReponseDto, PosProductDto } from "./dto/posGetByIdReponseDto";
 
 const modelToPosGetByIdReponseDto = (pos: any): PosGetByIdReponseDto => {
@@ -5,7 +6,7 @@ const modelToPosGetByIdReponseDto = (pos: any): PosGetByIdReponseDto => {
 
     pos.products.forEach((product: any) => {
         productdtos.push({
-            _id: product._id,
+            id: product._id,
             productName: product.product?.productName,
             product: product.product?._id,
             isReturnableProduct: product.isReturnableProduct,
@@ -14,7 +15,11 @@ const modelToPosGetByIdReponseDto = (pos: any): PosGetByIdReponseDto => {
             enteredUnitOfMeasure: product.enteredUnitOfMeasure,
             enteredQuantity: product.enteredQuantity,
             quantityWithSiUnitOfMeasure: product.quantityWithSiUnitOfMeasure,
-            status: product.status
+            status: product.status,
+            productUnitOfMeasureCode: measureUnit.find(mu => mu.unitId === product.productUnitOfMeasure)?.code || "",
+            enteredUnitOfMeasureCode: measureUnit.find(mu => mu.unitId === product.enteredUnitOfMeasure)?.code || "",
+            productMeasureUnitDetails: measureUnit.find(mu => mu.unitId === product.productUnitOfMeasure),
+            createdAt: product.createdAt
         })
     })
 

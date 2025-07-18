@@ -53,6 +53,7 @@ const saveProduct = async (req: Request, res: Response) => {
                 productShortCode: productShortCode,
                 measureUnit: measureUnit,
                 isReturnableProduct: isReturnableProduct,
+                inventoryLogs: [],
                 unitPrice: unitPrice,
                 createdBy: auth.id,
                 updatedBy: auth.id,
