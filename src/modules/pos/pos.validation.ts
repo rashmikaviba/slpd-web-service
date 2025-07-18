@@ -18,6 +18,37 @@ const savePosProductSchema = Joi.object({
 });
 
 
+
+const tripEndAuditShema = Joi.object({
+    tripId: Joi.string().required().messages({
+        'any.required': 'tripId is required',
+        'string.base': 'tripId is invalid',
+    }),
+
+    auditRecords: Joi.array().items(Joi.object({
+        id: Joi.string().required().messages({
+            'any.required': 'id is required',
+            'string.base': 'id is invalid',
+        }),
+        returnQuantity: Joi.number().required().messages({
+            'number.base': 'returnQuantity is invalid',
+            'any.required': 'returnQuantity is required',
+        }),
+        returnUnitOfMeasure: Joi.number().required().messages({
+            'number.base': 'returnUnitOfMeasure is invalid',
+            'any.required': 'returnUnitOfMeasure is required',
+        }),
+        isReturned: Joi.boolean().required().messages({
+            'boolean.base': 'isReturned is invalid',
+            'any.required': 'isReturned is required',
+        }),
+        notReturnedReason: Joi.string().allow(null).allow('').messages({
+            'string.base': 'notReturnedReason is invalid',
+        }),
+    }))
+})
+
+
 export default {
-    savePosProductSchema
+    savePosProductSchema, tripEndAuditShema
 };

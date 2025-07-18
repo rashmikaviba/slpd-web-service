@@ -17,6 +17,7 @@ import { measureUnit } from "../../util/data/measureUnitData";
 import { WellKnownGrnLogType } from "../../util/enums/well-known-grn-log-type.enum";
 import { PosGetByIdReponseDto } from "./dto/posGetByIdReponseDto";
 import posUtils from "./pos.utils";
+import InternalServerError from "../../error/InternalServerError";
 
 
 const saveProductForPos = async (req: Request, res: Response) => {
@@ -263,7 +264,212 @@ const voidProductInPos = async (req: Request, res: Response) => {
 }
 
 const tripEndPosAudit = async (req: Request, res: Response) => {
-    const tripId = req.params.tripId;
+    const { tripId, auditRecords } = req.body;
+    const auth = req.auth;
+
+    // Validate request body
+    const { error } = posValidation.tripEndAuditShema.validate(req.body);
+    if (error) {
+        throw new BadRequestError(error.message);
+    }
+
+    let tripPosData: any = await posService.findByTripIdAndStatusInWIthProducts(tripId, [
+        WellKnownStatus.ACTIVE
+    ])
+
+    if (!tripPosData) {
+        throw new BadRequestError('Pos transaction not found for given trip!');
+    }
+
+    const session = await startSession();
+    try {
+        session.startTransaction();
+
+        let products: any[] = tripPosData?.products;
+        let endAuditProducts: any[] = [];
+        let gettedProductsFromDb: any[] = [];
+
+        for (let auditRecord of auditRecords) {
+
+            let selectedPosTransaction = products.find((item: any) => item._id.toString() == auditRecord.id);
+
+            if (!selectedPosTransaction) {
+                throw new BadRequestError('Pos transaction not found for given trip!');
+            }
+
+            let isReturnableProduct = selectedPosTransaction.isReturnableProduct;
+
+            let product: any = null;
+
+            if (gettedProductsFromDb.find((item: any) => item._id.toString() == selectedPosTransaction.product)) {
+                product = gettedProductsFromDb.find((item: any) => item._id.toString() == selectedPosTransaction.product);
+            } else {
+                product = await productService.findByIdAndStatusIn(selectedPosTransaction.product, [
+                    WellKnownStatus.ACTIVE
+                ])
+            }
+
+            if (!product) {
+                throw new BadRequestError('Product not found!');
+            }
+
+            let returnedQuantityWithSiUnitOfMeasure = fromMeasureUnitToSiMeasureUnit(auditRecord.returnUnitOfMeasure, auditRecord.returnQuantity);
+
+            let productMeasureUnit: any = measureUnit.find((item: any) => item.unitId === product?.measureUnit);
+            let siUnitCode = "";
+            if (productMeasureUnit.isSaveWithSiUnit) {
+                const siUnit = measureUnit.find((item: any) => item.isSiUnit && item.categoryId === productMeasureUnit.categoryId);
+                siUnitCode = siUnit != null ? siUnit?.code : "";
+            } else {
+                siUnitCode = productMeasureUnit.code || ""
+            }
+
+            if (selectedPosTransaction.quantityWithSiUnitOfMeasure < returnedQuantityWithSiUnitOfMeasure) {
+                throw new BadRequestError(`Return quantity is more than available quantity for product "${product.productName}"!`);
+            }
+
+            if (isReturnableProduct) {
+                if (selectedPosTransaction.quantityWithSiUnitOfMeasure == returnedQuantityWithSiUnitOfMeasure) {
+
+                    let obj = {
+                        product: selectedPosTransaction.product._id,
+                        transactionId: selectedPosTransaction._id,
+                        isReturnableProduct: selectedPosTransaction.isReturnableProduct,
+                        isReturned: auditRecord.isReturned,
+                        notReturnedReson: auditRecord.notReturnedReason,
+                        returnedquantity: auditRecord.returnQuantity,
+                        returnedUnitOfMeasure: auditRecord.returnUnitOfMeasure,
+                        returnedQuantityWithSiUnitOfMeasure: returnedQuantityWithSiUnitOfMeasure,
+                        createdBy: auth.id,
+                        createdAt: new Date()
+                    }
+
+                    endAuditProducts.push(obj);
+
+                    // Genarate Log Message to increase inventory
+                    product.inventory += returnedQuantityWithSiUnitOfMeasure;
+
+                    let inventoryLogMsg = {
+                        inventoryLogType: WellKnownGrnLogType.POS_TRANSACTION_RETURN,
+                        inventoryLogDate: new Date(),
+                        inventoryLogQuantity: returnedQuantityWithSiUnitOfMeasure,
+                        inventoryLogProductId: product._id,
+                        inventoryLogCreatedBy: auth.id,
+                        message: `Inventory Updated : ${returnedQuantityWithSiUnitOfMeasure}${siUnitCode} added to product "${product.productName}" via return of POS transaction in trip "${tripPosData?.tripId?.tripConfirmedNumber}".`
+                    }
+
+                    product.inventoryLogs.push(inventoryLogMsg)
+                    product = await productService.save(product, session);
+
+                } else {
+
+                    let obj = {
+                        product: selectedPosTransaction.product._id,
+                        transactionId: selectedPosTransaction._id,
+                        isReturnableProduct: selectedPosTransaction.isReturnableProduct,
+                        isReturned: auditRecord.isReturned,
+                        notReturnedReson: auditRecord.notReturnedReason,
+                        returnedquantity: auditRecord.returnQuantity,
+                        returnedUnitOfMeasure: auditRecord.returnUnitOfMeasure,
+                        returnedQuantityWithSiUnitOfMeasure: returnedQuantityWithSiUnitOfMeasure,
+                        createdBy: auth.id,
+                        createdAt: new Date()
+                    }
+
+                    endAuditProducts.push(obj);
+
+                    // Genarate Log Message to increase inventory
+                    product.inventory += returnedQuantityWithSiUnitOfMeasure;
+
+                    let inventoryLogMsg = {
+                        inventoryLogType: WellKnownGrnLogType.POS_TRANSACTION_RETURN,
+                        inventoryLogDate: new Date(),
+                        inventoryLogQuantity: returnedQuantityWithSiUnitOfMeasure,
+                        inventoryLogProductId: product._id,
+                        inventoryLogCreatedBy: auth.id,
+                        message: `Inventory Updated : ${returnedQuantityWithSiUnitOfMeasure}${siUnitCode} added to product and ${selectedPosTransaction.quantityWithSiUnitOfMeasure - returnedQuantityWithSiUnitOfMeasure}${siUnitCode} left in product  "${product.productName}" via return of POS transaction in trip "${tripPosData?.tripId?.tripConfirmedNumber}". Reason for not return: ${auditRecord?.notReturnedReason || "N/A"}`
+                    }
+
+                    product.inventoryLogs.push(inventoryLogMsg)
+                    product = await productService.save(product, session);
+                }
+            } else {
+                if (returnedQuantityWithSiUnitOfMeasure > 0) {
+
+                    let obj = {
+                        product: selectedPosTransaction.product._id,
+                        transactionId: selectedPosTransaction._id,
+                        isReturnableProduct: selectedPosTransaction.isReturnableProduct,
+                        isReturned: auditRecord.isReturned,
+                        notReturnedReson: auditRecord.notReturnedReson,
+                        returnedquantity: auditRecord.returnQuantity,
+                        returnedUnitOfMeasure: auditRecord.returnUnitOfMeasure,
+                        returnedQuantityWithSiUnitOfMeasure: returnedQuantityWithSiUnitOfMeasure,
+                        createdBy: auth.id,
+                        createdAt: new Date()
+                    }
+
+                    endAuditProducts.push(obj);
+
+                    // Genarate Log Message to increase inventory
+                    product.inventory += returnedQuantityWithSiUnitOfMeasure;
+                    let inventoryLogMsg = {
+                        inventoryLogType: WellKnownGrnLogType.POS_TRANSACTION_RETURN,
+                        inventoryLogDate: new Date(),
+                        inventoryLogQuantity: returnedQuantityWithSiUnitOfMeasure,
+                        inventoryLogProductId: product._id,
+                        inventoryLogCreatedBy: auth.id,
+                        message: `Inventory Updated : ${returnedQuantityWithSiUnitOfMeasure}${siUnitCode} added to product "${product.productName}" via return product of POS transaction in trip "${tripPosData?.tripId?.tripConfirmedNumber}".`
+                    }
+
+                    product.inventoryLogs.push(inventoryLogMsg)
+
+                    product = await productService.save(product, session);
+                } else {
+                    let obj = {
+                        product: selectedPosTransaction.product._id,
+                        transactionId: selectedPosTransaction._id,
+                        isReturnableProduct: selectedPosTransaction.isReturnableProduct,
+                        isReturned: auditRecord.isReturned,
+                        notReturnedReson: auditRecord.notReturnedReson,
+                        returnedquantity: auditRecord.returnQuantity,
+                        returnedUnitOfMeasure: auditRecord.returnUnitOfMeasure,
+                        returnedQuantityWithSiUnitOfMeasure: returnedQuantityWithSiUnitOfMeasure,
+                        createdBy: auth.id,
+                        createdAt: new Date()
+                    }
+
+                    endAuditProducts.push(obj);
+                }
+            }
+
+            if (gettedProductsFromDb.find((item: any) => item._id.toString() === selectedPosTransaction.product.toString())) {
+                gettedProductsFromDb.splice(gettedProductsFromDb.findIndex((item: any) => item._id.toString() === selectedPosTransaction.product.toString()), 1);
+                gettedProductsFromDb.push(product);
+            } else {
+                gettedProductsFromDb.push(product);
+            }
+        }
+
+        if (endAuditProducts.length > 0) {
+            tripPosData.endAuditProducts = endAuditProducts;
+            tripPosData.isTripEndAuditDone = true;
+
+            tripPosData = await posService.save(tripPosData, session);
+
+            await session.commitTransaction();
+
+            CommonResponse(res, true, StatusCodes.OK, 'Trip end pos audit done successfully!', tripPosData);
+        } else {
+            throw new InternalServerError('Something went wrong while end trip pos audit!');
+        }
+
+    } catch (error) {
+        await session.abortTransaction();
+        throw error;
+    } finally {
+        session.endSession();
+    }
 
 }
 

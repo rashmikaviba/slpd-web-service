@@ -184,7 +184,7 @@ const applicationRoutes = {
         base: "/pos",
         save: '/savePosProduct/:tripId',
         voidProduct: '/voidPosProduct/:id/trip/:tripId',
-        tripEndAudit: "/tripEndAudit/:tripId",
+        tripEndAudit: "/tripEndAudit",
         getPosByTrip: '/getPosByTrip/:tripId',
     }
 };
