@@ -21,6 +21,7 @@ import { startSession } from 'mongoose';
 import { number } from 'joi';
 import TripExpensesResponseDto from '../expenses/dto/tripExpensesResponseDto';
 import expensesUtil from '../expenses/expenses.util';
+import posService from '../pos/pos.service';
 
 const saveTrip = async (req: Request, res: Response) => {
     const body: any = req.body;
@@ -722,8 +723,8 @@ const assignDriverAndVehicle = async (req: Request, res: Response) => {
             body?.driverId && body?.vehicleId
                 ? 'Driver and vehicle assigned successfully!'
                 : body?.driverId
-                ? 'Driver assigned successfully!'
-                : 'Vehicle assigned successfully!';
+                    ? 'Driver assigned successfully!'
+                    : 'Vehicle assigned successfully!';
 
         CommonResponse(res, true, StatusCodes.OK, message, null);
     } catch (error) {
@@ -821,6 +822,7 @@ const changeTripStatus = async (req: Request, res: Response) => {
             auth.role === constants.USER.ROLES.SUPERADMIN
         ) {
             if (status == WellKnownTripStatus.FINISHED) {
+
                 trip = await tripService.findByIdAndStatusIn(tripId, [
                     WellKnownTripStatus.START,
                 ]);
@@ -828,6 +830,17 @@ const changeTripStatus = async (req: Request, res: Response) => {
                 if (!trip) {
                     throw new BadRequestError(
                         'Trip not found or not in start status!'
+                    );
+                }
+
+                const tripPosTransaction: any = await posService.findByTripIdAndStatusIn(
+                    tripId,
+                    [WellKnownStatus.ACTIVE]
+                )
+
+                if (tripPosTransaction && !tripPosTransaction.isTripEndAuditDone) {
+                    throw new BadRequestError(
+                        'Unable to finish trip because the trip end POS audit is not completed!'
                     );
                 }
 
