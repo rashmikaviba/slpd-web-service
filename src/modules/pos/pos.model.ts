@@ -143,6 +143,16 @@ const PosSchema = new mongoose.Schema({
         default: 0
     },
 
+    isMonthEndDone: {
+        type: Boolean,
+        default: false,
+    },
+
+    batchId: {
+        type: Number,
+        default: 0,
+    },
+
     status: {
         type: Number,
         default: WellKnownStatus.ACTIVE,
