@@ -511,6 +511,7 @@ const getPosByTrip = async (req: Request, res: Response) => {
         response.tripId = tripId;
         response.products = [];
         response.tripConfirmedNumber = trip?.tripConfirmedNumber;
+        response.isTripEndAuditDone = false;
         response.status = 0;
     } else {
         response = posUtils.modelToPosGetByIdReponseDto(tripPosData);
