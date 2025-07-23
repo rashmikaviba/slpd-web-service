@@ -178,6 +178,14 @@ const applicationRoutes = {
         update: '/update/:id/expense/:expenseId',
         deleteById: '/delete/:id/expense/:expenseId',
         getById: '/:id',
+    },
+
+    pos: {
+        base: "/pos",
+        save: '/savePosProduct/:tripId',
+        voidProduct: '/voidPosProduct/:id/trip/:tripId',
+        tripEndAudit: "/tripEndAudit",
+        getPosByTrip: '/getPosByTrip/:tripId',
     }
 };
 

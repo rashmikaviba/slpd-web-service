@@ -53,6 +53,7 @@ const saveProduct = async (req: Request, res: Response) => {
                 productShortCode: productShortCode,
                 measureUnit: measureUnit,
                 isReturnableProduct: isReturnableProduct,
+                inventoryLogs: [],
                 unitPrice: unitPrice,
                 createdBy: auth.id,
                 updatedBy: auth.id,
@@ -259,9 +260,14 @@ const getAllProducts = async (req: Request, res: Response) => {
 const getProductAuditLog = async (req: Request, res: Response) => {
     const { id } = req.params;
 
-    const productLogs = await productService.findProductsLogByProductId(id);
+    const productLogs = await productService.findProductLogsByProductId(id);
 
-    CommonResponse(res, true, StatusCodes.OK, '', productLogs);
+    // Sorted descending
+    let sortedLogs = productLogs?.inventoryLogs?.sort((a: any, b: any) => {
+        return new Date(b.inventoryLogDate).getTime() - new Date(a.inventoryLogDate).getTime();
+    })
+
+    CommonResponse(res, true, StatusCodes.OK, '', sortedLogs);
 }
 
 export {

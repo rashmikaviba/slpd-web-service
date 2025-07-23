@@ -74,11 +74,18 @@ const findProductsLogByProductId = async (productId: string) => {
     return logs.inventoryLogs;
 }
 
+const findProductLogsByProductId = async (productId: string) => {
+    return await InventoryProduct.findOne({ _id: productId }).select('inventoryLogs').populate({
+        path: 'inventoryLogs.inventoryLogCreatedBy',
+        select: 'userName'
+    });
+}
 
 export default {
     isShortCodeOrProductNameExists,
     save,
     findByIdAndStatusIn,
     findAllAndByStatusIn,
-    findProductsLogByProductId
+    findProductsLogByProductId,
+    findProductLogsByProductId
 }

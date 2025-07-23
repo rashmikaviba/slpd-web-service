@@ -29,6 +29,7 @@ import assert from 'assert';
 import internalTripService from '../internalTrip/internalTrip.service';
 import MonthlyExpenses from '../monthlyExpenses/monthlyExpenses.model';
 import monthlyExpensesService from '../monthlyExpenses/monthlyExpenses.service';
+import posService from '../pos/pos.service';
 
 const createNewDate = async (req: Request, res: Response) => {
     const auth: any = req.auth;
@@ -241,6 +242,18 @@ const monthEndDoneForTrip = async (
                 expenseHeader.updatedBy = userId;
                 expenseHeader.batchId = batchId;
                 await expensesService.save(expenseHeader, session);
+            }
+
+            let posTransaction: any = await posService.findByTripIdAndStatusIn(
+                trip._id,
+                [WellKnownStatus.ACTIVE]
+            )
+
+            if (posTransaction) {
+                posTransaction.isMonthEndDone = true;
+                posTransaction.updatedBy = userId;
+                posTransaction.batchId = batchId;
+                await posService.save(posTransaction, session);
             }
         }
 

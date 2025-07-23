@@ -38,10 +38,43 @@ const InventoryProductSchema = new mongoose.Schema(
             default: 0,
         },
 
-        inventoryLogs: {
-            type: [Object],
-            default: [],
-        },
+        inventoryLogs: [
+            {
+                inventoryLogType: {
+                    type: Number,
+                },
+
+                inventoryLogDate: {
+                    type: Date,
+                },
+
+                inventoryLogQuantity: {
+                    type: Number,
+                },
+
+                beforeTransactionInventory: {
+                    type: Number,
+                },
+
+                afterTransactionInventory: {
+                    type: Number,
+                },
+
+                inventoryLogProductId: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'InventoryProduct',
+                },
+
+                inventoryLogCreatedBy: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'User',
+                },
+
+                message: {
+                    type: String,
+                },
+            }
+        ],
 
         status: {
             type: Number,
