@@ -24,6 +24,12 @@ interface PosProductDto {
     enteredUnitOfMeasureCode: string;
     enteredQuantity: number;
     quantityWithSiUnitOfMeasure: number;
+    returnedQuantity: number;
+    returnedUnitOfMeasure: number;
+    returnedUnitOfMeasureCode: string;
+    returnedQuantityWithSiUnitOfMeasure: number;
+    consiumedQuantity: number;
+    notReturnedReason?: string;
     status: number;
     createdAt: Date;
 }

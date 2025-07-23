@@ -135,11 +135,14 @@ const saveProductForPos = async (req: Request, res: Response) => {
         }
 
         // remove product from inventory
+        let beforeTransactionInventory = product.inventory;
         product.inventory -= posTransactionQtyWithSiUnit;
         let inventoryLogMsg = {
             inventoryLogType: WellKnownGrnLogType.POS_TRANSACTION,
             inventoryLogDate: new Date(),
             inventoryLogQuantity: posTransactionQtyWithSiUnit,
+            beforeTransactionInventory: beforeTransactionInventory,
+            afterTransactionInventory: product.inventory,
             inventoryLogProductId: product._id,
             inventoryLogCreatedBy: auth.id,
             message: `Inventory updated: ${posTransactionQtyWithSiUnit}${siUnitCode} removed from product "${product.productName}" via POS transaction to trip "${trip.tripConfirmedNumber}".`
@@ -232,11 +235,14 @@ const voidProductInPos = async (req: Request, res: Response) => {
         }
 
 
+        let beforeTransactionInventory = product.inventory;
         product.inventory += selectedPosData.quantityWithSiUnitOfMeasure;
         let inventoryLogMsg = {
             inventoryLogType: WellKnownGrnLogType.POS_TRANSACTION,
             inventoryLogDate: new Date(),
             inventoryLogQuantity: selectedPosData.quantityWithSiUnitOfMeasure,
+            beforeTransactionInventory: beforeTransactionInventory,
+            afterTransactionInventory: product.inventory,
             inventoryLogProductId: product._id,
             inventoryLogCreatedBy: auth.id,
             message: `Inventory updated: ${selectedPosData.quantityWithSiUnitOfMeasure}${siUnitCode} added to product "${product.productName}" via voiding POS transaction in trip "${tripPosData?.tripId?.tripConfirmedNumber}".`
@@ -301,8 +307,8 @@ const tripEndPosAudit = async (req: Request, res: Response) => {
 
             let product: any = null;
 
-            if (gettedProductsFromDb.find((item: any) => item._id.toString() == selectedPosTransaction.product)) {
-                product = gettedProductsFromDb.find((item: any) => item._id.toString() == selectedPosTransaction.product);
+            if (gettedProductsFromDb.find((item: any) => item._id.toString() == selectedPosTransaction?.product?._id.toString())) {
+                product = gettedProductsFromDb.find((item: any) => item._id.toString() == selectedPosTransaction.product?._id.toString());
             } else {
                 product = await productService.findByIdAndStatusIn(selectedPosTransaction.product, [
                     WellKnownStatus.ACTIVE
@@ -347,12 +353,15 @@ const tripEndPosAudit = async (req: Request, res: Response) => {
                     endAuditProducts.push(obj);
 
                     // Genarate Log Message to increase inventory
+                    let beforeTransactionInventory = product.inventory;
                     product.inventory += returnedQuantityWithSiUnitOfMeasure;
 
                     let inventoryLogMsg = {
                         inventoryLogType: WellKnownGrnLogType.POS_TRANSACTION_RETURN,
                         inventoryLogDate: new Date(),
                         inventoryLogQuantity: returnedQuantityWithSiUnitOfMeasure,
+                        beforeTransactionInventory: beforeTransactionInventory,
+                        afterTransactionInventory: product.inventory,
                         inventoryLogProductId: product._id,
                         inventoryLogCreatedBy: auth.id,
                         message: `Inventory Updated : ${returnedQuantityWithSiUnitOfMeasure}${siUnitCode} added to product "${product.productName}" via return of POS transaction in trip "${tripPosData?.tripId?.tripConfirmedNumber}".`
@@ -379,12 +388,15 @@ const tripEndPosAudit = async (req: Request, res: Response) => {
                     endAuditProducts.push(obj);
 
                     // Genarate Log Message to increase inventory
+                    let beforeTransactionInventory = product.inventory;
                     product.inventory += returnedQuantityWithSiUnitOfMeasure;
 
                     let inventoryLogMsg = {
                         inventoryLogType: WellKnownGrnLogType.POS_TRANSACTION_RETURN,
                         inventoryLogDate: new Date(),
                         inventoryLogQuantity: returnedQuantityWithSiUnitOfMeasure,
+                        beforeTransactionInventory: beforeTransactionInventory,
+                        afterTransactionInventory: product.inventory,
                         inventoryLogProductId: product._id,
                         inventoryLogCreatedBy: auth.id,
                         message: `Inventory Updated : ${returnedQuantityWithSiUnitOfMeasure}${siUnitCode} added to product and ${selectedPosTransaction.quantityWithSiUnitOfMeasure - returnedQuantityWithSiUnitOfMeasure}${siUnitCode} left in product  "${product.productName}" via return of POS transaction in trip "${tripPosData?.tripId?.tripConfirmedNumber}". Reason for not return: ${auditRecord?.notReturnedReason || "N/A"}`
@@ -412,11 +424,15 @@ const tripEndPosAudit = async (req: Request, res: Response) => {
                     endAuditProducts.push(obj);
 
                     // Genarate Log Message to increase inventory
+                    let beforeTransactionInventory = product.inventory;
                     product.inventory += returnedQuantityWithSiUnitOfMeasure;
+
                     let inventoryLogMsg = {
                         inventoryLogType: WellKnownGrnLogType.POS_TRANSACTION_RETURN,
                         inventoryLogDate: new Date(),
                         inventoryLogQuantity: returnedQuantityWithSiUnitOfMeasure,
+                        beforeTransactionInventory: beforeTransactionInventory,
+                        afterTransactionInventory: product.inventory,
                         inventoryLogProductId: product._id,
                         inventoryLogCreatedBy: auth.id,
                         message: `Inventory Updated : ${returnedQuantityWithSiUnitOfMeasure}${siUnitCode} added to product "${product.productName}" via return product of POS transaction in trip "${tripPosData?.tripId?.tripConfirmedNumber}".`

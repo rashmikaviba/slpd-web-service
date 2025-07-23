@@ -29,7 +29,7 @@ const findByTripIdAndStatusInWIthProducts = async (tripId: string, status: numbe
     }).populate({
         path: 'products.product',
         model: 'InventoryProduct',
-        select: '_id productName',
+        select: '_id productName isReturnableProduct',
     });
 
     if (pos) {

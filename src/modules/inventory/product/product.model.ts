@@ -52,6 +52,14 @@ const InventoryProductSchema = new mongoose.Schema(
                     type: Number,
                 },
 
+                beforeTransactionInventory: {
+                    type: Number,
+                },
+
+                afterTransactionInventory: {
+                    type: Number,
+                },
+
                 inventoryLogProductId: {
                     type: mongoose.Schema.Types.ObjectId,
                     ref: 'InventoryProduct',

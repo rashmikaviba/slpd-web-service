@@ -200,6 +200,7 @@ const approveGrn = async (req: Request, res: Response) => {
         for (let product of grn.products) {
             let selectedProduct = await productService.findByIdAndStatusIn(product.productId, [WellKnownStatus.ACTIVE]);
             if (selectedProduct) {
+                let beforeTransactionInventory = selectedProduct.inventory;
                 selectedProduct.inventory = selectedProduct.inventory + product.siConvertedQuantity;
                 selectedProduct.updatedBy = auth.id;
 
@@ -218,6 +219,8 @@ const approveGrn = async (req: Request, res: Response) => {
                     inventoryLogDate: new Date(),
                     inventoryLogQuantity: product.siConvertedQuantity,
                     inventoryLogProductId: product.productId,
+                    beforeTransactionInventory: beforeTransactionInventory,
+                    afterTransactionInventory: selectedProduct.inventory,
                     inventoryLogCreatedBy: auth.id,
                     message: `Inventory updated: ${product.siConvertedQuantity}${siUnitCode} added for product "${selectedProduct.productName}" via approved GRN ${grn.grnNumberWithPrefix}.`
                 }
