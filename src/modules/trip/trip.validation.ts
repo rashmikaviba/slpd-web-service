@@ -318,6 +318,14 @@ const checkListAnswerSchema = Joi.object({
         'number.base': 'Answer is invalid',
     }),
 
+    13: Joi.number().messages({
+        'number.base': 'Answer is invalid',
+    }),
+
+    14: Joi.number().messages({
+        'number.base': 'Answer is invalid',
+    }),
+
     umbrellaCount: Joi.number().messages({
         'number.base': 'Answer is invalid',
     }),

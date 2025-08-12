@@ -64,6 +64,8 @@ const mapVehicleToVehicleDto = (vehicle: any): VehicleDto => ({
     vehicle: vehicle.vehicle?._id || '',
     registrationNumber: vehicle.vehicle?.registrationNumber || '',
     vehicleAssignedBy: vehicle.vehicleAssignedBy?._id || '',
+    licenseRenewalDate: vehicle.vehicle.licenseRenewalDate || null,
+    insuranceRenewalDate: vehicle.vehicle.insuranceRenewalDate || null,
     isActive: vehicle.isActive || false,
 });
 
@@ -164,7 +166,7 @@ const tripModelToTripResponseDtoGetAll = (trip: any): TripResponseDtoGetAll => {
         endedUser: trip.endedBy?.fullName || null,
         canUndo:
             trip?.status === WellKnownTripStatus.START &&
-            !trip?.places.find((x: any) => x.isReached === true)
+                !trip?.places.find((x: any) => x.isReached === true)
                 ? true
                 : false,
         createdAt: trip.createdAt,
@@ -178,7 +180,7 @@ const tripModelToTripResponseDtoGetAll = (trip: any): TripResponseDtoGetAll => {
         activeDriverId: activeDriver ? activeDriver?.driver?._id : '',
         activeDriverName: activeDriver
             ? activeDriver?.driver?.fullName +
-              ` (${activeDriver.driver?.userName})`
+            ` (${activeDriver.driver?.userName})`
             : '',
         drivers: trip.drivers.map((x: any) => mapDriverToDriverDto(x)),
         vehicles: trip.vehicles.map((x: any) => mapVehicleToVehicleDto(x)),
