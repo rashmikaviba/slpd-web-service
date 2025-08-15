@@ -33,10 +33,6 @@ const uploadsPath =
 
 app.use('/uploads', express.static(uploadsPath));
 
-console.log(`Uploads directory is set to: ${path.join(__dirname, uploadsPath)}`);
-console.log(`Serving static files from: ${uploadsPath}`);
-console.log(`Environment: ${process.env.NODE_ENV}`);
-console.log(`__dirname: ${__dirname}`);
 // use routes mapping
 app.use(constants.API.PREFIX, mapping);
 
