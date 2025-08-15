@@ -19,31 +19,30 @@ pipeline {
                     credentialsId: 'my-github-login'
             }
         }
-    }
 
-    stage('Build Docker Image') {
-        steps {
-            sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
+            }
         }
-    }
 
-    stage('Login to GitHub Container Registry') {
-        steps {
-            withCredentials([usernamePassword(
-                credentialsId: 'my-github-login',
-                usernameVariable: 'GH_USERNAME',
-                passwordVariable: 'GH_TOKEN'
-            )]){
-                sh 'echo $GH_TOKEN | docker login ghcr.io -u $GH_USERNAME --password-stdin'
+        stage('Login to GitHub Container Registry') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'my-github-login',
+                    usernameVariable: 'GH_USERNAME',
+                    passwordVariable: 'GH_TOKEN'
+                )]){
+                    sh 'echo $GH_TOKEN | docker login ghcr.io -u $GH_USERNAME --password-stdin'
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                sh 'docker push $IMAGE_NAME:$IMAGE_TAG'
             }
         }
     }
-
-     stage('Push Docker Image') {
-        steps {
-            sh 'docker push $IMAGE_NAME:$IMAGE_TAG'
-        }
-    }
-
 }
 
