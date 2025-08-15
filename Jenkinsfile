@@ -23,26 +23,38 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-               script {
-                    // Build image using Jenkins Docker plugin
-                    def img = docker.build("${IMAGE_NAME}:${params.IMAGE_TAG}")
-                    echo "Built Docker image: ${img.id}"
-                }
-            }
-        }
-
-        stage('Push Docker Image') {
-            steps {
                 script {
-                    // Use credentials to login to GHCR and push
+                    def img = docker.build("ghcr.io/nimna-thiranjaya/slpd-web-service:ver_0.0.8")
                     docker.withRegistry('https://ghcr.io', 'my-github-login') {
-                        def img = docker.image("${IMAGE_NAME}:${params.IMAGE_TAG}")
                         img.push()
-                        echo "Pushed Docker image: ${IMAGE_NAME}:${params.IMAGE_TAG}"
                     }
                 }
             }
         }
+        
+
+        // stage('Build Docker Image') {
+        //     steps {
+        //        script {
+        //             // Build image using Jenkins Docker plugin
+        //             def img = docker.build("${IMAGE_NAME}:${params.IMAGE_TAG}")
+        //             echo "Built Docker image: ${img.id}"
+        //         }
+        //     }
+        // }
+
+        // stage('Push Docker Image') {
+        //     steps {
+        //         script {
+        //             // Use credentials to login to GHCR and push
+        //             docker.withRegistry('https://ghcr.io', 'my-github-login') {
+        //                 def img = docker.image("${IMAGE_NAME}:${params.IMAGE_TAG}")
+        //                 img.push()
+        //                 echo "Pushed Docker image: ${IMAGE_NAME}:${params.IMAGE_TAG}"
+        //             }
+        //         }
+        //     }
+        // }
     }
 }
 
