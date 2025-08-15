@@ -1,11 +1,11 @@
 pipeline {
     agent any
 
-    environment {
-        // GHCR_USERNAME = credentials('my-github-login') // GitHub username
-        // GHCR_TOKEN = credentials('ghcr-token')       // GitHub PAT
-        // IMAGE_NAME = "ghcr.io/${GHCR_USERNAME}/node-app"
-    }
+    // environment {
+    //     GHCR_USERNAME = credentials('my-github-login') // GitHub username
+    //     GHCR_TOKEN = credentials('ghcr-token')       // GitHub PAT
+    //     IMAGE_NAME = "ghcr.io/${GHCR_USERNAME}/node-app"
+    // }
 
     stages {
         stage('Checkout') {
