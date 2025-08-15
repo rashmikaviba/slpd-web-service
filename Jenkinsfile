@@ -8,7 +8,7 @@ pipeline {
 
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: 'implement-cicd', description: 'Branch to build')
-        string(name: 'IMAGE_TAG', defaultValue: 'ver_0.0.8', description: 'Docker image tag')
+        string(name: 'IMAGE_TAG', defaultValue: 'ver_1.0.0.6', description: 'Docker image tag')
 
     }
 
