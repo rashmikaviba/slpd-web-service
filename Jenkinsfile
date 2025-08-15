@@ -4,11 +4,12 @@ pipeline {
     environment {
         GHCR_CRED = credentials('my-github-login')
         IMAGE_NAME = "ghcr.io/nimna-thiranjaya/slpd-web-service"
-        IMAGE_TAG = "ver_0.0.8"
     }
 
     parameters {
         string(name: 'BRANCH_NAME', defaultValue: 'implement-cicd', description: 'Branch to build')
+        string(name: 'IMAGE_TAG', defaultValue: 'ver_0.0.8', description: 'Docker image tag')
+
     }
 
     stages {
@@ -22,25 +23,24 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
-            }
-        }
-
-        stage('Login to GitHub Container Registry') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'my-github-login',
-                    usernameVariable: 'GH_USERNAME',
-                    passwordVariable: 'GH_TOKEN'
-                )]){
-                    sh 'echo $GH_TOKEN | docker login ghcr.io -u $GH_USERNAME --password-stdin'
+               script {
+                    // Build image using Jenkins Docker plugin
+                    def img = docker.build("${IMAGE_NAME}:${params.IMAGE_TAG}")
+                    echo "Built Docker image: ${img.id}"
                 }
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                sh 'docker push $IMAGE_NAME:$IMAGE_TAG'
+                script {
+                    // Use credentials to login to GHCR and push
+                    docker.withRegistry('https://ghcr.io', 'my-github-login') {
+                        def img = docker.image("${IMAGE_NAME}:${params.IMAGE_TAG}")
+                        img.push()
+                        echo "Pushed Docker image: ${IMAGE_NAME}:${params.IMAGE_TAG}"
+                    }
+                }
             }
         }
     }
