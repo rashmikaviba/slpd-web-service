@@ -20,19 +20,10 @@ pipeline {
                     credentialsId: 'my-github-login'
             }
         }
-
+        
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("slpd:latest")
-                }
-            }
-        }
-        
-
-        stage('Build Docker Image') {
-            steps {
-               script {
                     // Build image using Jenkins Docker plugin
                     def img = docker.build("${IMAGE_NAME}:${params.IMAGE_TAG}")
                     echo "Built Docker image: ${img.id}"
