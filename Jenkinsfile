@@ -40,11 +40,6 @@ pipeline {
                         img.push()
                         echo "Pushed Docker image: ${IMAGE_NAME}:${params.IMAGE_TAG}"
                     }
-
-                    // delete the local image after pushing
-                    def img = docker.image("${IMAGE_NAME}:${params.IMAGE_TAG}")
-                    img.remove()
-                    echo "Removed local Docker image: ${IMAGE_NAME}:${params.IMAGE_TAG}"
                 }
             }
         }
