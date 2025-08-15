@@ -24,8 +24,13 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
+                    def imageName = "${IMAGE_NAME}:${params.IMAGE_TAG}"
+
+                    // Clean up any existing Docker image
+                    sh "docker rmi -f ${imageName} || true"
+
                     // Build image using Jenkins Docker plugin
-                    def img = docker.build("${IMAGE_NAME}:${params.IMAGE_TAG}")
+                    def img = docker.build(imageName)
                     echo "Built Docker image: ${img.id}"
                 }
             }
