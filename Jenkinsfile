@@ -24,10 +24,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    def img = docker.build("ghcr.io/nimna-thiranjaya/slpd-web-service:ver_0.0.8")
-                    docker.withRegistry('https://ghcr.io', 'my-github-login') {
-                        img.push()
-                    }
+                    docker.build("ghcr.io/nimna-thiranjaya/slpd-web-service:ver_0.0.8")
                 }
             }
         }
