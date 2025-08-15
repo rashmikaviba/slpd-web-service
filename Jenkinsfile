@@ -24,7 +24,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker.build("ghcr.io/nimna-thiranjaya/slpd-web-service:ver_0.0.8")
+                    docker.build("slpd:latest")
                 }
             }
         }
