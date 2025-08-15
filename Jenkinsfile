@@ -1,24 +1,22 @@
 pipeline {
     agent any
 
-  environment {
-        GHCR_USERNAME = credentials('my-github-login')
-        GHCR_TOKEN    = credentials('my-github-login')
-        IMAGE_NAME = "ghcr.io/${GHCR_USERNAME}/node-app"
-        GIT_BRANCH = 'implement-cicd' 
+    environment {
+        GHCR_CRED = credentials('my-github-login')
+    }
+
+    parameters {
+        string(name: 'BRANCH_NAME', defaultValue: 'implement-cicd', description: 'Branch to build')
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: "${GIT_BRANCH}", url: 'https://github.com/USERNAME/REPO.git'
+                git branch: "${params.BRANCH_NAME}",
+                    url: 'https://github.com/rashmikaviba/slpd-web-service.git',
+                    credentialsId: 'my-github-login'
             }
         }
-
-        // stage('Build Docker Image') {
-        //     steps {
-        //         sh 'docker build -t $IMAGE_NAME:latest .'
-        //     }
-        // }
     }
 }
+
