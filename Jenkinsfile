@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         GHCR_CRED = credentials('my-github-login')
+        IMAGE_NAME = "ghcr.io/nimna-thiranjaya/slpd-web-service"
+        IMAGE_TAG = "ver_0.0.8"
     }
 
     parameters {
@@ -18,5 +20,30 @@ pipeline {
             }
         }
     }
+
+    stage('Build Docker Image') {
+        steps {
+            sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
+        }
+    }
+
+    stage('Login to GitHub Container Registry') {
+        steps {
+            withCredentials([usernamePassword(
+                credentialsId: 'my-github-login',
+                usernameVariable: 'GH_USERNAME',
+                passwordVariable: 'GH_TOKEN'
+            )]){
+                sh 'echo $GH_TOKEN | docker login ghcr.io -u $GH_USERNAME --password-stdin'
+            }
+        }
+    }
+
+     stage('Push Docker Image') {
+        steps {
+            sh 'docker push $IMAGE_NAME:$IMAGE_TAG'
+        }
+    }
+
 }
 
