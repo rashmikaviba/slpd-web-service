@@ -1,0 +1,5 @@
+.env.dev
+.env.prod
+.env
+node_modules
+npm-debug.log
