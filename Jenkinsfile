@@ -30,28 +30,33 @@ pipeline {
         }
         
 
-        // stage('Build Docker Image') {
-        //     steps {
-        //        script {
-        //             // Build image using Jenkins Docker plugin
-        //             def img = docker.build("${IMAGE_NAME}:${params.IMAGE_TAG}")
-        //             echo "Built Docker image: ${img.id}"
-        //         }
-        //     }
-        // }
+        stage('Build Docker Image') {
+            steps {
+               script {
+                    // Build image using Jenkins Docker plugin
+                    def img = docker.build("${IMAGE_NAME}:${params.IMAGE_TAG}")
+                    echo "Built Docker image: ${img.id}"
+                }
+            }
+        }
 
-        // stage('Push Docker Image') {
-        //     steps {
-        //         script {
-        //             // Use credentials to login to GHCR and push
-        //             docker.withRegistry('https://ghcr.io', 'my-github-login') {
-        //                 def img = docker.image("${IMAGE_NAME}:${params.IMAGE_TAG}")
-        //                 img.push()
-        //                 echo "Pushed Docker image: ${IMAGE_NAME}:${params.IMAGE_TAG}"
-        //             }
-        //         }
-        //     }
-        // }
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    // Use credentials to login to GHCR and push
+                    docker.withRegistry('https://ghcr.io', 'my-github-login') {
+                        def img = docker.image("${IMAGE_NAME}:${params.IMAGE_TAG}")
+                        img.push()
+                        echo "Pushed Docker image: ${IMAGE_NAME}:${params.IMAGE_TAG}"
+                    }
+
+                    // delete the local image after pushing
+                    def img = docker.image("${IMAGE_NAME}:${params.IMAGE_TAG}")
+                    img.remove()
+                    echo "Removed local Docker image: ${IMAGE_NAME}:${params.IMAGE_TAG}"
+                }
+            }
+        }
     }
 }
 
