@@ -1,5 +1,3 @@
-LABEL org.opencontainers.image.source https://github.com/nimna-thiranjaya/slpd-web-service
-
 # Use official Node.js image
 FROM node:20.19.4
 
