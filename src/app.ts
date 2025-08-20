@@ -13,6 +13,7 @@ import constants from './constant';
 import errorHandlerMiddleware from './middleware/error.middleware';
 import NotFoundError from './error/NotFoundError';
 import runDBBackup from './config/dbBackups.config';
+import { accessLogMiddleware, responseLogMiddleware } from './middleware/auditLog.middleware';
 
 import { app, server } from './config/soket.config';
 // const app: Express = express();
@@ -32,6 +33,10 @@ const uploadsPath =
         : path.join(__dirname, 'uploads');; // Use this for development
 
 app.use('/uploads', express.static(uploadsPath));
+
+// Middleware for logging access and response
+app.use(accessLogMiddleware);
+app.use(responseLogMiddleware);
 
 
 // use routes mapping

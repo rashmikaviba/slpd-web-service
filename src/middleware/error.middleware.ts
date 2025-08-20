@@ -2,7 +2,8 @@ import { StatusCodes } from 'http-status-codes';
 import InternalServerError from '../error/InternalServerError';
 import { NextFunction, Request, Response } from 'express';
 import CommonResponse from '../util/commonResponse';
-import logger from '../util/logger.util';
+import helperUtil from '../util/helper.util';
+
 
 const errorHandlerMiddleware = async (
     err: any,
@@ -21,7 +22,16 @@ const errorHandlerMiddleware = async (
             customError.statusCode === StatusCodes.INTERNAL_SERVER_ERROR) &&
         err.name != 'ValidationError'
     ) {
-        logger.error(err.stack || err.message);
+
+        const log = {
+            correlationId: req.correlationId || '',
+            method: req.method,
+            path: req.originalUrl,
+            status: customError.statusCode,
+            error: err.stack || err.message
+        }
+
+        helperUtil.consoleLogMessage("error", "Internal Server Error", log);
     }
 
     if (err.name === 'ValidationError') {

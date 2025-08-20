@@ -74,10 +74,42 @@ const fromSiMeasureUnitToOtherMeasureUnit = (fromUnitId: number, toUnitId: numbe
     return quantityInOtherUnit;
 }
 
+
+type LogType = "info" | "error" | "warn" | "debug" | "success";
+
+const consoleLogMessage = (
+    type: LogType,
+    message?: string,
+    data?: any
+) => {
+    const timestamp = new Date().toISOString();
+    const msgPart = message ? ` | ${message}` : "";
+    const dataPart = data ? ` | ${JSON.stringify(data)}` : "";
+
+    switch (type) {
+        case "error":
+            console.error(`${timestamp} | ERROR${msgPart}${dataPart}`);
+            break;
+        case "warn":
+            console.warn(`${timestamp} | WARN${msgPart}${dataPart}`);
+            break;
+        case "debug":
+            console.debug(`${timestamp} | DEBUG${msgPart}${dataPart}`);
+            break;
+        case "info":
+            console.info(`${timestamp} | INFO${msgPart}${dataPart}`);
+            break;
+        case "success":
+            console.info(`${timestamp} | SUCCESS${msgPart}${dataPart}`);
+            break;
+    }
+};
+
 export default {
     getNameFromEnum,
     isValueInEnum,
     fromMeasureUnitToSiMeasureUnit,
     fromMeasureUnitToOtherMeasureUnit,
-    fromSiMeasureUnitToOtherMeasureUnit
+    fromSiMeasureUnitToOtherMeasureUnit,
+    consoleLogMessage
 };
