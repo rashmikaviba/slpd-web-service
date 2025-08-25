@@ -53,6 +53,8 @@ interface VehicleDto {
     vehicle: string;
     registrationNumber: string;
     vehicleAssignedBy: string;
+    licenseRenewalDate: Date | null;
+    insuranceRenewalDate: Date | null;
     isActive: boolean;
 }
 
