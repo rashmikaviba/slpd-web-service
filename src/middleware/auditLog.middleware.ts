@@ -10,7 +10,7 @@ declare global {
     }
 }
 export const accessLogMiddleware = (req: Request, res: Response, next: NextFunction) => {
-    req.correlationId = req.headers['x-correlation-id'] as string || '';
+    req.correlationId = req.headers['X-Correlation-ID'] as string || '';
 
     if (!req.correlationId) {
         req.correlationId = Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join("");
@@ -39,7 +39,6 @@ export const responseLogMiddleware = (req: Request, res: Response, next: NextFun
         const log = {
             correlationId: req.correlationId,
             method: req.method,
-            path: req.originalUrl,
             status: res.statusCode,
             time: `${responseTime} ms`,
         }

@@ -69,10 +69,6 @@ const tripSchema = new mongoose.Schema(
         // Name, Nationality, Age, Gender
         passengers: [
             {
-                // id: {
-                //     type: String,
-                //     required: [true, 'Id is required'],
-                // },
                 name: {
                     type: String,
                     required: [true, 'Name is required'],
