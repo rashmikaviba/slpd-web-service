@@ -345,9 +345,6 @@ const updateTrip = async (req: Request, res: Response) => {
         });
 
         if (places.length > 0) {
-            let isReachedPlaces = places.filter((p: any) => {
-                return p.isReached;
-            });
             let rearrangedPlaces: any[] = [];
             // sort places by index
             places.sort((a: any, b: any) => a.index - b.index);
@@ -355,27 +352,6 @@ const updateTrip = async (req: Request, res: Response) => {
                 place.index = index + 1;
                 place.updatedBy = auth.id;
             });
-
-            // check if try to change isReached place index
-            // if (isReachedPlaces.length > 0) {
-            //     let isReachedPlaceValid = true;
-
-            //     isReachedPlaces.forEach((p: any) => {
-            //         let sleetedPlace = places.find((place: any) => {
-            //             return place._id.toString() === p._id.toString();
-            //         });
-
-            //         if (sleetedPlace.index !== p.index) {
-            //             isReachedPlaceValid = false;
-            //         }
-            //     });
-
-            //     if (!isReachedPlaceValid) {
-            //         throw new BadRequestError(
-            //             'Can not change reached place Order!'
-            //         );
-            //     }
-            // }
 
             let savedPlaces: any[] = [...trip.places];
             let placesFromBody: any[] = [...places];
@@ -406,7 +382,20 @@ const updateTrip = async (req: Request, res: Response) => {
                 });
 
                 if (fromSavedPlaces) {
-                    rearrangedPlaces.push(fromSavedPlaces);
+                    // check if updated place and saved place are same other wise edit palce with checking isReached flag
+                    if (
+                        fromSavedPlaces.description !== place.description ||
+                        JSON.stringify(fromSavedPlaces.dates) !== JSON.stringify(place.dates)
+                    ) {
+                        if (fromSavedPlaces.isReached) {
+                            throw new BadRequestError('Can not update reached place!');
+                        } else {
+                            Object.assign(fromSavedPlaces, place, { updatedBy: auth.id });
+                            rearrangedPlaces.push(fromSavedPlaces);
+                        }
+                    } else {
+                        rearrangedPlaces.push(fromSavedPlaces);
+                    }
                 } else {
                     delete place._id;
                     place.updatedBy = auth.id;
