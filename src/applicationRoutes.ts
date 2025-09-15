@@ -186,6 +186,15 @@ const applicationRoutes = {
         voidProduct: '/voidPosProduct/:id/trip/:tripId',
         tripEndAudit: "/tripEndAudit",
         getPosByTrip: '/getPosByTrip/:tripId',
+    },
+
+    garage: {
+        base: '/garage',
+        save: '/',
+        getAll: '/',
+        getById: '/:id',
+        update: '/:id',
+        deleteById: '/:id',
     }
 };
 
