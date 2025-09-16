@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { WellKnownStatus } from '../../../util/enums/well-known-status.enum';
+import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
 
 const garageSchema = new mongoose.Schema({
     name: {

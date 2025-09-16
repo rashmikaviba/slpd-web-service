@@ -18,7 +18,7 @@ import ProductRoute from './modules/inventory/product/product.route';
 import GrnRouter from './modules/inventory/grn/grn.route';
 import MonthlyExpensesRouter from './modules/monthlyExpenses/monthlyExpenses.route';
 import PosRouter from './modules/pos/pos.route';
-import GarageRouter from './modules/vehicleMaintain/garage/garage.route';
+import GarageRouter from './modules/garage/garage.route';
 
 const router = Router();
 

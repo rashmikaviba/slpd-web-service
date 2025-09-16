@@ -339,6 +339,10 @@ const checkListAnswerSchema = Joi.object({
         'boolean.base': 'terms and conditions is invalid',
         'any.required': 'terms and conditions is required',
     }),
+
+    vehicleDamageImages: Joi.array().messages({
+        'array.base': 'Vehicle Damage Images is invalid',
+    }),
 });
 
 const markPlaceSchema = Joi.object({

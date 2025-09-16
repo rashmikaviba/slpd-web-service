@@ -6,4 +6,5 @@ export enum WellKnownUploadType {
     SLTDACertificate = 5,
     PoliceReport = 6,
     ExpensesRecept = 7,
+    VehicleDamage = 8,
 }

@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 import garageValidation from "./garage.validation";
-import BadRequestError from "../../../error/BadRequestError";
+import BadRequestError from "../../error/BadRequestError";
 import Garage from "./garage.model";
 import garageService from "./garage.service";
-import CommonResponse from "../../../util/commonResponse";
+import CommonResponse from "../../util/commonResponse";
 import { StatusCodes } from "http-status-codes";
-import { WellKnownStatus } from "../../../util/enums/well-known-status.enum";
+import { WellKnownStatus } from "../../util/enums/well-known-status.enum";
 import GarageResponseDto from "./dto/garageResponseDto";
 import garageUtil from "./garage.util";
 
