@@ -34,6 +34,7 @@ const saveVehicle = async (req: Request, res: Response) => {
         oilFilter,
         initialMileage,
         isFreelanceVehicle,
+        isRentalVehicle,
     } = req.body;
 
     // Validate request body
@@ -54,7 +55,7 @@ const saveVehicle = async (req: Request, res: Response) => {
         );
     }
 
-    if (!isFreelanceVehicle) {
+    if (!isFreelanceVehicle && !isRentalVehicle) {
         const isGpsTrackerExist =
             await vehicleService.findByGpsTrackerAndStatusIn(gpsTracker, [
                 WellKnownStatus.ACTIVE,
@@ -79,6 +80,7 @@ const saveVehicle = async (req: Request, res: Response) => {
             licenseRenewalDate,
             insuranceRenewalDate,
             isFreelanceVehicle,
+            isRentalVehicle,
             gearOil,
             airFilter,
             oilFilter,
@@ -122,6 +124,7 @@ const updateVehicle = async (req: Request, res: Response) => {
         oilFilter,
         initialMileage,
         isFreelanceVehicle,
+        isRentalVehicle,
     } = req.body;
 
     // Validate request body
@@ -151,7 +154,7 @@ const updateVehicle = async (req: Request, res: Response) => {
         );
     }
 
-    if (!isFreelanceVehicle) {
+    if (!isFreelanceVehicle && !isRentalVehicle) {
         const isGpsTrackerExist =
             await vehicleService.findByIdNotAndGpsTrackerAndStatusIn(
                 id,
@@ -181,6 +184,7 @@ const updateVehicle = async (req: Request, res: Response) => {
         vehicle.airFilter = airFilter;
         vehicle.oilFilter = oilFilter;
         vehicle.isFreelanceVehicle = isFreelanceVehicle;
+        vehicle.isRentalVehicle = isRentalVehicle;
 
         if (vehicle.initialMileage != initialMileage) {
             vehicle.currentMileage = initialMileage;

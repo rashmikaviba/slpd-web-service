@@ -1,6 +1,7 @@
 import GarageResponseDto from "./dto/garageResponseDto";
 
 const modelToGarageResponseDto = (garage: any): GarageResponseDto => {
+    let specializations = garage.specializations.map((spec: any) => spec.name).join(', ');
     return {
         _id: garage._id,
         name: garage.name,
@@ -8,7 +9,7 @@ const modelToGarageResponseDto = (garage: any): GarageResponseDto => {
         city: garage.city,
         contactNumber: garage.contactNumber,
         googleMapUrl: garage.googleMapUrl,
-        specializations: garage.specializations,
+        specializations: specializations,
         status: garage.status,
         createdBy: garage.createdBy?._id,
         createdUser: garage.createdBy?.fullName,

@@ -7,7 +7,8 @@ import {
     updateGarage,
     deleteGarage,
     getAllGarages,
-    getGarageById
+    getGarageById,
+    activeInactiveGarage
 } from './garage.controller';
 
 const GarageRouter = Router();
@@ -51,5 +52,15 @@ GarageRouter.delete(applicationRoutes.garage.deleteById,
     ]),
     deleteGarage
 );
+
+GarageRouter.put(applicationRoutes.monthlyExpenses.activeInactiveGarage,
+    authMiddleware.authorize([
+        constants.USER.ROLES.SUPERADMIN,
+        constants.USER.ROLES.ADMIN,
+        constants.USER.ROLES.TRIPMANAGER,
+        constants.USER.ROLES.DRIVERASSISTANT
+    ]),
+    activeInactiveGarage
+)
 
 export default GarageRouter;

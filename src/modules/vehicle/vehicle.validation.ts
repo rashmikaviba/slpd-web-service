@@ -64,6 +64,7 @@ const vehicleSchema = Joi.object({
     }),
 
     isFreelanceVehicle: Joi.boolean().default(false),
+    isRentalVehicle: Joi.boolean().default(false),
 });
 
 export default { vehicleSchema };

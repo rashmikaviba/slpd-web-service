@@ -22,6 +22,7 @@ const vehicleModelToVehicleResponseDto = (vehicle: any): VehicleResponseDto => {
         statusName: helperUtil.getNameFromEnum(WellKnownStatus, vehicle.status),
         vehicleOwner: vehicle.vehicleOwner,
         isFreelanceVehicle: vehicle.isFreelanceVehicle,
+        isRentalVehicle: vehicle.isRentalVehicle,
         createdBy: vehicle.createdBy?._id,
         createdUser: vehicle.createdBy?.fullName || '',
         updatedBy: vehicle.updatedBy?._id,

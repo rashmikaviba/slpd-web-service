@@ -178,6 +178,7 @@ const applicationRoutes = {
         update: '/update/:id/expense/:expenseId',
         deleteById: '/delete/:id/expense/:expenseId',
         getById: '/:id',
+        activeInactiveGarage: '/activeInactiveGarage/:id',
     },
 
     pos: {

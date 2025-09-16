@@ -172,10 +172,53 @@ const getGarageById = async (req: Request, res: Response) => {
     );
 }
 
+const activeInactiveGarage = async (req: Request, res: Response) => {
+    const auth = req.auth;
+    const id = req.params.id;
+
+    const garage = await garageService.findByIdAndStatusIn(id, [
+        WellKnownStatus.ACTIVE,
+        WellKnownStatus.INACTIVE,
+    ]);
+
+    if (!garage) {
+        throw new BadRequestError('Garage not found!');
+    }
+
+    try {
+        if (garage.status === WellKnownStatus.ACTIVE) {
+            garage.status = WellKnownStatus.INACTIVE;
+        } else if (garage.status === WellKnownStatus.INACTIVE) {
+            garage.status = WellKnownStatus.ACTIVE;
+        }
+
+        garage.updatedBy = auth.id;
+        await garageService.save(garage, null);
+
+        let messageString = '';
+        if (garage.status == WellKnownStatus.ACTIVE) {
+            messageString = 'Garage activated successfully!';
+        } else {
+            messageString = 'Garage inactivated successfully!';
+        }
+
+        return CommonResponse(
+            res,
+            true,
+            StatusCodes.OK,
+            messageString,
+            null
+        );
+    } catch (error) {
+        throw error;
+    }
+}
+
 export {
     createGarage,
     updateGarage,
     deleteGarage,
     getAllGarages,
-    getGarageById
+    getGarageById,
+    activeInactiveGarage
 };
