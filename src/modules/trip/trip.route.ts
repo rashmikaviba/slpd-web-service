@@ -18,6 +18,7 @@ import {
     getDestinationSummaryPrint,
     getTripHotelsAndActivities,
     updateHotelActivityPayment,
+    getTripForQrCode,
 } from './trip.controller';
 
 const TripRouter = Router();
@@ -124,6 +125,14 @@ TripRouter.get(
     authMiddleware.authorize([]),
     getTripForReport
 );
+
+
+TripRouter.get(
+    applicationRoutes.trip.getTripForQrCode,
+    authMiddleware.authorize([], true),
+    getTripForQrCode
+);
+
 
 TripRouter.get(
     applicationRoutes.trip.getTripHotelsAndActivities,

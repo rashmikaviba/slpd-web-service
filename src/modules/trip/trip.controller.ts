@@ -1166,6 +1166,58 @@ const getTripForReport = async (req: Request, res: Response) => {
     }
 };
 
+const getTripForQrCode = async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    try {
+        let trip: any = await tripService.findByIdAndStatusIn(id, [
+            WellKnownTripStatus.PENDING,
+            WellKnownTripStatus.START,
+            WellKnownTripStatus.FINISHED,
+        ]);
+
+        if (trip) {
+            trip = trip.toObject();
+            //  get expense by trip id and status active
+            let expense: any = await expensesService.findByTripIdAndStatusIn(
+                trip._id.toString(),
+                [WellKnownStatus.ACTIVE]
+            );
+
+            let response: TripExpensesResponseDto | null = null;
+
+            if (expense) {
+                // get only active expenses
+                let activeExpenses = expense.expenses.filter(
+                    (exp: any) => exp.status === WellKnownStatus.ACTIVE
+                );
+
+                let totalExpensesAmount = activeExpenses.reduce(
+                    (total: number, exp: any) => total + exp.amount,
+                    0
+                );
+
+                expense.expenses = activeExpenses;
+                expense.tripExpensesAmount = expense?.tripId?.estimatedExpense;
+                expense.totalTripExpensesAmount = totalExpensesAmount;
+                expense.remainingTripExpensesAmount =
+                    expense?.tripExpensesAmount - totalExpensesAmount;
+
+                response =
+                    expensesUtil.ExpensesModelToTripExpensesResponseDto(
+                        expense
+                    );
+            }
+
+            trip.expenses = response;
+        }
+
+        CommonResponse(res, true, StatusCodes.OK, '', trip);
+    } catch (error) {
+        throw error;
+    }
+}
+
 const getDestinationSummaryPrint = async (req: Request, res: Response) => {
     const { id } = req.params;
 
@@ -1313,4 +1365,5 @@ export {
     getDestinationSummaryPrint,
     getTripHotelsAndActivities,
     updateHotelActivityPayment,
+    getTripForQrCode
 };

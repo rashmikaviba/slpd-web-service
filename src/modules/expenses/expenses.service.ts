@@ -23,8 +23,17 @@ const findByTripIdAndStatusIn = async (tripId: string, status: number[]) => {
     }).populate('tripId');
 };
 
+
+const findByTripIdsInAndStatusIn = async (tripIds: string[], status: number[]) => {
+    return Expenses.find({
+        tripId: { $in: tripIds },
+        status: { $in: status },
+    })
+}
+
 export default {
     save,
     findAndHardDeleteByTripId,
     findByTripIdAndStatusIn,
+    findByTripIdsInAndStatusIn
 };

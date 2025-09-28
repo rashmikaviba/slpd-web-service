@@ -234,7 +234,7 @@ const calculateIncome = async (expense: any) => {
     // calculate driver salary
     // calculate total income
     let totalIncome = expense?.tripId?.totalCostLocalCurrency || 0;
-    if (expense.driverSalaries) {
+    if (expense.driverSalaries.length > 0) {
         let driverTotalSalary = expense.driverSalaries.reduce(
             (total: number, exp: any) => total + exp.totalSalary,
             0

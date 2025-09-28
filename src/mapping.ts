@@ -19,6 +19,7 @@ import GrnRouter from './modules/inventory/grn/grn.route';
 import MonthlyExpensesRouter from './modules/monthlyExpenses/monthlyExpenses.route';
 import PosRouter from './modules/pos/pos.route';
 import GarageRouter from './modules/garage/garage.route';
+import DashboardRouter from './modules/dashboard/dashboard.route';
 
 const router = Router();
 
@@ -42,5 +43,6 @@ router.use(applicationRoutes.inventory.grn.base, GrnRouter);
 router.use(applicationRoutes.monthlyExpenses.base, MonthlyExpensesRouter);
 router.use(applicationRoutes.pos.base, PosRouter);
 router.use(applicationRoutes.garage.base, GarageRouter);
+router.use(applicationRoutes.dashboard.base, DashboardRouter);
 
 export default router;

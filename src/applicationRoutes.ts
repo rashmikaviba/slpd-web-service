@@ -82,6 +82,7 @@ const applicationRoutes = {
         updateHotelActivityPayment: '/updateHotelActivityPayment/:id',
         undoTripStatus: '/:id/undoStatus/:status',
         getTripForPrint: '/tripForPrint/:id',
+        getTripForQrCode: '/tripForQrCode/:id',
         getTripHotelsAndActivities: '/hotelsAndActivities/:id',
 
         // checklist routes
@@ -196,6 +197,13 @@ const applicationRoutes = {
         getById: '/:id',
         update: '/:id',
         deleteById: '/:id',
+    },
+
+    dashboard: {
+        base: '/dashboard',
+        getDashboardData: '/getDashboardstats',
+        getInventorySummary: '/inventorySummary',
+        getMonthlyIncomeExpense: '/monthlyIncomeExpense',
     }
 };
 
