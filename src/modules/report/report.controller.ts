@@ -241,9 +241,10 @@ const calculateIncome = async (expense: any) => {
         );
         totalIncome = totalIncome - driverTotalSalary;
         data.totalDriverSalary = driverTotalSalary;
-    } else {
-        totalIncome = totalIncome - totalExpensesAmount;
     }
+
+    totalIncome = totalIncome - totalExpensesAmount;
+
     data.totalIncome = totalIncome;
     return data;
 };
