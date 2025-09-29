@@ -40,17 +40,14 @@ const getDashboardData = async (req: Request, res: Response) => {
             endDate
         );
 
-        const [finishedTripsCount, { availableDriversCount, availableVehiclesCount }, totalIncome, monthlyExpensesTotal] = await Promise.all([
+        const [finishedTripsCount, totalIncome, monthlyExpensesTotal] = await Promise.all([
             getFinishedTripsCount(startDate, endDate, trips),
-            getAvailableDriversAndVehiclesCount(todayDateString, todayDateString),
             getIncomeForDateRange(startDate, endDate, trips),
             getExpensesForDateRange(startDate, endDate, trips)
         ]);
 
         const response = {
             finishedTripsCount: finishedTripsCount ?? 0,
-            availableDriversCount: availableDriversCount ?? 0,
-            availableVehiclesCount: availableVehiclesCount ?? 0,
             totalIncome: totalIncome ?? 0,
             totalExpenses: monthlyExpensesTotal ?? 0
         };
