@@ -7,8 +7,8 @@ pipeline {
     }
 
     parameters {
-        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'Branch to build')
-        string(name: 'IMAGE_TAG', defaultValue: '1.0.0.7', description: 'Docker image tag')
+        string(name: 'BRANCH_NAME', defaultValue: 'release-1.0.0.8', description: 'Branch to build')
+        string(name: 'IMAGE_TAG', defaultValue: '1.0.0.8', description: 'Docker image tag')
     }
 
     stages {
@@ -45,6 +45,23 @@ pipeline {
                         echo "Pushed Docker image: ${IMAGE_NAME}:${params.IMAGE_TAG}"
                     }
                 }
+            }
+        }
+
+        stage('Cleanup') {
+            steps {
+                script {
+                    // Optionally remove the local image after pushing
+                    def imageName = "${IMAGE_NAME}:${params.IMAGE_TAG}"
+                    sh "docker rmi -f ${imageName} || true"
+                    echo "Cleaned up local Docker image: ${imageName}"
+                }
+            }
+        }
+
+        stage('Success') {
+            steps {
+                echo "Docker image ${IMAGE_NAME}:${params.IMAGE_TAG} built and pushed successfully."
             }
         }
     }

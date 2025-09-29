@@ -14,10 +14,12 @@ declare global {
     }
 }
 
-const authorize = (rolesArray: any = []) => {
+const authorize = (rolesArray: any = [], isNoNeedAuth: boolean = false) => {
     if (!rolesArray) rolesArray = [];
 
     return async (req: Request, res: Response, next: NextFunction) => {
+
+        if (isNoNeedAuth) return next();
         const authHeader: any = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {

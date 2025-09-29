@@ -515,7 +515,7 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
         statusArr = [WellKnownTripStatus.PENDING];
     } else if (+status == WellKnownTripStatus.START) {
         statusArr = [WellKnownTripStatus.START];
-    } else if (+status == WellKnownTripStatus.FINISHED) {
+    } else if (+status == WellKnownTripStatus.FINISHED || +status == 5) { // 5 is for finished all steps including Driver Salary
         statusArr = [WellKnownTripStatus.FINISHED];
     }
 
@@ -526,7 +526,7 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
         auth.role === constants.USER.ROLES.TRIPMANAGER ||
         auth.role === constants.USER.ROLES.SUPERADMIN
     ) {
-        const trips = await tripService.findAllByStatusIn(
+        let trips = await tripService.findAllByStatusIn(
             statusArr,
             startDate,
             endDate
@@ -552,6 +552,12 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
                 }
             })
         );
+
+        // get only finished trips with driver salary
+        if (trips.length > 0 && +status == 5) {
+            trips = trips.filter((trip: any) => trip.isDriverSalaryDone);
+        }
+
         sortTrips(trips);
         response = tripUtil.tripModelArrToTripResponseDtoGetAlls(trips);
     } else if (auth.role === constants.USER.ROLES.DRIVER) {
@@ -1160,6 +1166,58 @@ const getTripForReport = async (req: Request, res: Response) => {
     }
 };
 
+const getTripForQrCode = async (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    try {
+        let trip: any = await tripService.findByIdAndStatusIn(id, [
+            WellKnownTripStatus.PENDING,
+            WellKnownTripStatus.START,
+            WellKnownTripStatus.FINISHED,
+        ]);
+
+        if (trip) {
+            trip = trip.toObject();
+            //  get expense by trip id and status active
+            let expense: any = await expensesService.findByTripIdAndStatusIn(
+                trip._id.toString(),
+                [WellKnownStatus.ACTIVE]
+            );
+
+            let response: TripExpensesResponseDto | null = null;
+
+            if (expense) {
+                // get only active expenses
+                let activeExpenses = expense.expenses.filter(
+                    (exp: any) => exp.status === WellKnownStatus.ACTIVE
+                );
+
+                let totalExpensesAmount = activeExpenses.reduce(
+                    (total: number, exp: any) => total + exp.amount,
+                    0
+                );
+
+                expense.expenses = activeExpenses;
+                expense.tripExpensesAmount = expense?.tripId?.estimatedExpense;
+                expense.totalTripExpensesAmount = totalExpensesAmount;
+                expense.remainingTripExpensesAmount =
+                    expense?.tripExpensesAmount - totalExpensesAmount;
+
+                response =
+                    expensesUtil.ExpensesModelToTripExpensesResponseDto(
+                        expense
+                    );
+            }
+
+            trip.expenses = response;
+        }
+
+        CommonResponse(res, true, StatusCodes.OK, '', trip);
+    } catch (error) {
+        throw error;
+    }
+}
+
 const getDestinationSummaryPrint = async (req: Request, res: Response) => {
     const { id } = req.params;
 
@@ -1307,4 +1365,5 @@ export {
     getDestinationSummaryPrint,
     getTripHotelsAndActivities,
     updateHotelActivityPayment,
+    getTripForQrCode
 };

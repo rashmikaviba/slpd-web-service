@@ -59,6 +59,11 @@ export const superAdminMenu = [
         name: 'Super Admin Monthly Expenses Management',
         status: 1,
     },
+    {
+        id: 13,
+        name: 'Super Admin Dashboard',
+        status: 1,
+    }
 
 ];
 
@@ -102,6 +107,11 @@ export const adminMenu = [
         id: 37,
         name: 'Admin Monthly Expenses Management',
         status: 1,
+    },
+    {
+        id: 38,
+        name: 'Admin Dashboard',
+        status: 1,
     }
 ];
 
@@ -143,6 +153,11 @@ export const financeOfficerMenu = [
     {
         id: 37,
         name: 'Admin Monthly Expenses Management',
+        status: 1,
+    },
+    {
+        id: 38,
+        name: 'Admin Dashboard',
         status: 1,
     }
 ];

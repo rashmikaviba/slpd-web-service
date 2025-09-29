@@ -77,6 +77,11 @@ const vehicleSchema = new mongoose.Schema(
             default: false,
         },
 
+        isRentalVehicle: {
+            type: Boolean,
+            default: false,
+        },
+
         status: {
             type: Number,
             required: [true, 'Status is required'],

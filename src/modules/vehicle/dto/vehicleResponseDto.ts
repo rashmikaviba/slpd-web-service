@@ -12,6 +12,7 @@ interface VehicleResponseDto {
     status: number;
     statusName: string;
     isFreelanceVehicle: boolean;
+    isRentalVehicle: boolean;
     createdBy: string;
     createdUser: string;
     updatedBy: string;

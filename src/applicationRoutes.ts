@@ -82,6 +82,7 @@ const applicationRoutes = {
         updateHotelActivityPayment: '/updateHotelActivityPayment/:id',
         undoTripStatus: '/:id/undoStatus/:status',
         getTripForPrint: '/tripForPrint/:id',
+        getTripForQrCode: '/tripForQrCode/:id',
         getTripHotelsAndActivities: '/hotelsAndActivities/:id',
 
         // checklist routes
@@ -178,6 +179,7 @@ const applicationRoutes = {
         update: '/update/:id/expense/:expenseId',
         deleteById: '/delete/:id/expense/:expenseId',
         getById: '/:id',
+        activeInactiveGarage: '/activeInactiveGarage/:id',
     },
 
     pos: {
@@ -186,6 +188,22 @@ const applicationRoutes = {
         voidProduct: '/voidPosProduct/:id/trip/:tripId',
         tripEndAudit: "/tripEndAudit",
         getPosByTrip: '/getPosByTrip/:tripId',
+    },
+
+    garage: {
+        base: '/garage',
+        save: '/',
+        getAll: '/',
+        getById: '/:id',
+        update: '/:id',
+        deleteById: '/:id',
+    },
+
+    dashboard: {
+        base: '/dashboard',
+        getDashboardData: '/getDashboardstats',
+        getInventorySummary: '/inventorySummary',
+        getMonthlyIncomeExpense: '/monthlyIncomeExpense',
     }
 };
 
