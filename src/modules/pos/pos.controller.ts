@@ -35,14 +35,10 @@ const saveProductForPos = async (req: Request, res: Response) => {
     const trip = await tripService.findByIdAndStatusIn(tripId, [
         WellKnownTripStatus.PENDING,
         WellKnownTripStatus.START,
-        WellKnownTripStatus.FINISHED,
-        WellKnownTripStatus.START,
     ])
 
     if (!trip) {
-        throw new BadRequestError('Trip not found!');
-    } else if (trip.status !== WellKnownTripStatus.START) {
-        throw new BadRequestError('You can not save pos transaction, because trip is not in started status!');
+        throw new BadRequestError("Pending or Started Trip not found!");
     }
 
     let posTransactionQtyWithSiUnit = fromMeasureUnitToSiMeasureUnit(unitOfMeasure, quantity);
