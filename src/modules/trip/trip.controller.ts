@@ -480,61 +480,59 @@ const cancelTrip = async (req: Request, res: Response) => {
             WellKnownStatus.ACTIVE
         ]);
 
-        if (tripPosData == null) {
-            return;
-        }
+        if (tripPosData != null) {
+            let posProduct = tripPosData.products.filter((p: any) => p.status === WellKnownStatus.ACTIVE);
 
-        let posProduct = tripPosData.products.filter((p: any) => p.status === WellKnownStatus.ACTIVE);
+            if (posProduct.length > 0) {
+                for (const p of posProduct) {
 
-        if (posProduct.length > 0) {
-            for (const p of posProduct) {
+                    let product: any = await productService.findByIdAndStatusIn(p.product, [
+                        WellKnownStatus.ACTIVE
+                    ]);
 
-                let product: any = await productService.findByIdAndStatusIn(p.product, [
-                    WellKnownStatus.ACTIVE
-                ]);
+                    if (!product) {
+                        continue;
+                    }
 
-                if (!product) {
-                    continue;
+                    let productMeasureUnit: any = measureUnit.find((item: any) => item.unitId === product?.measureUnit);
+                    let siUnitCode = "";
+                    if (productMeasureUnit.isSaveWithSiUnit) {
+                        const siUnit = measureUnit.find((item: any) => item.isSiUnit && item.categoryId === productMeasureUnit.categoryId);
+                        siUnitCode = siUnit != null ? siUnit?.code : "";
+                    } else {
+                        siUnitCode = productMeasureUnit.code || ""
+                    }
+
+
+                    let beforeTransactionInventory = product.inventory;
+                    product.inventory += p.quantityWithSiUnitOfMeasure;
+                    let inventoryLogMsg = {
+                        inventoryLogType: WellKnownGrnLogType.POS_TRANSACTION,
+                        inventoryLogDate: new Date(),
+                        inventoryLogQuantity: p.quantityWithSiUnitOfMeasure,
+                        beforeTransactionInventory: beforeTransactionInventory,
+                        afterTransactionInventory: product.inventory,
+                        inventoryLogProductId: product._id,
+                        inventoryLogCreatedBy: auth.id,
+                        message: `Inventory updated: ${p.quantityWithSiUnitOfMeasure}${siUnitCode} added to product "${product.productName}" via voiding POS transaction in trip "${tripPosData?.tripId?.tripConfirmedNumber}". (Trip Cancellation)`,
+                    }
+
+                    product.inventoryLogs.push(inventoryLogMsg)
+                    product = await productService.save(product, session);
                 }
 
-                let productMeasureUnit: any = measureUnit.find((item: any) => item.unitId === product?.measureUnit);
-                let siUnitCode = "";
-                if (productMeasureUnit.isSaveWithSiUnit) {
-                    const siUnit = measureUnit.find((item: any) => item.isSiUnit && item.categoryId === productMeasureUnit.categoryId);
-                    siUnitCode = siUnit != null ? siUnit?.code : "";
-                } else {
-                    siUnitCode = productMeasureUnit.code || ""
-                }
+                // update pos status to canceled
+                tripPosData.status = WellKnownStatus.DELETED;
+                tripPosData.updatedBy = auth.id;
 
+                // update pos product status to canceled
+                tripPosData.products.map((p: any) => {
+                    p.status = WellKnownStatus.DELETED;
+                    p.updatedBy = auth.id;
+                });
 
-                let beforeTransactionInventory = product.inventory;
-                product.inventory += p.quantityWithSiUnitOfMeasure;
-                let inventoryLogMsg = {
-                    inventoryLogType: WellKnownGrnLogType.POS_TRANSACTION,
-                    inventoryLogDate: new Date(),
-                    inventoryLogQuantity: p.quantityWithSiUnitOfMeasure,
-                    beforeTransactionInventory: beforeTransactionInventory,
-                    afterTransactionInventory: product.inventory,
-                    inventoryLogProductId: product._id,
-                    inventoryLogCreatedBy: auth.id,
-                    message: `Inventory updated: ${p.quantityWithSiUnitOfMeasure}${siUnitCode} added to product "${product.productName}" via voiding POS transaction in trip "${tripPosData?.tripId?.tripConfirmedNumber}". (Trip Cancellation)`,
-                }
-
-                product.inventoryLogs.push(inventoryLogMsg)
-                product = await productService.save(product, session);
+                await posService.save(tripPosData, session);
             }
-
-            // update pos status to canceled
-            tripPosData.status = WellKnownStatus.DELETED;
-            tripPosData.updatedBy = auth.id;
-
-            // update pos product status to canceled
-            tripPosData.products.map((p: any) => {
-                p.status = WellKnownStatus.DELETED;
-                p.updatedBy = auth.id;
-            });
-
-            await posService.save(tripPosData, session);
         }
 
         await session.commitTransaction();
