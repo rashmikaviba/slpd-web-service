@@ -22,6 +22,9 @@ import { number } from 'joi';
 import TripExpensesResponseDto from '../expenses/dto/tripExpensesResponseDto';
 import expensesUtil from '../expenses/expenses.util';
 import posService from '../pos/pos.service';
+import productService from '../inventory/product/product.service';
+import { measureUnit } from '../../util/data/measureUnitData';
+import { WellKnownGrnLogType } from '../../util/enums/well-known-grn-log-type.enum';
 
 const saveTrip = async (req: Request, res: Response) => {
     const body: any = req.body;
@@ -465,23 +468,90 @@ const cancelTrip = async (req: Request, res: Response) => {
         throw new BadRequestError("Can't cancel started or finished trip!");
     }
 
+    const session = await startSession();
     try {
+        session.startTransaction();
         trip.status = WellKnownTripStatus.CANCELED;
         trip.updatedBy = auth.id;
 
-        const updatedTrip = await tripService.save(trip, null);
+        await tripService.save(trip, session);
+
+        let tripPosData: any = await posService.findByTripIdAndStatusInWIthProducts(id, [
+            WellKnownStatus.ACTIVE
+        ]);
+
+        if (tripPosData != null) {
+            let posProduct = tripPosData.products.filter((p: any) => p.status === WellKnownStatus.ACTIVE);
+
+            if (posProduct.length > 0) {
+                for (const p of posProduct) {
+
+                    let product: any = await productService.findByIdAndStatusIn(p.product, [
+                        WellKnownStatus.ACTIVE
+                    ]);
+
+                    if (!product) {
+                        continue;
+                    }
+
+                    let productMeasureUnit: any = measureUnit.find((item: any) => item.unitId === product?.measureUnit);
+                    let siUnitCode = "";
+                    if (productMeasureUnit.isSaveWithSiUnit) {
+                        const siUnit = measureUnit.find((item: any) => item.isSiUnit && item.categoryId === productMeasureUnit.categoryId);
+                        siUnitCode = siUnit != null ? siUnit?.code : "";
+                    } else {
+                        siUnitCode = productMeasureUnit.code || ""
+                    }
+
+
+                    let beforeTransactionInventory = product.inventory;
+                    product.inventory += p.quantityWithSiUnitOfMeasure;
+                    let inventoryLogMsg = {
+                        inventoryLogType: WellKnownGrnLogType.POS_TRANSACTION,
+                        inventoryLogDate: new Date(),
+                        inventoryLogQuantity: p.quantityWithSiUnitOfMeasure,
+                        beforeTransactionInventory: beforeTransactionInventory,
+                        afterTransactionInventory: product.inventory,
+                        inventoryLogProductId: product._id,
+                        inventoryLogCreatedBy: auth.id,
+                        message: `Inventory updated: ${p.quantityWithSiUnitOfMeasure}${siUnitCode} added to product "${product.productName}" via voiding POS transaction in trip "${tripPosData?.tripId?.tripConfirmedNumber}". (Trip Cancellation)`,
+                    }
+
+                    product.inventoryLogs.push(inventoryLogMsg)
+                    product = await productService.save(product, session);
+                }
+
+                // update pos status to canceled
+                tripPosData.status = WellKnownStatus.DELETED;
+                tripPosData.updatedBy = auth.id;
+
+                // update pos product status to canceled
+                tripPosData.products.map((p: any) => {
+                    p.status = WellKnownStatus.DELETED;
+                    p.updatedBy = auth.id;
+                });
+
+                await posService.save(tripPosData, session);
+            }
+        }
+
+        await session.commitTransaction();
 
         CommonResponse(
             res,
             true,
             StatusCodes.OK,
             'Trip Canceled Successfully',
-            updatedTrip
+            null
         );
     } catch (error) {
+        await session.abortTransaction();
         throw error;
+    } finally {
+        session.endSession();
     }
 };
+
 
 const getTripById = async (req: Request, res: Response) => {
     const { id } = req.params;
