@@ -61,10 +61,14 @@ export const superAdminMenu = [
     },
     {
         id: 13,
-        name: 'Super Admin Dashboard',
+        name: 'Super Admin Master Configuration',
+        status: 1,
+    },
+    {
+        id: 14,
+        name: 'Super Admin Garage Management',
         status: 1,
     }
-
 ];
 
 export const adminMenu = [
@@ -112,6 +116,16 @@ export const adminMenu = [
         id: 38,
         name: 'Admin Dashboard',
         status: 1,
+    },
+    {
+        id: 39,
+        name: 'Admin Master Configuration',
+        status: 1,
+    },
+    {
+        id: 40,
+        name: 'Admin Garage Management',
+        status: 1,
     }
 ];
 
@@ -124,6 +138,11 @@ export const driverMenu = [
     {
         id: 61,
         name: 'Driver Trip Management',
+        status: 1,
+    },
+    {
+        id: 62,
+        name: 'Recommended Garage',
         status: 1,
     },
 ];
@@ -196,6 +215,16 @@ export const tripManagerMenu = [
     {
         id: 37,
         name: 'Admin Monthly Expenses Management',
+        status: 1,
+    },
+    {
+        id: 39,
+        name: 'Admin Master Configuration',
+        status: 1,
+    },
+    {
+        id: 40,
+        name: 'Admin Garage Management',
         status: 1,
     }
 ];

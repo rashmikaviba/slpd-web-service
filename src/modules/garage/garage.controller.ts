@@ -14,7 +14,8 @@ const createGarage = async (req: Request, res: Response) => {
         name,
         address,
         city,
-        contactNumber,
+        contactNumber1,
+        contactNumber2,
         googleMapUrl,
         specializations,
         description
@@ -31,7 +32,8 @@ const createGarage = async (req: Request, res: Response) => {
             name,
             address,
             city,
-            contactNumber,
+            contactNumber1,
+            contactNumber2,
             googleMapUrl,
             specializations,
             description,
@@ -59,7 +61,8 @@ const updateGarage = async (req: Request, res: Response) => {
         name,
         address,
         city,
-        contactNumber,
+        contactNumber1,
+        contactNumber2,
         googleMapUrl,
         specializations,
         description
@@ -82,7 +85,8 @@ const updateGarage = async (req: Request, res: Response) => {
         garage.name = name;
         garage.address = address;
         garage.city = city;
-        garage.contactNumber = contactNumber;
+        garage.contactNumber1 = contactNumber1;
+        garage.contactNumber2 = contactNumber2;
         garage.googleMapUrl = googleMapUrl;
         garage.specializations = specializations;
         garage.description = description;

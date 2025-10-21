@@ -197,6 +197,7 @@ const applicationRoutes = {
         getById: '/:id',
         update: '/:id',
         deleteById: '/:id',
+        activeInactiveGarage: '/activeInactiveGarage/:id',
     },
 
     dashboard: {

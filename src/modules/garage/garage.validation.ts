@@ -14,7 +14,11 @@ export const garageRequestSchema = Joi.object({
         'string.max': 'City cannot be more than 100 characters',
     }),
 
-    contactNumber: Joi.string().max(14).allow('', null).messages({
+    contactNumber1: Joi.string().max(14).allow('', null).messages({
+        'string.max': 'Contact Number cannot be more than 14 characters',
+    }),
+
+    contactNumber2: Joi.string().max(14).allow('', null).messages({
         'string.max': 'Contact Number cannot be more than 14 characters',
     }),
 
