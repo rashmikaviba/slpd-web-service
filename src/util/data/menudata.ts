@@ -228,3 +228,49 @@ export const tripManagerMenu = [
         status: 1,
     }
 ];
+
+export const tripAssistantMenu = [
+    {
+        id: 100,
+        name: 'Trip Assistant Leave Management',
+        status: 1,
+    },
+    {
+        id: 101,
+        name: 'Trip Assistant Master Configuration',
+        status: 1,
+    },
+    {
+        id: 102,
+        name: 'Trip Assistant Garage Management',
+        status: 1,
+    },
+    {
+        id: 103,
+        name: 'Trip Assistant Trip Management',
+        status: 1,
+    },
+]
+
+export const driverAssistantMenu = [
+    {
+        id: 150,
+        name: 'Driver Assistant Leave Management',
+        status: 1,
+    },
+    {
+        id: 151,
+        name: 'Driver Assistant Master Configuration',
+        status: 1,
+    },
+    {
+        id: 152,
+        name: 'Driver Assistant Garage Management',
+        status: 1,
+    },
+    {
+        id: 153,
+        name: 'Driver Assistant Trip Management',
+        status: 1,
+    },
+]

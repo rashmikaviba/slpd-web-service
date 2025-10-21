@@ -8,9 +8,11 @@ import { StatusCodes } from 'http-status-codes';
 import UnauthorizedError from '../../error/UnauthorizedError';
 import {
     adminMenu,
+    driverAssistantMenu,
     driverMenu,
     financeOfficerMenu,
     superAdminMenu,
+    tripAssistantMenu,
     tripManagerMenu,
 } from '../../util/data/menudata';
 import constants from '../../constant';
@@ -77,6 +79,12 @@ const filterModules = (userAuth: any): any[] => {
             break;
         case constants.USER.ROLES.TRIPMANAGER:
             modules = tripManagerMenu;
+            break;
+        case constants.USER.ROLES.DRIVERASSISTANT:
+            modules = driverAssistantMenu;
+            break;
+        case constants.USER.ROLES.TRIPASSISTANT:
+            modules = tripAssistantMenu;
             break;
         default:
             break;
