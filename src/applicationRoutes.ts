@@ -205,6 +205,16 @@ const applicationRoutes = {
         getDashboardData: '/getDashboardstats',
         getInventorySummary: '/inventorySummary',
         getMonthlyIncomeExpense: '/monthlyIncomeExpense',
+    },
+
+    vehicleMaintenance: {
+        base: '/vehicleMaintenance',
+        save: '/',
+        getAll: '/',
+        getById: '/:id',
+        update: '/:id',
+        deleteById: '/:id',
+        maintainInvoice: '/maintainInvoice/:id',
     }
 };
 
