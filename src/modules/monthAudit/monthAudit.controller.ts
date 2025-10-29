@@ -30,6 +30,7 @@ import internalTripService from '../internalTrip/internalTrip.service';
 import MonthlyExpenses from '../monthlyExpenses/monthlyExpenses.model';
 import monthlyExpensesService from '../monthlyExpenses/monthlyExpenses.service';
 import posService from '../pos/pos.service';
+import vehicleMaintenanceService from '../vehicleMaintain/vehicleMaintenance.service';
 
 const createNewDate = async (req: Request, res: Response) => {
     const auth: any = req.auth;
@@ -71,6 +72,14 @@ const createNewDate = async (req: Request, res: Response) => {
         );
 
         await monthEndDoneForMonthlyExpenses(
+            lastCompanyInfo.workingMonth,
+            lastCompanyInfo.workingYear,
+            session,
+            auth?.id,
+            batchId
+        );
+
+        await monthEndDoneForVehicleMaintenance(
             lastCompanyInfo.workingMonth,
             lastCompanyInfo.workingYear,
             session,
@@ -206,6 +215,27 @@ const monthEndDoneForMonthlyExpenses = async (
         await monthlyExpensesService.save(monthlyExpense, session);
     }
 };
+
+const monthEndDoneForVehicleMaintenance = async (
+    currMonth: number,
+    currYear: number,
+    session: any,
+    userId: string,
+    batchId: number
+) => {
+    const vehicleMaintains: any[] = await vehicleMaintenanceService.findAllByEndMonthAndStatusIn(
+        currMonth,
+        currYear,
+        [WellKnownStatus.ACTIVE,]
+    );
+
+    for (let vehicleMaintain of vehicleMaintains) {
+        vehicleMaintain.isMonthEndDone = true;
+        vehicleMaintain.batchId = batchId;
+        vehicleMaintain.updatedBy = userId;
+        await vehicleMaintenanceService.save(vehicleMaintain, session);
+    }
+}
 
 const monthEndDoneForTrip = async (
     currMonth: number,

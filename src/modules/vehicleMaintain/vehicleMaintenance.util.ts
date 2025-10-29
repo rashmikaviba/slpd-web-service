@@ -8,9 +8,9 @@ const mapmodelToVehicleMaintenanceResponseDto = (model: any): VehicleMaintenance
         vehicleId: model.vehicle._id,
         vehicleNumber: model.vehicle.registrationNumber,
         maintenancePart: model.maintenancePart,
-        isCompanyVehicle: !model.isRentalVehicle && !model.isFreelanceVehicle || false,
-        isRentalVehicle: model.isRentalVehicle || false,
-        isFreelanceVehicle: model.isFreelanceVehicle || false,
+        isCompanyVehicle: !model.vehicle.isRentalVehicle && !model.vehicle.isFreelanceVehicle || false,
+        isRentalVehicle: model.vehicle.isRentalVehicle || false,
+        isFreelanceVehicle: model.vehicle.isFreelanceVehicle || false,
         garageId: model.garage._id,
         garageName: model.garage.name,
         maintenanceDate: model.maintenanceDate,
@@ -19,9 +19,9 @@ const mapmodelToVehicleMaintenanceResponseDto = (model: any): VehicleMaintenance
         billImageUrls: model.billImageUrls,
         isMonthEndDone: model.isMonthEndDone,
         createdBy: model.createdBy?._id,
-        createdUser: model.createdBy?.fullName || '',
+        createdUser: model.createdBy?.userName || '',
         updatedBy: model.updatedBy?._id,
-        updatedUser: model.updatedBy?.fullName || '',
+        updatedUser: model.updatedBy?.userName || '',
         createdAt: model.createdAt,
         updatedAt: model.updatedAt,
     };
@@ -38,9 +38,9 @@ const modelTovehicleMaintainInvoiceResponseDto = (model: any): vehicleMaintenanc
         vehicleNumber: model.vehicle.registrationNumber,
         vehicleOwnerName: model.vehicle.vehicleOwner,
         maintenancePart: model.maintenancePart,
-        isCompanyVehicle: !model.isRentalVehicle && !model.isFreelanceVehicle || false,
-        isRentalVehicle: model.isRentalVehicle || false,
-        isFreelanceVehicle: model.isFreelanceVehicle || false,
+        isCompanyVehicle: !model.vehicle.isRentalVehicle && !model.vehicle.isFreelanceVehicle || false,
+        isRentalVehicle: model.vehicle.isRentalVehicle || false,
+        isFreelanceVehicle: model.vehicle.isFreelanceVehicle || false,
         garageId: model.garage._id,
         garageName: model.garage.name,
         maintenanceDate: model.maintenanceDate,
@@ -57,8 +57,30 @@ const modelTovehicleMaintainInvoiceResponseDto = (model: any): vehicleMaintenanc
     };
 }
 
+
+const isDateInWorkingMonth = (
+    maintenanceDate: Date | string,
+    workingYear: number,
+    workingMonth: number
+): boolean => {
+    const date = new Date(maintenanceDate);
+
+    // Validate it’s a real date
+    if (isNaN(date.getTime())) {
+        console.warn("Invalid date:", maintenanceDate);
+        return false;
+    }
+
+    return (
+        date.getFullYear() === workingYear &&
+        date.getMonth() + 1 === workingMonth
+    );
+};
+
+
 export default {
     mapmodelToVehicleMaintenanceResponseDto,
     mapmodelArrToVehicleMaintenanceResponseDtos,
     modelTovehicleMaintainInvoiceResponseDto,
+    isDateInWorkingMonth
 };

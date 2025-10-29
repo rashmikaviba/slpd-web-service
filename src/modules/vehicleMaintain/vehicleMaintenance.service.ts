@@ -34,9 +34,30 @@ const findAllByMaintenanceDateAndStatusIn = async (
         .sort({ maintenanceDate: 1 });
 };
 
+const findAllByEndMonthAndStatusIn = async (
+    endMonth: number,
+    currYear: number,
+    status: number[]
+) => {
+    let endDate = new Date();
+    endDate.setFullYear(currYear);
+    endDate.setMonth(endMonth);
+    endDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+
+    endDate.setHours(23, 59, 59, 999);
+
+    return vehiclemaintenanceModel.find({
+        maintenanceDate: { $lt: endDate },
+        status: { $in: status },
+        isMonthEndDone: false,
+    }).sort({ startDate: 1 });
+};
+
+
 export default {
     save,
     findByIdAndStatusIn,
     findAllByMaintenanceDateAndStatusIn,
-    findByIdAndStatusInWithData
+    findByIdAndStatusInWithData,
+    findAllByEndMonthAndStatusIn
 }

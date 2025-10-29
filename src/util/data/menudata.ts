@@ -68,6 +68,11 @@ export const superAdminMenu = [
         id: 14,
         name: 'Super Admin Garage Management',
         status: 1,
+    },
+    {
+        id: 15,
+        name: 'Super Admin Vehicle Maintenance',
+        status: 1,
     }
 ];
 
@@ -126,6 +131,11 @@ export const adminMenu = [
         id: 40,
         name: 'Admin Garage Management',
         status: 1,
+    },
+    {
+        id: 41,
+        name: 'Admin Vehicle Maintenance',
+        status: 1,
     }
 ];
 
@@ -178,7 +188,13 @@ export const financeOfficerMenu = [
         id: 38,
         name: 'Admin Dashboard',
         status: 1,
+    },
+    {
+        id: 41,
+        name: 'Admin Vehicle Maintenance',
+        status: 1,
     }
+
 ];
 
 export const tripManagerMenu = [
@@ -226,6 +242,11 @@ export const tripManagerMenu = [
         id: 40,
         name: 'Admin Garage Management',
         status: 1,
+    },
+    {
+        id: 41,
+        name: 'Admin Vehicle Maintenance',
+        status: 1,
     }
 ];
 
@@ -250,7 +271,12 @@ export const tripAssistantMenu = [
         name: 'Trip Assistant Trip Management',
         status: 1,
     },
-]
+    {
+        id: 104,
+        name: 'Trip Assistant Vehicle Maintenance',
+        status: 1,
+    },
+];
 
 export const driverAssistantMenu = [
     {
@@ -271,6 +297,11 @@ export const driverAssistantMenu = [
     {
         id: 153,
         name: 'Driver Assistant Trip Management',
+        status: 1,
+    },
+    {
+        id: 154,
+        name: 'Driver Assistant Vehicle Maintenance',
         status: 1,
     },
 ]

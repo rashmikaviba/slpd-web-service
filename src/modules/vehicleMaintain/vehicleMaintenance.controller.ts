@@ -11,6 +11,7 @@ import { StatusCodes } from "http-status-codes";
 import vehicleMaintenanceUtil from "./vehicleMaintenance.util";
 import VehicleMaintenanceResponseDto from "./dto/vehicleMaintenanceResponseDto";
 import vehicleMaintenanceInvoiceResponseDto from "./dto/vehicleMaintenanceInvoiceResponseDto";
+import companyWorkingInfoService from "../common/service/companyWorkingInfo.service";
 
 
 const saveVehicleMaintenance = async (req: Request, res: Response,) => {
@@ -29,6 +30,19 @@ const saveVehicleMaintenance = async (req: Request, res: Response,) => {
     const { error } = vehicleMaintainValidation.saveVehicleMaintenanceSchema.validate(req.body);
     if (error) {
         throw new BadRequestError(error.message);
+    }
+
+    const companyInfo = await companyWorkingInfoService.getCompanyWorkingInfo();
+
+    if (!companyInfo) {
+        throw new BadRequestError('No active company information found!');
+    }
+
+    // check vehicle maintenance date in  workingYear workingMonth in companyInfo
+    const isDateInWorkingMonth = vehicleMaintenanceUtil.isDateInWorkingMonth(maintenanceDate, companyInfo.workingYear, companyInfo.workingMonth);
+
+    if (!isDateInWorkingMonth) {
+        throw new BadRequestError('Vehicle maintenance date is not in working month!');
     }
 
     // check vehicle existence
@@ -108,6 +122,20 @@ const updateVehicleMaintenance = async (req: Request, res: Response,) => {
         if (!existingVehicle) {
             throw new BadRequestError('Invalid vehicle. Vehicle does not exist!');
 
+        }
+    }
+    if (vehicleMaintain.maintenanceDate !== maintenanceDate) {
+        const companyInfo = await companyWorkingInfoService.getCompanyWorkingInfo();
+
+        if (!companyInfo) {
+            throw new BadRequestError('No active company information found!');
+        }
+
+        // check vehicle maintenance date in  workingYear workingMonth in companyInfo
+        const isDateInWorkingMonth = vehicleMaintenanceUtil.isDateInWorkingMonth(maintenanceDate, companyInfo.workingYear, companyInfo.workingMonth);
+
+        if (!isDateInWorkingMonth) {
+            throw new BadRequestError('Vehicle maintenance date is not in working month!');
         }
     }
 
