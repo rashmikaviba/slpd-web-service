@@ -7,4 +7,5 @@ export enum WellKnownUploadType {
     PoliceReport = 6,
     ExpensesRecept = 7,
     VehicleDamage = 8,
+    MaintenanceInvoice = 9
 }

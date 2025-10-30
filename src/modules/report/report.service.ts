@@ -2,6 +2,7 @@ import Trip from '../trip/trip.model';
 import Expenses from '../expenses/expenses.model';
 import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
 import MonthlyExpenses from '../monthlyExpenses/monthlyExpenses.model';
+import vehicleMaintenanceModel from '../vehicleMaintain/vehicleMaintenance.model';
 
 const findAllTripsByDateAndStatusIn = async (date: Date, status: number[]) => {
     let monthStartDate = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -78,9 +79,33 @@ const findAllDriverSalaryByTripIds = async (tripIds: string[]) => {
         .lean();
 };
 
+const findVehicleMaintenanceByDateAndStatusIn = async (date: Date, status: number[]) => {
+    let monthStartDate = new Date(date.getFullYear(), date.getMonth(), 1);
+    let monthEndDate = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+
+    return await vehicleMaintenanceModel.find({
+        maintenanceDate: { $gte: monthStartDate, $lt: monthEndDate },
+        status: { $in: status },
+    }).populate('vehicle garage createdBy updatedBy').lean();
+};
+
+const findVehicleMaintenanceByDateAndStatusInAndVehicle = async (date: Date, status: number[], vehicleId: string) => {
+    let monthStartDate = new Date(date.getFullYear(), date.getMonth(), 1);
+    let monthEndDate = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+
+    return await vehicleMaintenanceModel.find({
+        maintenanceDate: { $gte: monthStartDate, $lt: monthEndDate },
+        status: { $in: status },
+        vehicle: vehicleId
+    }).populate('vehicle garage createdBy updatedBy').lean();
+};
+
+
 export default {
     findAllTripsByDateAndStatusIn,
     findAllExpensesByTripIds,
     findAllDriverSalaryByTripIds,
-    findMonthlyExpensesByMonth
+    findMonthlyExpensesByMonth,
+    findVehicleMaintenanceByDateAndStatusIn,
+    findVehicleMaintenanceByDateAndStatusInAndVehicle
 };

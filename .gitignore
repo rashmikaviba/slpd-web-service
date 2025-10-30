@@ -113,6 +113,7 @@ src/uploads/SLTDACertificate/*
 src/uploads/PoliceReport/*
 src/uploads/ExpensesRecept/*
 src/uploads/VehicleDamage/*
+src/uploads/MaintenanceInvoice/*
 
 backups/*
 

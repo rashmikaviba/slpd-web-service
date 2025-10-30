@@ -18,7 +18,12 @@ const garageSchema = new mongoose.Schema({
         maxlength: [100, 'City cannot be more than 100 characters'],
     },
 
-    contactNumber: {
+    contactNumber1: {
+        type: String,
+        maxlength: [14, 'Contact Number cannot be more than 14 characters'],
+    },
+
+    contactNumber2: {
         type: String,
         maxlength: [14, 'Contact Number cannot be more than 14 characters'],
     },

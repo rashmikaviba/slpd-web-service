@@ -65,6 +65,27 @@ const vehicleSchema = Joi.object({
 
     isFreelanceVehicle: Joi.boolean().default(false),
     isRentalVehicle: Joi.boolean().default(false),
+
+    rentalFor30Days: Joi.number()
+        .when(Joi.object({
+            isFreelanceVehicle: Joi.valid(true)
+        }).unknown(), {
+            then: Joi.number().required().messages({
+                'any.required': 'Rental For 30 Days is required for freelance vehicles',
+                'number.base': 'Rental For 30 Days must be a number',
+            }),
+        })
+        .when(Joi.object({
+            isRentalVehicle: Joi.valid(true)
+        }).unknown(), {
+            then: Joi.number().required().messages({
+                'any.required': 'Rental For 30 Days is required for rental vehicles',
+                'number.base': 'Rental For 30 Days must be a number',
+            }),
+        })
+        .messages({
+            'number.base': 'Rental For 30 Days must be a number',
+        }),
 });
 
 export default { vehicleSchema };

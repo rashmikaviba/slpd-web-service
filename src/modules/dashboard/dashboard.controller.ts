@@ -13,6 +13,7 @@ import userService from "../user/user.service";
 import constants from "../../constant";
 import roleService from "../common/service/role.service";
 import monthlyExpensesService from "../monthlyExpenses/monthlyExpenses.service";
+import vehicleMaintenanceService from "../vehicleMaintain/vehicleMaintenance.service";
 
 const getDashboardInventorySummary = async (req: Request, res: Response) => {
     let products = await productService.findAllAndByStatusIn([WellKnownStatus.ACTIVE]) || [];
@@ -194,8 +195,22 @@ const getExpensesForDateRange = async (startDate: string, endDate: string, trips
         });
     });
 
+    // vehicle maintenance expenses 
+    let vehicleMaintenances: any = await vehicleMaintenanceService.findAllByMaintenanceDateAndStatusIn([WellKnownStatus.ACTIVE], startDate, endDate);
+    let vehicleMaintenanceExpensesTotal = 0;
 
-    return totalExpenses + monthlyExpensesTotal;
+    for (let vehicleMaintenance of vehicleMaintenances) {
+        // if company vehicle addto expense
+        // if frelance vehicle ignore
+        // if rental vehicle addto expense if cost < 5000
+        if (vehicleMaintenance.vehicle == null) continue;
+        if (vehicleMaintenance.vehicle.isFreelanceVehicle) continue;
+        if (vehicleMaintenance.vehicle.isRentalVehicle && vehicleMaintenance.cost > 5000) continue;
+
+        vehicleMaintenanceExpensesTotal += vehicleMaintenance.cost || 0;
+    }
+
+    return totalExpenses + monthlyExpensesTotal + vehicleMaintenanceExpensesTotal;
 }
 
 const getMonthlyIncomeExpense = async (req: Request, res: Response) => {

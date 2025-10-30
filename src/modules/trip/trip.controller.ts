@@ -594,7 +594,9 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
     if (
         auth.role === constants.USER.ROLES.ADMIN ||
         auth.role === constants.USER.ROLES.TRIPMANAGER ||
-        auth.role === constants.USER.ROLES.SUPERADMIN
+        auth.role === constants.USER.ROLES.SUPERADMIN ||
+        auth.role === constants.USER.ROLES.DRIVERASSISTANT ||
+        auth.role === constants.USER.ROLES.TRIPASSISTANT
     ) {
         let trips = await tripService.findAllByStatusIn(
             statusArr,

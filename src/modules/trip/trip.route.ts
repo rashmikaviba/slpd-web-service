@@ -29,6 +29,7 @@ TripRouter.post(
         constants.USER.ROLES.TRIPMANAGER,
         constants.USER.ROLES.SUPERADMIN,
         constants.USER.ROLES.ADMIN,
+        constants.USER.ROLES.TRIPASSISTANT,
     ]),
     saveTrip
 );
@@ -39,6 +40,7 @@ TripRouter.put(
         constants.USER.ROLES.TRIPMANAGER,
         constants.USER.ROLES.SUPERADMIN,
         constants.USER.ROLES.ADMIN,
+        constants.USER.ROLES.TRIPASSISTANT,
     ]),
     updateTrip
 );
@@ -49,6 +51,7 @@ TripRouter.delete(
         constants.USER.ROLES.TRIPMANAGER,
         constants.USER.ROLES.SUPERADMIN,
         constants.USER.ROLES.ADMIN,
+        constants.USER.ROLES.TRIPASSISTANT,
     ]),
     cancelTrip
 );

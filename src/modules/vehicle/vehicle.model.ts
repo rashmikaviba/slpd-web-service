@@ -77,6 +77,11 @@ const vehicleSchema = new mongoose.Schema(
             default: false,
         },
 
+        rentalFor30Days: {
+            type: Number,
+            default: 0,
+        },
+
         isRentalVehicle: {
             type: Boolean,
             default: false,

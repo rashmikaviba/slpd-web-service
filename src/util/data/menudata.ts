@@ -61,10 +61,19 @@ export const superAdminMenu = [
     },
     {
         id: 13,
-        name: 'Super Admin Dashboard',
+        name: 'Super Admin Master Configuration',
+        status: 1,
+    },
+    {
+        id: 14,
+        name: 'Super Admin Garage Management',
+        status: 1,
+    },
+    {
+        id: 15,
+        name: 'Super Admin Vehicle Maintenance',
         status: 1,
     }
-
 ];
 
 export const adminMenu = [
@@ -112,6 +121,21 @@ export const adminMenu = [
         id: 38,
         name: 'Admin Dashboard',
         status: 1,
+    },
+    {
+        id: 39,
+        name: 'Admin Master Configuration',
+        status: 1,
+    },
+    {
+        id: 40,
+        name: 'Admin Garage Management',
+        status: 1,
+    },
+    {
+        id: 41,
+        name: 'Admin Vehicle Maintenance',
+        status: 1,
     }
 ];
 
@@ -124,6 +148,11 @@ export const driverMenu = [
     {
         id: 61,
         name: 'Driver Trip Management',
+        status: 1,
+    },
+    {
+        id: 62,
+        name: 'Recommended Garage',
         status: 1,
     },
 ];
@@ -159,7 +188,13 @@ export const financeOfficerMenu = [
         id: 38,
         name: 'Admin Dashboard',
         status: 1,
+    },
+    {
+        id: 41,
+        name: 'Admin Vehicle Maintenance',
+        status: 1,
     }
+
 ];
 
 export const tripManagerMenu = [
@@ -197,5 +232,76 @@ export const tripManagerMenu = [
         id: 37,
         name: 'Admin Monthly Expenses Management',
         status: 1,
+    },
+    {
+        id: 39,
+        name: 'Admin Master Configuration',
+        status: 1,
+    },
+    {
+        id: 40,
+        name: 'Admin Garage Management',
+        status: 1,
+    },
+    {
+        id: 41,
+        name: 'Admin Vehicle Maintenance',
+        status: 1,
     }
 ];
+
+export const tripAssistantMenu = [
+    {
+        id: 100,
+        name: 'Trip Assistant Leave Management',
+        status: 1,
+    },
+    {
+        id: 101,
+        name: 'Trip Assistant Master Configuration',
+        status: 1,
+    },
+    {
+        id: 102,
+        name: 'Trip Assistant Garage Management',
+        status: 1,
+    },
+    {
+        id: 103,
+        name: 'Trip Assistant Trip Management',
+        status: 1,
+    },
+    {
+        id: 104,
+        name: 'Trip Assistant Vehicle Maintenance',
+        status: 1,
+    },
+];
+
+export const driverAssistantMenu = [
+    {
+        id: 150,
+        name: 'Driver Assistant Leave Management',
+        status: 1,
+    },
+    {
+        id: 151,
+        name: 'Driver Assistant Master Configuration',
+        status: 1,
+    },
+    {
+        id: 152,
+        name: 'Driver Assistant Garage Management',
+        status: 1,
+    },
+    {
+        id: 153,
+        name: 'Driver Assistant Trip Management',
+        status: 1,
+    },
+    {
+        id: 154,
+        name: 'Driver Assistant Vehicle Maintenance',
+        status: 1,
+    },
+]

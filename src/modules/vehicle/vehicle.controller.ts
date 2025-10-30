@@ -35,6 +35,7 @@ const saveVehicle = async (req: Request, res: Response) => {
         initialMileage,
         isFreelanceVehicle,
         isRentalVehicle,
+        rentalFor30Days,
     } = req.body;
 
     // Validate request body
@@ -90,6 +91,7 @@ const saveVehicle = async (req: Request, res: Response) => {
             createdBy: auth.id,
             updatedBy: auth.id,
             vehicleOwner,
+            rentalFor30Days,
         });
 
         let ceratedVehicle = await vehicleService.save(vehicle, null);
@@ -125,6 +127,7 @@ const updateVehicle = async (req: Request, res: Response) => {
         initialMileage,
         isFreelanceVehicle,
         isRentalVehicle,
+        rentalFor30Days,
     } = req.body;
 
     // Validate request body
@@ -185,6 +188,7 @@ const updateVehicle = async (req: Request, res: Response) => {
         vehicle.oilFilter = oilFilter;
         vehicle.isFreelanceVehicle = isFreelanceVehicle;
         vehicle.isRentalVehicle = isRentalVehicle;
+        vehicle.rentalFor30Days = rentalFor30Days;
 
         if (vehicle.initialMileage != initialMileage) {
             vehicle.currentMileage = initialMileage;

@@ -11,6 +11,10 @@ import ExpensesReportResponseDto from './dto/expensesReportResponseDto';
 import reportUtil from './report.util';
 import { DriverSalaryReportResponseDto } from './dto/driverSalaryReportResponseDto';
 import MonthlyIncomeReportResponseDto from './dto/monthlyIncomeReportResponseDto';
+import reportValidation from './report.validation';
+import BadRequestError from '../../error/BadRequestError';
+import vehicleService from '../vehicle/vehicle.service';
+import { date } from 'joi';
 
 // Monthly Trip report - Full trip report
 const monthlyTripReport = async (req: Request, res: Response) => {
@@ -112,11 +116,62 @@ const monthlyExpensesReport = async (req: Request, res: Response) => {
             );
         }
 
+        response = response.concat(await vehicleMaintenanceForMonthlyExpense(selectedDate));
+
         CommonResponse(res, true, StatusCodes.OK, '', response);
     } catch (error) {
         throw error;
     }
 };
+
+const vehicleMaintenanceForMonthlyExpense = async (selectedDate: Date): Promise<ExpensesReportResponseDto[]> => {
+    let response: ExpensesReportResponseDto[] = [];
+
+    let vehicleMaintenances: any[] = await reportService.findVehicleMaintenanceByDateAndStatusIn(selectedDate, [WellKnownStatus.ACTIVE]);
+
+    if (vehicleMaintenances && vehicleMaintenances.length > 0) {
+        for (const vehicleMaintenance of vehicleMaintenances) {
+            if (vehicleMaintenance.vehicle == null) continue;
+            if (vehicleMaintenance.garage == null) continue;
+            if (vehicleMaintenance.vehicle.isFreelanceVehicle) continue;
+            if (vehicleMaintenance.vehicle.isRentalVehicle && vehicleMaintenance.cost > 5000) continue;
+
+            let typeName = "Company Vehicle Maintenance";
+            let description = "";
+
+            if (vehicleMaintenance.vehicle.isRentalVehicle) {
+                typeName = "Rental Vehicle Maintenance";
+            }
+
+            description = `Vehicle : ${vehicleMaintenance?.vehicle?.registrationNumber}, Garage Name : ${vehicleMaintenance.garage.name}, Maintenance Part : ${vehicleMaintenance?.maintenancePart}`;
+
+            // if (vehicleMaintenance.note) {
+            //     description += `, Note : ${vehicleMaintenance?.note}`;
+            // }
+
+            const expenseObj: ExpensesReportResponseDto = {
+                tripId: "",
+                confirmationNumber: "",
+                expenseId: vehicleMaintenance._id,
+                typeId: 0,
+                typeName: typeName,
+                description: description,
+                amount: vehicleMaintenance.cost,
+                date: vehicleMaintenance?.maintenanceDate,
+                createdDate: vehicleMaintenance?.createdAt,
+                createdUser: `${vehicleMaintenance?.createdBy?.userName} (${vehicleMaintenance?.createdBy?.fullName})`,
+                updatedDate: vehicleMaintenance?.updatedAt,
+                updatedUser: `${vehicleMaintenance?.updatedBy?.userName} (${vehicleMaintenance?.updatedBy?.fullName})`,
+            };
+
+            response.push(expenseObj);
+        }
+    }
+
+
+    return response;
+};
+
 
 // Monthly driver salary
 const monthlyDriverSalary = async (req: Request, res: Response) => {
@@ -249,9 +304,77 @@ const calculateIncome = async (expense: any) => {
     return data;
 };
 
+const vehicleMonthlyPaymentMaintance = async (req: Request, res: Response) => {
+    try {
+        const {
+            month,
+            vehicle,
+            rentalFor30Days,
+            workedDaysCount,
+        } = req.body;
+        const auth = req.auth;
+
+        // Validate request body
+        const { error } = reportValidation.vehicleMonthlyPaymentMaintanceSchema.validate(req.body);
+        if (error) {
+            throw new BadRequestError(error.message);
+        }
+
+        let vehicleData = await vehicleService.findByIdAndStatusIn(vehicle, [WellKnownStatus.ACTIVE, WellKnownStatus.INACTIVE]);
+
+        if (!vehicleData) {
+            throw new BadRequestError('Invalid vehicle!');
+        }
+
+        if (!vehicleData.isFreelanceVehicle && !vehicleData.isRentalVehicle) {
+            throw new BadRequestError('This vehicle is not freelance or rental vehicle!');
+        }
+        let selectedDate = month ? new Date(month) : new Date();
+
+        let vehicleMaintenanceData = await reportService.findVehicleMaintenanceByDateAndStatusInAndVehicle(selectedDate, [WellKnownStatus.ACTIVE], vehicle);
+
+        CommonResponse(res, true, StatusCodes.OK, '', vehiclePaymentReportResponse(vehicleMaintenanceData, vehicleData, rentalFor30Days, workedDaysCount, selectedDate));
+    } catch (error) {
+        throw error;
+    }
+};
+
+const vehiclePaymentReportResponse = (vehicleMaintenanceData: any, vehicleData: any, rentalFor30Days: number, workedDaysCount: number, selectedDate: Date) => {
+    let valuePerDay = rentalFor30Days / 30;
+    let totalVehicleMaintenance = 0;
+    let effectiveMaintenanceCost = 0;
+
+    for (let vehicleMaintenance of vehicleMaintenanceData) {
+        totalVehicleMaintenance += vehicleMaintenance.cost;
+
+        if (vehicleData.isFreelanceVehicle) {
+            effectiveMaintenanceCost += vehicleMaintenance.cost;
+        } else if (vehicleData.isRentalVehicle && vehicleMaintenance.cost > 5000) {
+            effectiveMaintenanceCost += vehicleMaintenance.cost;
+        }
+    }
+
+    let response = {
+        vehicleMaintenances: vehicleMaintenanceData,
+        vehicle: vehicleData,
+        rentalFor30Days,
+        workedDaysCount,
+        valuePerDay,
+        totalVehicleMaintenance,
+        effectiveMaintenanceCost,
+        netTotal: valuePerDay * workedDaysCount,
+        grossTotal: (valuePerDay * workedDaysCount) - effectiveMaintenanceCost,
+        selectedDate
+    };
+
+    return response;
+};
+
+
 export {
     monthlyTripReport,
     monthlyExpensesReport,
     monthlyDriverSalary,
     monthlyIncomeReport,
+    vehicleMonthlyPaymentMaintance
 };

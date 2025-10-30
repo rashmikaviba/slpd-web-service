@@ -7,8 +7,8 @@ pipeline {
     }
 
     parameters {
-        string(name: 'BRANCH_NAME', defaultValue: 'release-1.0.0.8', description: 'Branch to build')
-        string(name: 'IMAGE_TAG', defaultValue: '1.0.0.8', description: 'Docker image tag')
+        string(name: 'BRANCH_NAME', defaultValue: 'release-1.0.0.9', description: 'Branch to build')
+        string(name: 'IMAGE_TAG', defaultValue: '1.0.0.9', description: 'Docker image tag')
     }
 
     stages {

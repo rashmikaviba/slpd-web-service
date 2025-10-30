@@ -3,10 +3,12 @@ interface GarageResponseDto {
     name: string;
     address: string;
     city: string;
-    contactNumber: string;
+    contactNumber1: string;
+    contactNumber2: string;
     googleMapUrl: string;
     specializations: string;
     status: number;
+    statusName: string;
     createdBy: string;
     createdUser: string;
     updatedBy: string;

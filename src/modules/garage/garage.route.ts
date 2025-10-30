@@ -53,7 +53,7 @@ GarageRouter.delete(applicationRoutes.garage.deleteById,
     deleteGarage
 );
 
-GarageRouter.put(applicationRoutes.monthlyExpenses.activeInactiveGarage,
+GarageRouter.put(applicationRoutes.garage.activeInactiveGarage,
     authMiddleware.authorize([
         constants.USER.ROLES.SUPERADMIN,
         constants.USER.ROLES.ADMIN,

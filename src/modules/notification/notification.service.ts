@@ -24,6 +24,7 @@ const findVehicleRenewalBy7DaysBefore = async () => {
             { licenseRenewalDate: { $lte: date } },
         ],
         isFreelanceVehicle: false,
+        isRentalVehicle: false,
         status: { $ne: WellKnownStatus.DELETED },
     }).lean();
 

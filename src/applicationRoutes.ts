@@ -135,6 +135,7 @@ const applicationRoutes = {
         monthlyExpensesReport: '/monthlyExpensesReport',
         monthlyDriverSalary: '/monthlyDriverSalary',
         monthlyIncomeReport: '/monthlyIncomeReport',
+        vehicleMonthlyPaymentMaintance: '/vehicleMonthlyPaymentMaintance',
     },
 
     internalTrip: {
@@ -197,6 +198,7 @@ const applicationRoutes = {
         getById: '/:id',
         update: '/:id',
         deleteById: '/:id',
+        activeInactiveGarage: '/activeInactiveGarage/:id',
     },
 
     dashboard: {
@@ -204,6 +206,16 @@ const applicationRoutes = {
         getDashboardData: '/getDashboardstats',
         getInventorySummary: '/inventorySummary',
         getMonthlyIncomeExpense: '/monthlyIncomeExpense',
+    },
+
+    vehicleMaintenance: {
+        base: '/vehicleMaintenance',
+        save: '/',
+        getAll: '/',
+        getById: '/:id',
+        update: '/:id',
+        deleteById: '/:id',
+        maintainInvoice: '/maintainInvoice/:id',
     }
 };
 
