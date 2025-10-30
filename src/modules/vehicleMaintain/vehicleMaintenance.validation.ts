@@ -32,9 +32,8 @@ const saveVehicleMaintenanceSchema = Joi.object({
         'string.max': 'Note cannot be more than 500 characters',
     }),
 
-    billImageUrls: Joi.array().allow(null).items(Joi.string().uri().messages({
+    billImageUrls: Joi.array().allow(null).items(Joi.string().messages({
         'string.base': 'Bill Image URL is invalid',
-        'string.uri': 'Bill Image URL must be a valid URI',
     })).messages({
         'array.base': 'Bill Image URLs must be an array',
     }),
