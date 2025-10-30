@@ -37,7 +37,7 @@ const performBackup = async () => {
             .readdirSync('./backups')
             .filter((file) => file.startsWith('mongo-backup-'))
             .sort()
-        if (backupFiles.length > 3) {
+        if (backupFiles.length > 7) {
             const filesToDelete = backupFiles.slice(0, backupFiles.length - 3) // Calculate number of files to delete
             filesToDelete.forEach((file) => {
                 const filePath = path.join('./backups', file)
