@@ -23,6 +23,7 @@ const vehicleModelToVehicleResponseDto = (vehicle: any): VehicleResponseDto => {
         vehicleOwner: vehicle.vehicleOwner,
         isFreelanceVehicle: vehicle.isFreelanceVehicle,
         isRentalVehicle: vehicle.isRentalVehicle,
+        rentalFor30Days: vehicle.rentalFor30Days,
         createdBy: vehicle.createdBy?._id,
         createdUser: vehicle.createdBy?.fullName || '',
         updatedBy: vehicle.updatedBy?._id,

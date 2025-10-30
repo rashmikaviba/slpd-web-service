@@ -135,6 +135,7 @@ const applicationRoutes = {
         monthlyExpensesReport: '/monthlyExpensesReport',
         monthlyDriverSalary: '/monthlyDriverSalary',
         monthlyIncomeReport: '/monthlyIncomeReport',
+        vehicleMonthlyPaymentMaintance: '/vehicleMonthlyPaymentMaintance',
     },
 
     internalTrip: {

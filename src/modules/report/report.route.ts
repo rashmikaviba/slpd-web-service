@@ -2,7 +2,7 @@ import { Router } from 'express';
 import applicationRoutes from '../../applicationRoutes';
 import authMiddleware from '../../middleware/auth.middleware';
 import constants from '../../constant';
-import { monthlyDriverSalary, monthlyExpensesReport, monthlyIncomeReport, monthlyTripReport } from './report.controller';
+import { monthlyDriverSalary, monthlyExpensesReport, monthlyIncomeReport, monthlyTripReport, vehicleMonthlyPaymentMaintance } from './report.controller';
 
 const ReportRouter = Router();
 
@@ -48,6 +48,17 @@ ReportRouter.get(
         constants.USER.ROLES.TRIPMANAGER,
     ]),
     monthlyIncomeReport
+);
+
+ReportRouter.post(
+    applicationRoutes.report.vehicleMonthlyPaymentMaintance,
+    authMiddleware.authorize([
+        constants.USER.ROLES.SUPERADMIN,
+        constants.USER.ROLES.ADMIN,
+        constants.USER.ROLES.FINANCEOFFICER,
+        constants.USER.ROLES.TRIPMANAGER,
+    ]),
+    vehicleMonthlyPaymentMaintance
 );
 
 export default ReportRouter;

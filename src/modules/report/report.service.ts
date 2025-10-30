@@ -89,10 +89,23 @@ const findVehicleMaintenanceByDateAndStatusIn = async (date: Date, status: numbe
     }).populate('vehicle garage createdBy updatedBy').lean();
 };
 
+const findVehicleMaintenanceByDateAndStatusInAndVehicle = async (date: Date, status: number[], vehicleId: string) => {
+    let monthStartDate = new Date(date.getFullYear(), date.getMonth(), 1);
+    let monthEndDate = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+
+    return await vehicleMaintenanceModel.find({
+        maintenanceDate: { $gte: monthStartDate, $lt: monthEndDate },
+        status: { $in: status },
+        vehicle: vehicleId
+    }).populate('vehicle garage createdBy updatedBy').lean();
+};
+
+
 export default {
     findAllTripsByDateAndStatusIn,
     findAllExpensesByTripIds,
     findAllDriverSalaryByTripIds,
     findMonthlyExpensesByMonth,
-    findVehicleMaintenanceByDateAndStatusIn
+    findVehicleMaintenanceByDateAndStatusIn,
+    findVehicleMaintenanceByDateAndStatusInAndVehicle
 };
