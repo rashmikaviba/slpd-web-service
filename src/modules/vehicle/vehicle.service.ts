@@ -1,10 +1,17 @@
+import constants from '../../constant';
+import cache from '../../util/cache';
 import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
 import { WellKnownTripStatus } from '../../util/enums/well-known-trip-status.enum';
 import InternalTrip from '../internalTrip/internalTrip.model';
 import Trip from '../trip/trip.model';
 import Vehicle from './vehicle.model';
 
+
 const save = async (vehicle: any, session: any) => {
+    let prefix = constants.CACHE.PREFIX.VEHICLE;
+
+    cache.clearCacheByPrefixs(prefix);
+
     if (session) {
         return await vehicle.save({ session });
     } else {
@@ -41,9 +48,20 @@ const findByIdAndStatusIn = async (id: string, status: number[]) => {
 };
 
 const findAllAndStatusIn = async (status: number[]) => {
-    return Vehicle.find({ status: { $in: status } })
+    const cacheKey = constants.CACHE.PREFIX.VEHICLE + JSON.stringify(status);
+    const cached = await cache.getCache(cacheKey);
+    if (cached) return cached;
+
+
+    const data: any = await Vehicle.find({ status: { $in: status } })
         .populate('createdBy updatedBy')
         .sort({ createdAt: -1 });
+
+    if (data) {
+        cache.setCache(cacheKey, data, constants.CACHE.DURATION.ONE_WEEK);
+    }
+
+    return data;
 };
 
 const findByGpsTrackerAndStatusIn = async (

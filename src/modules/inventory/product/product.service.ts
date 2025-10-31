@@ -1,30 +1,19 @@
+import constants from "../../../constant";
+import cache from "../../../util/cache";
 import { WellKnownStatus } from "../../../util/enums/well-known-status.enum";
 import InventoryProduct from "./product.model";
 
+
 const save = async (product: any, session: any) => {
+    let prefix = constants.CACHE.PREFIX.PRODUCT;
+    cache.clearCacheByPrefixs(prefix);
+
     if (session) {
         return await product.save({ session });
     } else {
         return await product.save();
     }
 };
-
-// const isShortCodeOrProductNameExists = async (shortCode: string, name: string, productId: string) => {
-//     const query: any = {
-//         $or: [
-//             { ProductShortCode: { $regex: new RegExp(`^${shortCode}$`, 'i') } },
-//             { ProductName: { $regex: new RegExp(`^${name}$`, 'i') } }
-//         ]
-//     };
-
-//     if (productId) {
-//         query._id = { $ne: productId };
-//     }
-
-//     const duplicate = await InventoryProduct.findOne(query);
-
-//     return duplicate;
-// };
 
 const isShortCodeOrProductNameExists = async (shortCode: string, name: string, productId: string) => {
     const baseFilter = productId ? { _id: { $ne: productId } } : {};
@@ -56,7 +45,12 @@ const findByIdAndStatusIn = async (id: string, status: number[]) => {
 
 
 const findAllAndByStatusIn = async (status: number[]) => {
-    return await InventoryProduct.find({ status: { $in: status } }, { inventoryLogs: 0 } // projection: exclude inventoryLogs field
+    let cacheKey = constants.CACHE.PREFIX.PRODUCT + JSON.stringify(status);
+    const cached = await cache.getCache(cacheKey);
+    if (cached) return cached;
+
+
+    const data: any = await InventoryProduct.find({ status: { $in: status } }, { inventoryLogs: 0 }
     ).populate({
         path: 'createdBy',
         select: 'userName'
@@ -64,6 +58,12 @@ const findAllAndByStatusIn = async (status: number[]) => {
         path: 'updatedBy',
         select: 'userName'
     });
+
+    if (data) {
+        cache.setCache(cacheKey, data, constants.CACHE.DURATION.ONE_WEEK);
+    }
+
+    return data;
 }
 
 const findProductsLogByProductId = async (productId: string) => {
