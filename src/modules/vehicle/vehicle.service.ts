@@ -8,7 +8,7 @@ import Vehicle from './vehicle.model';
 
 
 const save = async (vehicle: any, session: any) => {
-    let prefix = constants.CACHE.PREFIX.VEHICLE;
+    let prefix = `${constants.CACHE.PREFIX.VEHICLE},${constants.CACHE.PREFIX.TRIP}`;
 
     cache.clearCacheByPrefixs(prefix);
 

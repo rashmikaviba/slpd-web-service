@@ -16,7 +16,6 @@ import runDBBackup from './config/dbBackups.config';
 import { accessLogMiddleware, responseLogMiddleware } from './middleware/auditLog.middleware';
 
 import { app, server } from './config/soket.config';
-import cache from './util/cache';
 // const app: Express = express();
 
 const corsOptions = {
@@ -57,11 +56,6 @@ const start = async () => {
             console.log(`SERVER IS LISTENING ON PORT ${port}..!`);
             connectDB();
             runDBBackup();
-
-            // shedule task for every 20 seconds
-            setInterval(() => {
-                console.log("cache keys :" + cache.getCacheKeys());
-            }, 10000);
         });
     } catch (e) {
         console.log(e);

@@ -34,6 +34,11 @@ const constants = {
             VEHICLE_MAINTENANCE: "vehicleMaintenance-",
             LEAVE: "leave-",
             MONTHLY_EXPENSES: "monthlyExpenses-",
+            EXPENSES_REQUEST: "expenseRequest-",
+            EXPENSES: "expenses-",
+            INTERNAL_TRIP: "internalTrip-",
+            TRIP_SUMMARY: "tripSummary-",
+            POS: "pos-"
         },
         DURATION: {
             ONE_DAY: 60 * 60 * 24,

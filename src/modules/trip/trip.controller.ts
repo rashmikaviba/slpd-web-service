@@ -628,6 +628,8 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
         // get only finished trips with driver salary
         if (trips.length > 0 && +status == 5) {
             trips = trips.filter((trip: any) => trip.isDriverSalaryDone);
+        } else if (trips.length > 0 && +status == WellKnownTripStatus.FINISHED) {
+            trips = trips.filter((trip: any) => !trip.isDriverSalaryDone);
         }
 
         sortTrips(trips);
