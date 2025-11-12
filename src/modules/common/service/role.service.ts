@@ -1,16 +1,49 @@
 import { WellKnownStatus } from '../../../util/enums/well-known-status.enum';
 import Role from '../model/role.model';
+import cacheUtil from '../../../util/cache';
+import constants from '../../../constant';
 
 const findAllByStatusIn = async (status: number[]) => {
-    return await Role.find({ status: { $in: status } });
+    const cacheKey = constants.CACHE.PREFIX.ROLE + JSON.stringify(status);
+    const cached = await cacheUtil.getCache(cacheKey);
+    if (cached) return cached;
+
+    const data: any = await Role.find({ status: { $in: status } });
+
+    if (data) {
+        cacheUtil.setCache(cacheKey, data, constants.CACHE.DURATION.ONE_WEEK);
+    }
+
+    return data;
 };
 
 const findByIdAndStatus = async (id: string, status: number) => {
-    return await Role.findOne({ _id: id, status });
+    const cacheKey = constants.CACHE.PREFIX.ROLE + id + status;
+    const cached = await cacheUtil.getCache(cacheKey);
+    if (cached) return cached;
+
+
+    const data: any = await Role.findOne({ _id: id, status });
+
+    if (data) {
+        cacheUtil.setCache(cacheKey, data, constants.CACHE.DURATION.ONE_WEEK);
+    }
+
+    return data;
 };
 
 const findByCustomId = async (id: string) => {
-    return await Role.findOne({ id: id, status: WellKnownStatus.ACTIVE });
+    const cacheKey = constants.CACHE.PREFIX.ROLE + id;
+    const cached = await cacheUtil.getCache(cacheKey);
+    if (cached) return cached;
+
+    const data: any = await Role.findOne({ id: id, status: WellKnownStatus.ACTIVE });
+
+    if (data) {
+        cacheUtil.setCache(cacheKey, data, constants.CACHE.DURATION.ONE_WEEK);
+    }
+
+    return data;
 };
 
 // pass _id as string array

@@ -1,3 +1,5 @@
+import constants from "../../../constant";
+import cacheUtil from "../../../util/cache";
 import { WellKnownGrnStatus } from "../../../util/enums/well-known-grn-status.enum";
 import GRN from "./grn.model";
 
@@ -8,6 +10,9 @@ const getNextGrnNumber = async () => {
 }
 
 const save = async (grn: any, session: any) => {
+    let prefix = constants.CACHE.PREFIX.GRN;
+    cacheUtil.clearCacheByPrefixs(prefix);
+
     if (session) {
         return await grn.save({ session });
     } else {
@@ -23,6 +28,11 @@ const findByIdAndStatusIn = async (id: string, status: number[]) => {
 }
 
 const advanceSearch = async (startDate: string, endDate: string, status: number) => {
+
+    const cacheKey = constants.CACHE.PREFIX.GRN + startDate + endDate + status;
+    const cached = await cacheUtil.getCache(cacheKey);
+    if (cached) return cached;
+
     let statusArray = [];
     if (status === -1) {
         statusArray = [
@@ -40,7 +50,7 @@ const advanceSearch = async (startDate: string, endDate: string, status: number)
     sDate.setHours(0, 0, 0, 0);           // start of the day
     eDate.setHours(23, 59, 59, 999);      // end of the day
 
-    let grns = await GRN.find({
+    const data = await GRN.find({
         grnDate: { $gte: sDate, $lte: eDate },
         status: { $in: statusArray }
     }).populate({
@@ -60,7 +70,11 @@ const advanceSearch = async (startDate: string, endDate: string, status: number)
             select: 'userName'
         });
 
-    return grns;
+    if (data) {
+        cacheUtil.setCache(cacheKey, data, constants.CACHE.DURATION.ONE_WEEK);
+    }
+
+    return data;
 };
 
 const findByIdAndStatusInWithData = async (id: string, status: number[]) => {
