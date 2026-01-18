@@ -31,10 +31,12 @@ import MonthlyExpenses from '../monthlyExpenses/monthlyExpenses.model';
 import monthlyExpensesService from '../monthlyExpenses/monthlyExpenses.service';
 import posService from '../pos/pos.service';
 import vehicleMaintenanceService from '../vehicleMaintain/vehicleMaintenance.service';
+import helperUtil from '../../util/helper.util';
 
 const createNewDate = async (req: Request, res: Response) => {
     const auth: any = req.auth;
     const { month, year } = req.body;
+    const correlationId = req.correlationId;
 
     let lastCompanyInfo: any =
         await companyWorkingInfoService.getCompanyWorkingInfo();
@@ -52,7 +54,8 @@ const createNewDate = async (req: Request, res: Response) => {
             lastCompanyInfo.workingYear,
             session,
             auth?.id,
-            batchId
+            batchId,
+            correlationId
         );
 
         await monthEndDoneForTrip(
@@ -60,7 +63,8 @@ const createNewDate = async (req: Request, res: Response) => {
             lastCompanyInfo.workingYear,
             session,
             auth?.id,
-            batchId
+            batchId,
+            correlationId
         );
 
         await monthEndDoneForInternalTrip(
@@ -68,7 +72,8 @@ const createNewDate = async (req: Request, res: Response) => {
             lastCompanyInfo.workingYear,
             session,
             auth?.id,
-            batchId
+            batchId,
+            correlationId
         );
 
         await monthEndDoneForMonthlyExpenses(
@@ -76,7 +81,8 @@ const createNewDate = async (req: Request, res: Response) => {
             lastCompanyInfo.workingYear,
             session,
             auth?.id,
-            batchId
+            batchId,
+            correlationId
         );
 
         await monthEndDoneForVehicleMaintenance(
@@ -84,7 +90,8 @@ const createNewDate = async (req: Request, res: Response) => {
             lastCompanyInfo.workingYear,
             session,
             auth?.id,
-            batchId
+            batchId,
+            correlationId
         );
 
         if (lastCompanyInfo) {
@@ -92,6 +99,8 @@ const createNewDate = async (req: Request, res: Response) => {
             lastCompanyInfo.updatedBy = auth.id;
             lastCompanyInfo.batchId = batchId;
             await companyWorkingInfoService.save(lastCompanyInfo, session);
+
+            helperUtil.consoleLogMessage("info", `MONTH_AUDIT | Delete Company Working Info for Year: ${lastCompanyInfo.workingYear} | Month: ${lastCompanyInfo.workingMonth} | Deactivated By: ${auth?.id} | Correlation ID: ${correlationId}`);
         }
 
         const newCompanyInfo = new companyWorkingInfo({
@@ -103,6 +112,7 @@ const createNewDate = async (req: Request, res: Response) => {
         });
 
         await companyWorkingInfoService.save(newCompanyInfo, session);
+        helperUtil.consoleLogMessage("info", `MONTH_AUDIT | New Company Working Info Created: Year: ${year} | Month: ${month} | Created By: ${auth?.id} | Correlation ID: ${correlationId}`);
 
         // Crete mew monthly expenses
         const monthlyExpenses = new MonthlyExpenses({
@@ -118,7 +128,9 @@ const createNewDate = async (req: Request, res: Response) => {
             updatedBy: auth.id
         });
 
+
         await monthlyExpensesService.save(monthlyExpenses, session);
+        helperUtil.consoleLogMessage("info", `MONTH_AUDIT | New Monthly Expenses Created for Year: ${year} | Month: ${month} | Created By: ${auth?.id} | Correlation ID: ${correlationId}`);
 
         const monthAuditNew = new monthAudit({
             newWorkingDate: new Date(year, month - 1, 1),
@@ -128,6 +140,7 @@ const createNewDate = async (req: Request, res: Response) => {
         });
 
         createdMonth = await monthAuditService.save(monthAuditNew, session);
+        helperUtil.consoleLogMessage("info", `MONTH_AUDIT | New Month Audit Created for Year: ${year} | Month: ${month} | Created By: ${auth?.id} | Correlation ID: ${correlationId}`);
 
         await session.commitTransaction();
     } catch (error) {
@@ -151,7 +164,8 @@ const monthEndDoneForLeave = async (
     currYear: number,
     session: any,
     userId: string,
-    batchId: number
+    batchId: number,
+    correlationId: string
 ) => {
     const leaves: any[] =
         await leaveService.findAllLeavesByMonthYearAndStatusIn(
@@ -169,7 +183,10 @@ const monthEndDoneForLeave = async (
         leave.isMonthEndDone = true;
         leave.updatedBy = userId;
         leave.batchId = batchId;
+
         await leaveService.save(leave, session);
+
+        helperUtil.consoleLogMessage("info", `MONTH_AUDIT | Leave Month End Done: Leave ID: ${leave._id} | Status: ${leave.status} | Month End Done By: ${userId} | Correlation ID: ${correlationId}`);
     }
 };
 
@@ -178,7 +195,8 @@ const monthEndDoneForInternalTrip = async (
     currYear: number,
     session: any,
     userId: string,
-    batchId: number
+    batchId: number,
+    correlationId: string
 ) => {
     const internalTrips: any[] =
         await internalTripService.findAllByEndMonthAndStatusIn(
@@ -191,7 +209,9 @@ const monthEndDoneForInternalTrip = async (
         internalTrip.isMonthEndDone = true;
         internalTrip.batchId = batchId;
         internalTrip.updatedBy = userId;
+
         await internalTripService.save(internalTrip, session);
+        helperUtil.consoleLogMessage("info", `MONTH_AUDIT | Internal Trip Month End Done: Internal Trip ID: ${internalTrip._id} | Month End Done By: ${userId} | Correlation ID: ${correlationId}`);
     }
 };
 
@@ -200,7 +220,8 @@ const monthEndDoneForMonthlyExpenses = async (
     currYear: number,
     session: any,
     userId: string,
-    batchId: number
+    batchId: number,
+    correlationId: string
 ) => {
     const monthlyExpenses: any[] = await monthlyExpensesService.findAllByEndMonthAndStatusIn(
         currMonth,
@@ -213,6 +234,7 @@ const monthEndDoneForMonthlyExpenses = async (
         monthlyExpense.batchId = batchId;
         monthlyExpense.updatedBy = userId;
         await monthlyExpensesService.save(monthlyExpense, session);
+        helperUtil.consoleLogMessage("info", `MONTH_AUDIT | Monthly Expense Month End Done for Monthly Expense ID: ${monthlyExpense._id} | Month End Done By: ${userId} | Correlation ID: ${correlationId}`);
     }
 };
 
@@ -221,7 +243,8 @@ const monthEndDoneForVehicleMaintenance = async (
     currYear: number,
     session: any,
     userId: string,
-    batchId: number
+    batchId: number,
+    correlationId: string
 ) => {
     const vehicleMaintains: any[] = await vehicleMaintenanceService.findAllByEndMonthAndStatusIn(
         currMonth,
@@ -234,6 +257,7 @@ const monthEndDoneForVehicleMaintenance = async (
         vehicleMaintain.batchId = batchId;
         vehicleMaintain.updatedBy = userId;
         await vehicleMaintenanceService.save(vehicleMaintain, session);
+        helperUtil.consoleLogMessage("info", `MONTH_AUDIT | Vehicle Maintain Month End Done: Vehicle Maintain ID: ${vehicleMaintain._id} | Month End Done By: ${userId} | Correlation ID: ${correlationId}`);
     }
 }
 
@@ -242,7 +266,8 @@ const monthEndDoneForTrip = async (
     currYear: number,
     session: any,
     userId: string,
-    batchId: number
+    batchId: number,
+    correlationId: string
 ) => {
     const trips: any[] = await tripService.findAllByEndMonthAndStatusIn(
         currMonth,
@@ -288,6 +313,8 @@ const monthEndDoneForTrip = async (
         }
 
         await tripService.save(trip, session);
+
+        helperUtil.consoleLogMessage("info", `MONTH_AUDIT | Trip Month End Done: Trip ID: ${trip._id} | Status: ${trip.status} | Month End Done By: ${userId} | Correlation ID: ${correlationId}`);
     }
 };
 

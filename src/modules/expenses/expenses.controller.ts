@@ -11,6 +11,7 @@ import CommonResponse from '../../util/commonResponse';
 import TripExpensesResponseDto from './dto/tripExpensesResponseDto';
 import expensesUtils from './expenses.util';
 import constants from '../../constant';
+import { startSession } from 'mongoose';
 
 const saveExpense = async (req: Request, res: Response) => {
     const tripId: any = req.params.tripId;
@@ -22,7 +23,9 @@ const saveExpense = async (req: Request, res: Response) => {
         throw new BadRequestError(error.message);
     }
 
+    const session = await startSession();
     try {
+        session.startTransaction();
         // check trip expanses available
         const trip: any = await tripService.findByIdAndStatusIn(tripId, [
             WellKnownTripStatus.START,
@@ -46,7 +49,7 @@ const saveExpense = async (req: Request, res: Response) => {
             expense.updatedBy = auth.id;
             expense.driverSalary = null;
 
-            await expensesService.save(expense, null);
+            await expensesService.save(expense, session);
         } else if (expense?.isMonthEndDone) {
             throw new BadRequestError(
                 'Cannot add new expense after month end!'
@@ -61,16 +64,6 @@ const saveExpense = async (req: Request, res: Response) => {
                 'Cannot add new expense after trip finished!'
             );
         }
-
-        // else if (
-        //     [
-        //         constants.USER.ROLES.ADMIN,
-        //         constants.USER.ROLES.SUPERADMIN,
-        //         constants.USER.ROLES.TRIPMANAGER,
-        //         constants.USER.ROLES.FINANCEOFFICER,
-        //     ].includes(auth.role)
-        // ) {
-        // }
 
         // save expense
         let newExpense: any = {
@@ -87,7 +80,7 @@ const saveExpense = async (req: Request, res: Response) => {
 
         expense.expenses.push(newExpense);
 
-        await expensesService.save(expense, null);
+        await expensesService.save(expense, session);
 
         CommonResponse(
             res,
@@ -96,8 +89,12 @@ const saveExpense = async (req: Request, res: Response) => {
             'Expense saved successfully!',
             null
         );
+        await session.commitTransaction();
     } catch (error) {
+        await session.abortTransaction();
         throw error;
+    } finally {
+        session.endSession();
     }
 };
 

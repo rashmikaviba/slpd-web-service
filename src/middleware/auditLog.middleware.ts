@@ -43,7 +43,12 @@ export const responseLogMiddleware = (req: Request, res: Response, next: NextFun
             time: `${responseTime} ms`,
         }
 
-        helperUtil.consoleLogMessage("info", "Response Log", log);
+        if (res.statusCode >= 400) {
+            helperUtil.consoleLogMessage("error", "Response Log", log);
+        } else {
+            helperUtil.consoleLogMessage("success", "Response Log", log);
+        }
+
         return originalSend.call(this, body);
     };
     next();

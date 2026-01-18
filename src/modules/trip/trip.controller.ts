@@ -867,6 +867,8 @@ const changeTripStatus = async (req: Request, res: Response) => {
                 trip.status = status;
                 trip.startedBy = null;
                 trip.updatedBy = auth.id;
+                trip.checkListAnswers = null;
+                trip.checkListCheckBy = null;
 
                 // delete expenses
                 await expensesService.findAndHardDeleteByTripId(
