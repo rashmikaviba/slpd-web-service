@@ -1,5 +1,7 @@
+import constants from '../../constant';
 import { WellKnownLeaveStatus } from '../../util/enums/well-known-leave-status.enum';
 import Leave from './leave.model';
+import cacheUtil from '../../util/cache';
 
 const checkUserAlreadyApplied = async (
     userId: string,
@@ -52,9 +54,17 @@ const save = async (leave: any, session: any) => {
 };
 
 const getTotalLeaveDaysFromYear = async (userId: string, year: number) => {
+    const cacheKey = constants.CACHE.PREFIX.LEAVE + `totalLeaveDays-${userId}-${year}`;
+
+    const cached = await cacheUtil.getCache(cacheKey) as number;
+
+    if (cached !== null && cached !== undefined) {
+        return cached;
+    }
+
     const totalLeaves = await Leave.find({
         appliedUser: userId,
-        $or: [
+        $and: [
             { startDate: { $gte: new Date(year, 0, 1) } },
             { endDate: { $lte: new Date(year, 11, 31) } },
         ],
@@ -65,6 +75,8 @@ const getTotalLeaveDaysFromYear = async (userId: string, year: number) => {
     totalLeaves.map((leave: any) => {
         totalLeaveCount += leave.dateCount;
     }) || 0;
+
+    cacheUtil.setCache(cacheKey, totalLeaveCount, constants.CACHE.DURATION.THREE_MONTHS);
 
     return totalLeaveCount;
 };
@@ -77,7 +89,7 @@ const findAllByUserIdYearAndStatus = async (
     if (userId) {
         return (await Leave.find({
             appliedUser: userId,
-            $or: [
+            $and: [
                 { startDate: { $gte: new Date(year, 0, 1) } },
                 { endDate: { $lte: new Date(year, 11, 31) } },
             ],
@@ -87,7 +99,7 @@ const findAllByUserIdYearAndStatus = async (
             .populate([
                 {
                     path: 'appliedUser',
-                    populate: { path: 'role' }, // Populates the role inside appliedUser
+                    populate: { path: 'role' },
                 },
                 { path: 'approveBy' },
                 { path: 'rejectBy' },
@@ -96,7 +108,7 @@ const findAllByUserIdYearAndStatus = async (
             ])) as any[];
     } else {
         return (await Leave.find({
-            $or: [
+            $and: [
                 { startDate: { $gte: new Date(year, 0, 1) } },
                 { endDate: { $lte: new Date(year, 11, 31) } },
             ],
@@ -106,7 +118,7 @@ const findAllByUserIdYearAndStatus = async (
             .populate([
                 {
                     path: 'appliedUser',
-                    populate: { path: 'role' }, // Populates the role inside appliedUser
+                    populate: { path: 'role' },
                 },
                 { path: 'approveBy' },
                 { path: 'rejectBy' },
@@ -123,34 +135,30 @@ const findByIdAndStatusIn = async (id: string, status: number[]) => {
     }).populate('appliedUser approveBy rejectBy createdBy updatedBy');
 };
 
+
 const countByYearUserIdAndStatusIn = async (
     userId: string,
     year: number,
     status: number[]
 ) => {
+
+    let match: any = {
+        status: { $in: status },
+        $and: [
+            { startDate: { $gte: new Date(year, 0, 1) } },
+            { endDate: { $lte: new Date(year, 11, 31) } },
+        ],
+    };
+
     if (userId) {
-        return (
-            (await Leave.countDocuments({
-                appliedUser: userId,
-                status: { $in: status },
-                $or: [
-                    { startDate: { $gte: new Date(year, 0, 1) } },
-                    { endDate: { $lte: new Date(year, 11, 31) } },
-                ],
-            })) || 0
-        );
-    } else {
-        return (
-            (await Leave.countDocuments({
-                status: { $in: status },
-                $or: [
-                    { startDate: { $gte: new Date(year, 0, 1) } },
-                    { endDate: { $lte: new Date(year, 11, 31) } },
-                ],
-            })) || 0
-        );
+        match.appliedUser = userId;
     }
+
+    let leaveCount = (await Leave.find(match)).reduce((acc, leave) => acc + leave.dateCount, 0);
+
+    return leaveCount;
 };
+
 
 const countByMonthYearUserIdAndStatusIn = async (
     userId: string,
@@ -163,7 +171,7 @@ const countByMonthYearUserIdAndStatusIn = async (
             (await Leave.countDocuments({
                 appliedUser: userId,
                 status: { $in: status },
-                $or: [
+                $and: [
                     { startDate: { $gte: new Date(year, month, 1) } },
                     { endDate: { $lte: new Date(year, month, 31) } },
                 ],
@@ -173,7 +181,7 @@ const countByMonthYearUserIdAndStatusIn = async (
         return (
             (await Leave.countDocuments({
                 status: { $in: status },
-                $or: [
+                $and: [
                     { startDate: { $gte: new Date(year, month, 1) } },
                     { endDate: { $lte: new Date(year, month, 31) } },
                 ],
@@ -187,12 +195,16 @@ const findAllLeavesByMonthYearAndStatusIn = async (
     month: number,
     status: number[]
 ) => {
+
+    const monthStart = new Date(year, month, 1);
+    const monthEnd = new Date(year, month + 1, 0);
+
     return (await Leave.find({
         status: { $in: status },
-        $or: [
-            { startDate: { $gte: new Date(year, month, 1) } },
-            { endDate: { $lte: new Date(year, month, 31) } },
-        ],
+        startDate: {
+            $gte: monthStart,
+            $lte: monthEnd,
+        },
     }).populate([
         {
             path: 'appliedUser',
@@ -205,6 +217,12 @@ const findAllLeavesByMonthYearAndStatusIn = async (
     ])) as any[];
 };
 
+
+const clearTotalLeaveDaysCache = async (userId: string, year: number) => {
+    const cacheKey = constants.CACHE.PREFIX.LEAVE + `totalLeaveDays-${userId}-${year}`;
+    await cacheUtil.deleteCache(cacheKey);
+}
+
 export default {
     checkUserAlreadyApplied,
     save,
@@ -215,4 +233,5 @@ export default {
     countByMonthYearUserIdAndStatusIn,
     findAllLeavesByMonthYearAndStatusIn,
     checkUserAlreadyAppliedForUpdate,
+    clearTotalLeaveDaysCache
 };

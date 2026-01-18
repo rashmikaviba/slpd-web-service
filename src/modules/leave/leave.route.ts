@@ -28,6 +28,12 @@ LeaveRouter.post(
 );
 
 LeaveRouter.get(
+    applicationRoutes.leave.getLeaveCount,
+    authMiddleware.authorize(),
+    getLeaveCount
+);
+
+LeaveRouter.get(
     applicationRoutes.leave.getAllLeaves,
     authMiddleware.authorize(),
     getAllLeaves
@@ -38,6 +44,7 @@ LeaveRouter.get(
     authMiddleware.authorize(),
     getLeaveById
 );
+
 
 LeaveRouter.put(
     applicationRoutes.leave.approveLeave,
@@ -55,12 +62,6 @@ LeaveRouter.put(
     applicationRoutes.leave.cancelLeave,
     authMiddleware.authorize(),
     cancelLeave
-);
-
-LeaveRouter.post(
-    applicationRoutes.leave.getLeaveCount,
-    authMiddleware.authorize(),
-    getLeaveCount
 );
 
 LeaveRouter.put(
