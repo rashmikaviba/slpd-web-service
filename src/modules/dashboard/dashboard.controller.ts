@@ -14,6 +14,8 @@ import constants from "../../constant";
 import roleService from "../common/service/role.service";
 import monthlyExpensesService from "../monthlyExpenses/monthlyExpenses.service";
 import vehicleMaintenanceService from "../vehicleMaintain/vehicleMaintenance.service";
+import cacheUtil from "../../util/cache";
+import companyWorkingInfoService from "../common/service/companyWorkingInfo.service";
 
 const getDashboardInventorySummary = async (req: Request, res: Response) => {
     let products = await productService.findAllAndByStatusIn([WellKnownStatus.ACTIVE]) || [];
@@ -251,19 +253,37 @@ const getMonthlyIncomeExpense = async (req: Request, res: Response) => {
                 .split("T")[0];
 
             if (i <= currentMonth) {
-                let trips = await tripService.findAllByStatusInAndOnlyFromEndDate(
-                    [WellKnownTripStatus.FINISHED],
-                    startDate,
-                    endDate
-                );
 
-                let totalIncome = await getIncomeForDateRange(startDate, endDate, trips);
-                let totalExpenses = await getExpensesForDateRange(startDate, endDate, trips);
+                const cacheKey = `monthlyIncomeExpense_${currentYear}_${i}`;
+                const cached: any = await cacheUtil.getCache(cacheKey);
 
-                let monthData = monthlyData.find(m => m.monthIndex === i);
-                if (monthData) {
-                    monthData.income = totalIncome ?? 0;
-                    monthData.expenses = totalExpenses ?? 0;
+                if (cached) {
+                    let monthData = monthlyData.find(m => m.monthIndex === i);
+                    if (monthData) {
+                        monthData.income = cached.income;
+                        monthData.expenses = cached.expenses;
+                    }
+
+                } else {
+                    let trips = await tripService.findAllByStatusInAndOnlyFromEndDate(
+                        [WellKnownTripStatus.FINISHED],
+                        startDate,
+                        endDate
+                    );
+
+                    let totalIncome = await getIncomeForDateRange(startDate, endDate, trips);
+                    let totalExpenses = await getExpensesForDateRange(startDate, endDate, trips);
+
+                    let monthData = monthlyData.find(m => m.monthIndex === i);
+                    if (monthData) {
+                        monthData.income = totalIncome ?? 0;
+                        monthData.expenses = totalExpenses ?? 0;
+
+                        const workingInfo = await companyWorkingInfoService.getCompanyWorkingInfo();
+                        if (workingInfo && new Date(startDate) < new Date(workingInfo.workingDate)) {
+                            cacheUtil.setCache(cacheKey, { income: totalIncome ?? 0, expenses: totalExpenses ?? 0 }, constants.CACHE.DURATION.ONE_YEAR);
+                        }
+                    }
                 }
             } else {
                 break;
