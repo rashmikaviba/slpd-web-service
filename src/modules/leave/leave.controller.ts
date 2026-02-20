@@ -451,11 +451,6 @@ const approveLeave = async (req: Request, res: Response) => {
         }
     }
 
-    await leaveService.clearTotalLeaveDaysCache(
-        appliedUser._id,
-        fromYear
-    );
-
     const session = await startSession();
     let leaveUpdate = null;
     try {
@@ -481,6 +476,11 @@ const approveLeave = async (req: Request, res: Response) => {
     } finally {
         session.endSession();
     }
+
+    await leaveService.clearTotalLeaveDaysCache(
+        appliedUser._id,
+        fromYear
+    );
 
     return CommonResponse(
         res,

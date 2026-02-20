@@ -45,6 +45,8 @@ const constants = {
             ONE_WEEK: 60 * 60 * 24 * 7,
             ONE_MONTH: 60 * 60 * 24 * 30,
             THREE_MONTHS: 60 * 60 * 24 * 30 * 3,
+            SIX_MONTHS: 60 * 60 * 24 * 30 * 6,
+            ONE_YEAR: 60 * 60 * 24 * 365,
         }
     }
 };
