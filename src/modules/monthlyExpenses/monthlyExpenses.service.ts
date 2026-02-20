@@ -1,6 +1,10 @@
+import constants from "../../constant";
+import cache from "../../util/cache";
 import MonthlyExpenses from "./monthlyExpenses.model";
 
 const save = async (monthlyExpenses: any, session: any) => {
+    let prefix = constants.CACHE.PREFIX.MONTHLY_EXPENSES;
+    cache.clearCacheByPrefixs(prefix);
     if (session) {
         return await monthlyExpenses.save({ session });
     } else {
@@ -13,6 +17,11 @@ const findAllByEndMonthAndStatusIn = async (
     currYear: number,
     status: number[]
 ) => {
+
+    let cacheKey = constants.CACHE.PREFIX.MONTHLY_EXPENSES + endMonth + currYear + JSON.stringify(status);
+    const cached = await cache.getCache(cacheKey) as any[];
+    if (cached) return cached;
+
     let endDate = new Date();
     endDate.setFullYear(currYear);
     endDate.setMonth(endMonth);
@@ -20,11 +29,17 @@ const findAllByEndMonthAndStatusIn = async (
 
     endDate.setHours(23, 59, 59, 999);
 
-    return MonthlyExpenses.find({
+    let data: any[] = await MonthlyExpenses.find({
         month: { $lt: endDate },
         status: { $in: status },
         isMonthEndDone: false,
     }).sort({ startDate: 1 });
+
+    if (data) {
+        cache.setCache(cacheKey, data, constants.CACHE.DURATION.ONE_WEEK);
+    }
+
+    return data;
 };
 
 const findByIdAndStatusIn = async (id: any, status: any) => {
@@ -33,9 +48,20 @@ const findByIdAndStatusIn = async (id: any, status: any) => {
 
 
 const advanceSearch = async (startMonth: Date, endMonth: Date) => {
-    return await MonthlyExpenses.find({ month: { $gte: startMonth, $lte: endMonth } })
+    let prefix = constants.CACHE.PREFIX.MONTHLY_EXPENSES + "AdvanceSearch-" + startMonth + endMonth;
+
+    const cached = await cache.getCache(prefix) as any[];
+    if (cached) return cached;
+
+    let data: any[] = await MonthlyExpenses.find({ month: { $gte: startMonth, $lte: endMonth } })
         .populate('createdBy updatedBy')
         .sort({ startDate: 1 });
+
+    if (data) {
+        cache.setCache(prefix, data, constants.CACHE.DURATION.ONE_WEEK);
+    }
+
+    return data;
 };
 
 

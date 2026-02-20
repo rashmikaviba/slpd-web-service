@@ -1,6 +1,10 @@
+import constants from "../../constant";
+import cacheUtil from "../../util/cache";
 import vehiclemaintenanceModel from "./vehicleMaintenance.model";
 
 const save = async (vehicleMaintain: any, session: any) => {
+    let prefix = constants.CACHE.PREFIX.VEHICLE_MAINTENANCE;
+    cacheUtil.clearCacheByPrefixs(prefix);
     if (session) {
         return await vehicleMaintain.save({ session });
     } else {
@@ -21,17 +25,27 @@ const findAllByMaintenanceDateAndStatusIn = async (
     startDate: string,
     endDate: string
 ) => {
+    let cacheKey = constants.CACHE.PREFIX.VEHICLE_MAINTENANCE + startDate + endDate + JSON.stringify(statuses);
+    const cached = cacheUtil.getCache(cacheKey) as any[];
+    if (cached) return cached;
+
     let sDate = new Date(startDate);
     let eDate = new Date(endDate);
 
     sDate.setHours(0, 0, 0, 0); // Set time to midnight
     eDate.setHours(23, 59, 59, 999); // Set time to 23:59:59.999
-    return await vehiclemaintenanceModel.find({
+    const data: any[] = await vehiclemaintenanceModel.find({
         status: { $in: statuses },
         maintenanceDate: { $gte: sDate, $lte: eDate },
     })
         .populate('vehicle garage createdBy updatedBy')
         .sort({ maintenanceDate: 1 });
+
+    if (data) {
+        cacheUtil.setCache(cacheKey, data, constants.CACHE.DURATION.ONE_WEEK);
+    }
+
+    return data;
 };
 
 const findAllByEndMonthAndStatusIn = async (

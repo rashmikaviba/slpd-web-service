@@ -628,6 +628,8 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
         // get only finished trips with driver salary
         if (trips.length > 0 && +status == 5) {
             trips = trips.filter((trip: any) => trip.isDriverSalaryDone);
+        } else if (trips.length > 0 && +status == WellKnownTripStatus.FINISHED) {
+            trips = trips.filter((trip: any) => !trip.isDriverSalaryDone);
         }
 
         sortTrips(trips);
@@ -865,6 +867,8 @@ const changeTripStatus = async (req: Request, res: Response) => {
                 trip.status = status;
                 trip.startedBy = null;
                 trip.updatedBy = auth.id;
+                trip.checkListAnswers = null;
+                trip.checkListCheckBy = null;
 
                 // delete expenses
                 await expensesService.findAndHardDeleteByTripId(
@@ -1370,8 +1374,6 @@ const updateHotelActivityPayment = async (req: Request, res: Response) => {
                 throw new BadRequestError(
                     'Selected hotel is not paid by company!'
                 );
-            } else if (hotel.isPaymentDone) {
-                throw new BadRequestError('Selected hotel is already paid!');
             }
 
             hotel.isPaymentDone = true;

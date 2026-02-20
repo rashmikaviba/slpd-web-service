@@ -1,9 +1,14 @@
+import constants from '../../constant';
+import cache from '../../util/cache';
 import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
 import { WellKnownTripStatus } from '../../util/enums/well-known-trip-status.enum';
 import Trip from '../trip/trip.model';
 import internalTrip from './internalTrip.model';
 
 const save = async (body: any, session: any) => {
+    const prifix = constants.CACHE.PREFIX.INTERNAL_TRIP;
+    cache.clearCacheByPrefixs(prifix);
+
     if (session) {
         return await body.save({ session });
     } else {
@@ -16,7 +21,11 @@ const findByIdAndStatusIn = async (id: any, status: any) => {
 };
 
 const findAllByVehicleId = async (vehicleId: any) => {
-    return await internalTrip
+    const cacheKey = constants.CACHE.PREFIX.INTERNAL_TRIP + vehicleId;
+    const cached = await cache.getCache(cacheKey) as any[];
+    if (cached) return cached;
+
+    const data: any[] = await internalTrip
         .find({
             vehicle: vehicleId,
             status: WellKnownStatus.ACTIVE,
@@ -34,6 +43,12 @@ const findAllByVehicleId = async (vehicleId: any) => {
             select: '_id userName',
         })
         .sort({ startDate: -1 });
+
+    if (data) {
+        cache.setCache(cacheKey, data, constants.CACHE.DURATION.ONE_WEEK);
+    }
+
+    return data;
 };
 
 const findAllByEndMonthAndStatusIn = async (
@@ -41,70 +56,27 @@ const findAllByEndMonthAndStatusIn = async (
     currYear: number,
     status: number[]
 ) => {
+    const cacheKey = constants.CACHE.PREFIX.INTERNAL_TRIP + endMonth + currYear + JSON.stringify(status);
+    const cached = await cache.getCache(cacheKey) as any[];
+    if (cached) return cached;
+
     let endDate = new Date();
     endDate.setFullYear(currYear);
     endDate.setMonth(endMonth);
     endDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
 
-    return internalTrip.find({
+    let data: any[] = await internalTrip.find({
         createdAt: { $lt: endDate },
         status: { $in: status },
         isMonthEndDone: false,
     });
+
+    if (data) {
+        cache.setCache(cacheKey, data, constants.CACHE.DURATION.ONE_WEEK);
+    }
+
+    return data;
 };
-
-// const validateVehicleForDateRange = async (
-//     startDate: Date,
-//     endDate: Date,
-//     vehicleId: string,
-//     internalTripId: string
-// ) => {
-//     let result: any[] = [];
-//     if (internalTripId) {
-//         result.push(
-//             await internalTrip
-//                 .findOne({
-//                     vehicle: vehicleId,
-//                     startDate: { $gte: startDate, $lt: endDate },
-//                     status: WellKnownStatus.ACTIVE,
-//                     _id: { $ne: internalTripId },
-//                 })
-//                 .lean()
-//                 .exec()
-//         );
-//     } else {
-//         result.push(
-//             await internalTrip
-//                 .findOne({
-//                     vehicle: vehicleId,
-//                     startDate: { $gte: startDate, $lt: endDate },
-//                     status: WellKnownStatus.ACTIVE,
-//                 })
-//                 .lean()
-//                 .exec()
-//         );
-//     }
-
-//     result.push(
-//         await Trip.find({
-//             startDate: { $gte: startDate, $lt: endDate },
-//             status: {
-//                 $in: [
-//                     WellKnownTripStatus.PENDING,
-//                     WellKnownTripStatus.START,
-//                     WellKnownTripStatus.FINISHED,
-//                 ],
-//             },
-//             vehicles: {
-//                 $elemMatch: {
-//                     vehicle: { $in: vehicleId },
-//                 },
-//             },
-//         })
-//     );
-
-//     return result.length > 0;
-// };
 
 const validateVehicleForDateRange = async (
     startDate: Date,

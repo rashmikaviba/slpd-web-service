@@ -45,21 +45,21 @@ const applyLeave = async (req: Request, res: Response) => {
         const appliedLeave =
             auth.role === constants.USER.ROLES.DRIVER
                 ? await applyDriverLeave(
-                      auth,
-                      startDate,
-                      endDate,
-                      dateCount,
-                      reason,
-                      session
-                  )
+                    auth,
+                    startDate,
+                    endDate,
+                    dateCount,
+                    reason,
+                    session
+                )
                 : await applyAdminLeave(
-                      auth,
-                      startDate,
-                      endDate,
-                      dateCount,
-                      reason,
-                      session
-                  );
+                    auth,
+                    startDate,
+                    endDate,
+                    dateCount,
+                    reason,
+                    session
+                );
 
         await session.commitTransaction();
 
@@ -180,23 +180,23 @@ const updateLeave = async (req: Request, res: Response) => {
         const appliedLeave =
             auth.role === constants.USER.ROLES.DRIVER
                 ? await updateDriverLeave(
-                      auth,
-                      startDate,
-                      endDate,
-                      dateCount,
-                      reason,
-                      leave,
-                      session
-                  )
+                    auth,
+                    startDate,
+                    endDate,
+                    dateCount,
+                    reason,
+                    leave,
+                    session
+                )
                 : await updateAdminLeave(
-                      auth,
-                      startDate,
-                      endDate,
-                      dateCount,
-                      reason,
-                      leave,
-                      session
-                  );
+                    auth,
+                    startDate,
+                    endDate,
+                    dateCount,
+                    reason,
+                    leave,
+                    session
+                );
 
         await session.commitTransaction();
     } catch (error) {
@@ -253,7 +253,7 @@ const updateAdminLeave = async (
     if (
         leaveCountForYear == 0 &&
         leaveCountForYear - leave.dateCount + dateCount <=
-            appliedAdmin.leaveCount
+        appliedAdmin.leaveCount
     ) {
         throw new BadRequestError(
             `You have exceeded the leave limit for ${fromYear} year!`
@@ -283,17 +283,11 @@ const updateAdminLeave = async (
 };
 
 const getAllLeaves = async (req: Request, res: Response) => {
+    const year: number = parseInt(req.query.year as string) || new Date().getFullYear();
     const auth: any = req.auth;
     const userId = auth.id;
 
     let response: LeaveResponseDto[] = [];
-
-    const activeCompanyInfo: any =
-        await companyWorkingInfoService.getCompanyWorkingInfo();
-
-    if (!activeCompanyInfo) {
-        throw new BadRequestError('No active company information found!');
-    }
 
     // type 1 = driver
     // type 2 = admin, trip manager, finance officer
@@ -317,7 +311,7 @@ const getAllLeaves = async (req: Request, res: Response) => {
             const DriverLeaves =
                 await leaveService.findAllByUserIdYearAndStatus(
                     userId,
-                    activeCompanyInfo.workingYear,
+                    year,
                     [
                         WellKnownLeaveStatus.APPROVED,
                         WellKnownLeaveStatus.REJECTED,
@@ -331,7 +325,7 @@ const getAllLeaves = async (req: Request, res: Response) => {
         case 2:
             const adminLeaves = await leaveService.findAllByUserIdYearAndStatus(
                 userId,
-                activeCompanyInfo.workingYear,
+                year,
                 [
                     WellKnownLeaveStatus.APPROVED,
                     WellKnownLeaveStatus.REJECTED,
@@ -346,7 +340,7 @@ const getAllLeaves = async (req: Request, res: Response) => {
             const superAdminLeaves =
                 await leaveService.findAllByUserIdYearAndStatus(
                     '',
-                    activeCompanyInfo.workingYear,
+                    year,
                     [
                         WellKnownLeaveStatus.APPROVED,
                         WellKnownLeaveStatus.REJECTED,
@@ -361,23 +355,23 @@ const getAllLeaves = async (req: Request, res: Response) => {
                         leave.status == WellKnownLeaveStatus.APPROVED ||
                         leave.status == WellKnownLeaveStatus.REJECTED
                     ) {
-                        const appliedUser: any =
-                            await userService.findByIdWithGenderRole(
-                                leave.appliedUser._id
-                            );
-
+                        // const appliedUser: any =
+                        //     await userService.findByIdWithGenderRole(
+                        //         leave.appliedUser._id
+                        //     );
+                        const appliedUser = leave.appliedUser;
                         if (
                             appliedUser?.role?.id ==
-                                constants.USER.ROLES.ADMIN ||
+                            constants.USER.ROLES.ADMIN ||
                             appliedUser?.role?.id ==
-                                constants.USER.ROLES.FINANCEOFFICER ||
+                            constants.USER.ROLES.FINANCEOFFICER ||
                             appliedUser?.role?.id ==
-                                constants.USER.ROLES.TRIPMANAGER
+                            constants.USER.ROLES.TRIPMANAGER
                         ) {
                             const availableLeaveCount =
                                 await leaveService.getTotalLeaveDaysFromYear(
                                     appliedUser._id,
-                                    activeCompanyInfo.workingYear
+                                    year
                                 );
 
                             leave.availableLeaveCount =
@@ -438,12 +432,13 @@ const approveLeave = async (req: Request, res: Response) => {
         leave?.appliedUser?._id
     );
 
+    const fromYear = new Date(leave?.startDate).getFullYear();
+
     if (
         appliedUser?.role?.id === constants.USER.ROLES.ADMIN ||
         appliedUser?.role?.id === constants.USER.ROLES.FINANCEOFFICER ||
         appliedUser?.role?.id === constants.USER.ROLES.TRIPMANAGER
     ) {
-        const fromYear = new Date(leave?.startDate).getFullYear();
         const leaveCountForYear = await leaveService.getTotalLeaveDaysFromYear(
             appliedUser._id,
             fromYear
@@ -481,6 +476,11 @@ const approveLeave = async (req: Request, res: Response) => {
     } finally {
         session.endSession();
     }
+
+    await leaveService.clearTotalLeaveDaysCache(
+        appliedUser._id,
+        fromYear
+    );
 
     return CommonResponse(
         res,
@@ -585,13 +585,14 @@ const cancelLeave = async (req: Request, res: Response) => {
 
 const getLeaveCount = async (req: Request, res: Response) => {
     const auth: any = req.auth;
+    const year: number = req.query.year ? Number(req.query.year) : new Date().getFullYear();
 
-    const activeCompanyInfo: any =
-        await companyWorkingInfoService.getCompanyWorkingInfo();
+    // const activeCompanyInfo: any =
+    //     await companyWorkingInfoService.getCompanyWorkingInfo();
 
-    if (!activeCompanyInfo) {
-        throw new BadRequestError('Company not found!');
-    }
+    // if (!activeCompanyInfo) {
+    //     throw new BadRequestError('Company not found!');
+    // }
     let response: LeaveCountResponseDto;
     let approveLeaveCount: number = 0;
     let rejectLeaveCount: number = 0;
@@ -612,27 +613,29 @@ const getLeaveCount = async (req: Request, res: Response) => {
         auth.role === constants.USER.ROLES.TRIPMANAGER
     ) {
         type = 2;
-    } else if (auth.role === constants.USER.ROLES.SUPERADMIN) {
-        type = 3;
     }
+
+    // else if (auth.role === constants.USER.ROLES.SUPERADMIN) {
+    //     type = 3;
+    // }
 
     switch (type) {
         case 2:
             approveLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
                 auth.id,
-                activeCompanyInfo.workingYear,
+                year,
                 [WellKnownLeaveStatus.APPROVED]
             );
 
             rejectLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
                 auth.id,
-                activeCompanyInfo.workingYear,
+                year,
                 [WellKnownLeaveStatus.REJECTED]
             );
 
             pendingLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
                 auth.id,
-                activeCompanyInfo.workingYear,
+                year,
                 [WellKnownLeaveStatus.PENDING]
             );
 
@@ -641,7 +644,7 @@ const getLeaveCount = async (req: Request, res: Response) => {
             const leaveCountForYear =
                 await leaveService.getTotalLeaveDaysFromYear(
                     auth.id,
-                    activeCompanyInfo.workingYear
+                    year
                 );
 
             remainingLeaveCount = admin.leaveCount - leaveCountForYear;
@@ -653,49 +656,49 @@ const getLeaveCount = async (req: Request, res: Response) => {
         case 1:
             approveLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
                 auth.id,
-                activeCompanyInfo.workingYear,
+                year,
                 [WellKnownLeaveStatus.APPROVED]
             );
 
             rejectLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
                 auth.id,
-                activeCompanyInfo.workingYear,
+                year,
                 [WellKnownLeaveStatus.REJECTED]
             );
 
             pendingLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
                 auth.id,
-                activeCompanyInfo.workingYear,
+                year,
                 [WellKnownLeaveStatus.PENDING]
             );
 
             break;
 
-        case 3:
-            approveLeaveCount =
-                await leaveService.countByMonthYearUserIdAndStatusIn(
-                    '',
-                    activeCompanyInfo.workingYear,
-                    activeCompanyInfo.workingMonth,
-                    [WellKnownLeaveStatus.APPROVED]
-                );
+        // case 3:
+        //     approveLeaveCount =
+        //         await leaveService.countByMonthYearUserIdAndStatusIn(
+        //             '',
+        //             activeCompanyInfo.workingYear,
+        //             activeCompanyInfo.workingMonth,
+        //             [WellKnownLeaveStatus.APPROVED]
+        //         );
 
-            rejectLeaveCount =
-                await leaveService.countByMonthYearUserIdAndStatusIn(
-                    '',
-                    activeCompanyInfo.workingYear,
-                    activeCompanyInfo.workingMonth,
-                    [WellKnownLeaveStatus.REJECTED]
-                );
+        //     rejectLeaveCount =
+        //         await leaveService.countByMonthYearUserIdAndStatusIn(
+        //             '',
+        //             activeCompanyInfo.workingYear,
+        //             activeCompanyInfo.workingMonth,
+        //             [WellKnownLeaveStatus.REJECTED]
+        //         );
 
-            pendingLeaveCount =
-                await leaveService.countByMonthYearUserIdAndStatusIn(
-                    '',
-                    activeCompanyInfo.workingYear,
-                    activeCompanyInfo.workingMonth,
-                    [WellKnownLeaveStatus.PENDING]
-                );
-            break;
+        //     pendingLeaveCount =
+        //         await leaveService.countByMonthYearUserIdAndStatusIn(
+        //             '',
+        //             activeCompanyInfo.workingYear,
+        //             activeCompanyInfo.workingMonth,
+        //             [WellKnownLeaveStatus.PENDING]
+        //         );
+        //     break;
 
         default:
             break;

@@ -1,4 +1,5 @@
 import constants from '../../constant';
+import cacheUtil from '../../util/cache';
 import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
 import { WellKnownTripStatus } from '../../util/enums/well-known-trip-status.enum';
 import Auth from '../auth/auth.model';
@@ -7,6 +8,9 @@ import Trip from '../trip/trip.model';
 import User from './user.model';
 
 const Save = async (user: any, session: any) => {
+    const prefixes = Object.values(constants.CACHE.PREFIX).join(",");
+    cacheUtil.clearCacheByPrefixs(prefixes);
+
     if (session) {
         return await user.save({ session });
     } else {
@@ -103,7 +107,11 @@ const findAll = async () => {
 };
 
 const findAllWithGenderRole = async () => {
-    let users = await User.find({
+    const cacheKey = constants.CACHE.PREFIX.USER + 'findAllWithGenderRole';
+    const cached = cacheUtil.getCache(cacheKey) as any[];
+    if (cached) return cached;
+
+    let users: any[] = await User.find({
         status: WellKnownStatus.ACTIVE,
     })
         .populate([
@@ -138,11 +146,19 @@ const findAllWithGenderRole = async () => {
         }
     }
 
+    if (users.length > 0) {
+        cacheUtil.setCache(cacheKey, users, constants.CACHE.DURATION.ONE_WEEK);
+    }
+
     return users;
 };
 
 const findAllByRoleId = async (roleId: string) => {
-    let users: any = await Auth.find({
+    const cacheKey = constants.CACHE.PREFIX.USER + roleId;
+    const cached = await cacheUtil.getCache(cacheKey) as any[];
+    if (cached.length > 0) return cached;
+
+    let users: any[] = await Auth.find({
         role: roleId,
         status: WellKnownStatus.ACTIVE,
         isBlocked: false,
@@ -151,6 +167,10 @@ const findAllByRoleId = async (roleId: string) => {
     users = users.map((user: any) => {
         return user.user;
     });
+
+    if (users.length > 0) {
+        cacheUtil.setCache(cacheKey, users, constants.CACHE.DURATION.ONE_WEEK);
+    }
 
     return users || [];
 };

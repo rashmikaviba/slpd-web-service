@@ -9,10 +9,12 @@ import CommonResponse from "../../util/commonResponse";
 import { StatusCodes } from "http-status-codes";
 import monthlyExpensesUtil from "./monthlyExpenses.util";
 import MonthlyExpensesResponseDto from "./dto/monthlyExpensesResponseDto";
+import helperUtil from "../../util/helper.util";
 
 const saveMonthlyExpense = async (req: Request, res: Response) => {
     const id = req.params.id;
     const auth = req.auth;
+    const correlationId = req.correlationId;
     const {
         expenseType,
         expenseTypeName,
@@ -60,12 +62,16 @@ const saveMonthlyExpense = async (req: Request, res: Response) => {
         ) || 0;
 
 
+        let logMessage = `MONTHLY_EXPENSES | Expense Created Amount: ${amount} | Added By: ${auth.id} | Previous Total Expenses: ${monthlyExpense.totalExpenses} | New Total Expenses: ${totalExpenses} | Correlation ID: ${correlationId}`;
+
         monthlyExpense.totalExpenses = totalExpenses;
         monthlyExpense.updatedBy = auth.id;
 
         await monthlyExpensesService.save(monthlyExpense, session);
 
         await session.commitTransaction();
+
+        helperUtil.consoleLogMessage("info", logMessage);
 
         return CommonResponse(
             res,
@@ -86,6 +92,7 @@ const updateMonthlyExpense = async (req: Request, res: Response) => {
     const id = req.params.id;
     const expenseId = req.params.expenseId;
     const auth = req.auth;
+    const correlationId = req.correlationId;
     const {
         expenseType,
         expenseTypeName,
@@ -131,12 +138,15 @@ const updateMonthlyExpense = async (req: Request, res: Response) => {
             0
         ) || 0;
 
+        let logMessage = `MONTHLY_EXPENSES | Expense Updated Amount: ${amount} | Updated By: ${auth.id} | Previous Total Expenses: ${monthlyExpense.totalExpenses} | New Total Expenses: ${totalExpenses} | Correlation ID: ${correlationId}`;
         monthlyExpense.totalExpenses = totalExpenses;
         monthlyExpense.updatedBy = auth.id;
 
         await monthlyExpensesService.save(monthlyExpense, session);
 
         await session.commitTransaction();
+
+        helperUtil.consoleLogMessage("info", logMessage);
 
         return CommonResponse(
             res,
@@ -157,6 +167,7 @@ const deleteMonthlyExpense = async (req: Request, res: Response) => {
     const id = req.params.id;
     const expenseId = req.params.expenseId;
     const auth = req.auth;
+    const correlationId = req.correlationId;
 
     let monthlyExpense = await monthlyExpensesService.findByIdAndStatusIn(id, [WellKnownStatus.ACTIVE, WellKnownStatus.INACTIVE]);
 
@@ -185,12 +196,16 @@ const deleteMonthlyExpense = async (req: Request, res: Response) => {
             0
         ) || 0;
 
+        let logMessage = `MONTHLY_EXPENSES | Expense Deleted Amount: ${selectedExpense.amount} | Updated By: ${auth.id} | Previous Total Expenses: ${monthlyExpense.totalExpenses} | New Total Expenses: ${totalExpenses} | Correlation ID: ${correlationId}`;
+
         monthlyExpense.totalExpenses = totalExpenses;
         monthlyExpense.updatedBy = auth.id;
 
         await monthlyExpensesService.save(monthlyExpense, session);
 
         await session.commitTransaction();
+
+        helperUtil.consoleLogMessage("info", logMessage);
 
         return CommonResponse(
             res,

@@ -15,6 +15,7 @@ import { getActiveSocketIdsByRoles, io } from '../../config/soket.config';
 import constants from '../../constant';
 import ExpensesExtensionResponseDto from '../notification/dto/expensesExtensionResponseDto';
 import notificationUtil from '../notification/notification.util';
+import helperUtil from '../../util/helper.util';
 
 const requestMoreExpenses = async (req: Request, res: Response) => {
     const body: any = req.body;
@@ -101,6 +102,7 @@ const approveExpensesRequest = async (req: Request, res: Response) => {
     const body: any = req.body;
     const auth: any = req.auth;
     const expenseReqId: string = req.params.id;
+    const correlationId: string = req.correlationId;
 
     const { error } =
         expensesRequestValidation.approveExpenseRequestSchema.validate(body);
@@ -150,6 +152,7 @@ const approveExpensesRequest = async (req: Request, res: Response) => {
 
         await expensesRequestService.save(expenseRequest, session);
 
+        let logMessage = `EXPENSE_REQUEST_APPROVED: Previously estimated expense : ${trip.estimatedExpense} | Approved additional amount : ${body.approvedAmount} | New estimated expense : ${trip.estimatedExpense + body.approvedAmount} | Trip ID: ${trip._id} | Approved By: ${auth.id} | Correlation ID: ${correlationId}`;
         // update trip total expenses
         trip.estimatedExpense += body.approvedAmount;
         trip.updatedBy = auth.id;
@@ -175,6 +178,8 @@ const approveExpensesRequest = async (req: Request, res: Response) => {
                 data: response,
             });
         }
+
+        helperUtil.consoleLogMessage("info", logMessage);
 
         CommonResponse(
             res,
