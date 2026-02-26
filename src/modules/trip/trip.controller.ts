@@ -1398,8 +1398,6 @@ const updateHotelActivityPayment = async (req: Request, res: Response) => {
                 throw new BadRequestError(
                     'Selected activity is not paid by company!'
                 );
-            } else if (activity.isPaymentDone) {
-                throw new BadRequestError('Selected activity is already paid!');
             }
 
             activity.isPaymentDone = true;
