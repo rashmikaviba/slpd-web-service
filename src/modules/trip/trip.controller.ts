@@ -25,6 +25,8 @@ import posService from '../pos/pos.service';
 import productService from '../inventory/product/product.service';
 import { measureUnit } from '../../util/data/measureUnitData';
 import { WellKnownGrnLogType } from '../../util/enums/well-known-grn-log-type.enum';
+import expenseRequestService from '../expenseRequest/expenseRequest.service';
+import { WellKnownLeaveStatus } from '../../util/enums/well-known-leave-status.enum';
 
 const saveTrip = async (req: Request, res: Response) => {
     const body: any = req.body;
@@ -830,6 +832,10 @@ const changeTripStatus = async (req: Request, res: Response) => {
                     );
                 }
 
+                if (trip.isMonthEndDone) {
+                    throw new BadRequestError('Trip is already month end done!');
+                }
+
                 trip.status = status;
                 trip.startedBy = auth.id;
 
@@ -854,9 +860,40 @@ const changeTripStatus = async (req: Request, res: Response) => {
                     );
                 }
 
+                if (trip.isMonthEndDone) {
+                    throw new BadRequestError('Trip is already month end done!');
+                }
+
+                // check Expenses added, Expense request added or hotel activity payment added
+                let expenses = await expensesService.findByTripIdAndStatusIn(tripId, [WellKnownStatus.ACTIVE]);
+                let expenseRequest = await expenseRequestService.findByTripIdAndStatusIn(tripId, [WellKnownLeaveStatus.PENDING, WellKnownLeaveStatus.APPROVED]);
+
+                let isHotelPaymentDone = trip?.hotels.filter((hotel: any) => hotel.isPaymentDone).length > 0;
+                let isActivityPaymentDone = trip?.activities.filter((activity: any) => activity.isPaymentDone).length > 0;
+                let isActiveExpensesExist = expenses != null && expenses.expenses.filter((expense: any) => expense.status == WellKnownStatus.ACTIVE).length > 0 && expenses.driverSalaries.length > 0;
+                let isActiveExpenseRequestExist = expenseRequest != null && expenseRequest.length > 0;
+
                 let isPlaceReached = trip?.places.find(
                     (place: any) => place.isReached == true
                 );
+
+                if (isHotelPaymentDone || isActivityPaymentDone) {
+                    throw new BadRequestError(
+                        "Can't change status to pending after hotel or activity payment done!"
+                    );
+                }
+
+                if (isActiveExpensesExist) {
+                    throw new BadRequestError(
+                        "Can't change status to pending after expense added or driver salary added!"
+                    );
+                }
+
+                if (isActiveExpenseRequestExist) {
+                    throw new BadRequestError(
+                        "Can't change status to pending after expense request added!"
+                    );
+                }
 
                 if (isPlaceReached) {
                     throw new BadRequestError(
@@ -904,6 +941,10 @@ const changeTripStatus = async (req: Request, res: Response) => {
                     );
                 }
 
+                if (trip.isMonthEndDone) {
+                    throw new BadRequestError('Trip is already month end done!');
+                }
+
                 const tripPosTransaction: any = await posService.findByTripIdAndStatusIn(
                     tripId,
                     [WellKnownStatus.ACTIVE]
@@ -928,9 +969,40 @@ const changeTripStatus = async (req: Request, res: Response) => {
                     );
                 }
 
+                if (trip.isMonthEndDone) {
+                    throw new BadRequestError('Trip is already month end done!');
+                }
+
+                // check Expenses added, Expense request added or hotel activity payment added
+                let expenses = await expensesService.findByTripIdAndStatusIn(tripId, [WellKnownStatus.ACTIVE]);
+                let expenseRequest = await expenseRequestService.findByTripIdAndStatusIn(tripId, [WellKnownLeaveStatus.PENDING, WellKnownLeaveStatus.APPROVED]);
+
+                let isHotelPaymentDone = trip?.hotels.filter((hotel: any) => hotel.isPaymentDone).length > 0;
+                let isActivityPaymentDone = trip?.activities.filter((activity: any) => activity.isPaymentDone).length > 0;
+                let isActiveExpensesExist = expenses != null && expenses.expenses.filter((expense: any) => expense.status == WellKnownStatus.ACTIVE).length > 0 && expenses.driverSalaries.length > 0;
+                let isActiveExpenseRequestExist = expenseRequest != null && expenseRequest.length > 0;
+
                 let isPlaceReached = trip?.places.find(
                     (place: any) => place.isReached == true
                 );
+
+                if (isHotelPaymentDone || isActivityPaymentDone) {
+                    throw new BadRequestError(
+                        "Can't change status to pending after hotel or activity payment done!"
+                    );
+                }
+
+                if (isActiveExpensesExist) {
+                    throw new BadRequestError(
+                        "Can't change status to pending after expense added or driver salary added!"
+                    );
+                }
+
+                if (isActiveExpenseRequestExist) {
+                    throw new BadRequestError(
+                        "Can't change status to pending after expense request added!"
+                    );
+                }
 
                 if (isPlaceReached) {
                     throw new BadRequestError(
