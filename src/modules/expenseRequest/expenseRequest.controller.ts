@@ -62,7 +62,7 @@ const requestMoreExpenses = async (req: Request, res: Response) => {
         await expensesRequestService.save(newExpenseRequest, null);
 
         // send notification to admins
-        let activeSockets = getActiveSocketIdsByRoles([
+        let activeSockets = await getActiveSocketIdsByRoles([
             constants.USER.ROLES.SUPERADMIN,
             constants.USER.ROLES.ADMIN,
             constants.USER.ROLES.FINANCEOFFICER,
@@ -160,7 +160,7 @@ const approveExpensesRequest = async (req: Request, res: Response) => {
         await tripService.save(trip, session);
 
         // send notification to admins
-        let activeSockets = getActiveSocketIdsByRoles([
+        let activeSockets = await getActiveSocketIdsByRoles([
             constants.USER.ROLES.SUPERADMIN,
             constants.USER.ROLES.ADMIN,
             constants.USER.ROLES.FINANCEOFFICER,
@@ -234,7 +234,7 @@ const rejectExpensesRequest = async (req: Request, res: Response) => {
         await expensesRequestService.save(expenseRequest, null);
 
         // send notification to admins
-        let activeSockets = getActiveSocketIdsByRoles([
+        let activeSockets = await getActiveSocketIdsByRoles([
             constants.USER.ROLES.SUPERADMIN,
             constants.USER.ROLES.ADMIN,
             constants.USER.ROLES.FINANCEOFFICER,

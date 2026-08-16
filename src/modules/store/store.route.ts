@@ -1,19 +1,22 @@
 import { Router } from 'express';
 import { UploadFile, UploadMultipleFiles } from './store.controller';
-import { upload } from '../../util/multer.util';
+import { secureUpload } from '../../util/multer.util';
+import authMiddleware from '../../middleware/auth.middleware';
 import applicationRoutes from '../../applicationRoutes';
 
 const StoreRouter = Router();
 
 StoreRouter.post(
     applicationRoutes.store.uploadFile,
-    upload.single('file'),
+    authMiddleware.authorize(),
+    secureUpload.single('file'),
     UploadFile
 );
 
 StoreRouter.post(
     applicationRoutes.store.uploadMultipleFiles,
-    upload.array('files', 10),
+    authMiddleware.authorize(),
+    secureUpload.array('files', 10),
     UploadMultipleFiles
 );
 

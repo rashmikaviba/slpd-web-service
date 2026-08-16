@@ -1,44 +1,61 @@
 import { Server } from 'socket.io';
-import express, { Express, Request, Response } from 'express';
+import express, { Express } from 'express';
 
 import http from 'http';
 import { envConfig } from './environment.config';
+
+import jwtUtil from '../util/jwt.util';
+import Auth from '../modules/auth/auth.model';
+import { WellKnownStatus } from '../util/enums/well-known-status.enum';
 
 const app: Express = express();
 
 const server = http.createServer(app);
 
+const allowedOrigins = (envConfig.CLIENT_URL || '').split(',').map((origin) => origin.trim()).filter(Boolean);
+
 const io = new Server(server, {
     cors: {
-        origin: [envConfig.CLIENT_URL as string],
+        origin: allowedOrigins,
         methods: ['GET', 'POST'],
     },
 });
 
-export const getActiveSocketIdsByRoles = (roles: number[]): string[] => {
-    // Filter keys in the useSocketMap by roles
-    const matchingKeys = Object.keys(useSocketMap).filter((key) =>
-        roles.some((role) => key.startsWith(role.toString()))
-    );
+io.use(async (socket, next) => {
+    const header = socket.handshake.headers.authorization;
+    const suppliedToken = socket.handshake.auth?.token || header;
+    const token = typeof suppliedToken === 'string'
+        ? suppliedToken.replace(/^Bearer\s+/i, '')
+        : '';
 
-    // Map the matching keys to their corresponding socket IDs
-    return matchingKeys.map((key) => useSocketMap[key]);
-};
+    if (!token) return next(new Error('Authentication required'));
 
-// to store the socket id of the user with role id
-const useSocketMap: any = {};
+    try {
+        const payload: any = jwtUtil.verifyToken(token);
+        const auth = await Auth.findOne({
+            _id: payload.authId,
+            status: WellKnownStatus.ACTIVE,
+            isBlocked: false,
+        }).select('_id role user').populate('role', 'id').lean() as any;
 
-// socket connection and disconnection
-io.on('connection', (socket) => {
-    const userWithRoleId: any = socket.handshake.query.userWithRoleId;
+        if (!auth || !auth.user || auth.user.toString() !== payload.id || auth.role?.id !== payload.role) {
+            return next(new Error('Authentication invalid'));
+        }
 
-    if (userWithRoleId !== undefined && userWithRoleId !== 'undefined') {
-        useSocketMap[userWithRoleId] = socket.id;
+        socket.data.auth = { authId: auth._id.toString(), userId: payload.id, role: auth.role.id };
+        return next();
+    } catch {
+        return next(new Error('Authentication invalid'));
     }
-
-    socket.on('disconnect', () => {
-        delete useSocketMap[userWithRoleId];
-    });
 });
+
+io.on('connection', (socket) => {
+    socket.join(`role:${socket.data.auth.role}`);
+});
+
+export const getActiveSocketIdsByRoles = async (roles: number[]): Promise<string[]> => {
+    const socketIds = await Promise.all(roles.map((role) => io.in(`role:${role}`).allSockets()));
+    return [...new Set(socketIds.flatMap((ids) => [...ids]))];
+};
 
 export { app, io, server };

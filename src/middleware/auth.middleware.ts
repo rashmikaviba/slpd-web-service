@@ -14,8 +14,8 @@ declare global {
     }
 }
 
-const authorize = (rolesArray: any = [], isNoNeedAuth: boolean = false) => {
-    if (!rolesArray) rolesArray = [];
+const authorize = (roles: number | number[] = [], isNoNeedAuth: boolean = false) => {
+    const rolesArray = Array.isArray(roles) ? roles : [roles];
 
     return async (req: Request, res: Response, next: NextFunction) => {
 
