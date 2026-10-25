@@ -17,7 +17,7 @@ All paths below are relative to the API prefix `/api/v1` (`src/constant.ts:3`, `
 | `src/modules/user/user.model.ts` | Mongoose `User` schema/model |
 | `src/modules/user/user.router.ts` | Express router: maps routes to controllers and role guards |
 | `src/modules/user/user.controller.ts` | Request handlers: create, update, block, unblock, list, get, validate, delete, by-role, available drivers |
-| `src/modules/user/user.service.ts` | DB access: save (with cache clear), uniqueness checks, finders, available-driver query |
+| `src/modules/user/user.service.ts` | DB access: save (with cache clear), uniqueness checks, finders (incl. batch `findAllByIdsWithRole`), available-driver query |
 | `src/modules/user/user.util.ts` | Mappers from the `User` document to `UserResponseDto` |
 | `src/modules/user/dto/userResponseDto.ts` | `UserResponseDto` TypeScript interface |
 
@@ -25,7 +25,9 @@ All paths below are relative to the API prefix `/api/v1` (`src/constant.ts:3`, `
 
 ### `User` (collection `users`), `src/modules/user/user.model.ts`
 
-Schema options: `timestamps: true` (`createdAt`, `updatedAt`), `versionKey: false`. **No indexes** are declared, and no unique constraints. Uniqueness is enforced only in application code (see §5). There are no hooks or virtuals.
+Schema options: `timestamps: true` (`createdAt`, `updatedAt`), `versionKey: false`. There are no hooks or virtuals.
+
+**Indexes** (`user.model.ts:177-179`, all **non-unique**, backing the uniqueness lookups): `{ userName: 1, status: 1 }`, `{ email: 1, status: 1 }`, `{ nic: 1, status: 1 }`. There are still no unique constraints; uniqueness is enforced only in application code (see §5).
 
 | Field | Type | Required / Default | Validation / Notes |
 |---|---|---|---|
@@ -61,15 +63,15 @@ Schema options: `timestamps: true` (`createdAt`, `updatedAt`), `versionKey: fals
 
 Mongoose validation errors (`ValidationError`) are turned into **400** with the first validator message by `src/middleware/error.middleware.ts:37-46`.
 
-Related model `Auth` (owned by the Auth module, see `auth.md`): `userName`, `password` (bcrypt), `isBlocked`, `user` → User, `role` → Role, `status`.
+Related model `Auth` (owned by the Auth module, see `auth.md`): `userName`, `password` (bcrypt), `isBlocked`, `user` → User, `role` → Role, `status`. It now has non-unique indexes `{userName, status}`, `{user, status}` and `{role, status, isBlocked}`, which serve this module's Auth lookups.
 
 ## 4. API Endpoints
 
-Base path: `/user` (`src/applicationRoutes.ts:18-30`, mounted in `src/mapping.ts:95`).
+Base path: `/user` (`src/applicationRoutes.ts:17-29`, mounted in `src/mapping.ts:30`).
 
 Role ids (`src/constant.ts:7-15`): 1 SUPERADMIN, 2 ADMIN, 3 DRIVER, 4 FINANCEOFFICER, 5 TRIPMANAGER, 6 DRIVERASSISTANT, 7 TRIPASSISTANT.
 
-Authorization (`src/middleware/auth.middleware.ts`): the request needs `Authorization: Bearer <jwt>`. The JWT is verified with issuer `cybertronix.com`. The `Auth` record is loaded by `payload.authId` (cached one week) and must exist with status ACTIVE and not be blocked. If a roles array is given, `payload.role` (the numeric role id in the token) must be in it. `req.auth` = `{ id: <userId>, userName, role: <numeric>, authId }`.
+Authorization (`src/middleware/auth.middleware.ts`): the request needs `Authorization: Bearer <jwt>`. The JWT is verified with issuer `cybertronix.com`. The `Auth` record is loaded by `payload.authId` (lean, cached one week) and must exist with status ACTIVE and not be blocked. If a roles array is given, `payload.role` (the numeric role id in the token) must be in it. `req.auth` = `{ id: <userId>, userName, role: <numeric>, authId }`.
 
 | Method | Full path | Controller | Allowed roles | Description |
 |---|---|---|---|---|
@@ -88,7 +90,7 @@ Route registration order (`user.router.ts`) matters for `GET`. `/getDriversForTr
 
 All responses use `CommonResponse` (`src/util/commonResponse.ts`): `{ isSuccessful, timeStamp, message, data }`.
 
-### 4.1 `POST /user/` — saveUser (`user.controller.ts:22-152`)
+### 4.1 `POST /user/` — saveUser (`user.controller.ts:21-151`)
 
 **Body** (no Joi or class-validator; only Mongoose schema validation applies): `fullName, userName, gender (numeric gender id, e.g. 1/2), dateOfBirth, address, phoneNumber1, phoneNumber2, email, profileImageUrl, nic, nicImageUrl, gsCertificateUrl, drivingLicenseUrl, sltdaCertificateUrl, policeReportUrl, bankName, bankId, branch, accountNumber, accountHolderName, accountHolderAddress, basicSalary, leaveCount, languages, role (numeric role id), isFreelanceDriver`.
 
@@ -112,7 +114,7 @@ All responses use `CommonResponse` (`src/util/commonResponse.ts`): `{ isSuccessf
 | 400 | Mongoose validation message (e.g. `Full Name is required`, `Bank Id is required`, `x is not a valid email`) |
 | 401/403 | Auth middleware errors |
 
-### 4.2 `PUT /user/:id` — updateUser (`user.controller.ts:155-294`)
+### 4.2 `PUT /user/:id` — updateUser (`user.controller.ts:154-293`)
 
 **Params**: `id` (User `_id`). **Body**: the same fields as create.
 
@@ -133,7 +135,7 @@ All responses use `CommonResponse` (`src/util/commonResponse.ts`): `{ isSuccessf
 
 > Note: the role inside existing JWTs is **not** refreshed. A user whose role changed keeps the old role in `req.auth.role` until they log in again or call `/auth/refreshAuth`.
 
-### 4.3 `PUT /user/block/:id` — blockUser (`user.controller.ts:297-319`)
+### 4.3 `PUT /user/block/:id` — blockUser (`user.controller.ts:296-318`)
 
 1. `authService.findByUserId(id)` (ACTIVE auth). If missing, **404** `User not found!`.
 2. If `auth.isBlocked` is already set, **400** `User already blocked!`.
@@ -141,11 +143,11 @@ All responses use `CommonResponse` (`src/util/commonResponse.ts`): `{ isSuccessf
 
 **Response**: **200** `"User blocked successfully!"`, `data: null`.
 
-### 4.4 `PUT /user/unblock/:id` — unblockUser (`user.controller.ts:322-344`)
+### 4.4 `PUT /user/unblock/:id` — unblockUser (`user.controller.ts:321-343`)
 
 This mirrors block. **400** `User already unblocked!` if the user is not blocked. **200** `"User unblocked successfully!"`.
 
-### 4.5 `GET /user/validateUser` — checkUserName (`user.controller.ts:379-433`)
+### 4.5 `GET /user/validateUser` — checkUserName (`user.controller.ts:378-432`)
 
 **Query**: `id` (optional; when present, update mode), `userName`, `email`, `nic`.
 
@@ -157,25 +159,25 @@ This mirrors block. **400** `User already unblocked!` if the user is not blocked
 - `NIC already exists, please try another NIC!`
 - `''`
 
-### 4.6 `GET /user/` — getAllUsers (`user.controller.ts:346-361`)
+### 4.6 `GET /user/` — getAllUsers (`user.controller.ts:345-360`)
 
 1. `userService.findAllWithGenderRole()`:
    - Cache key `user-findAllWithGenderRole` (one week).
    - On a miss: `User.find({ status: ACTIVE })`, populate `gender` (`_id name id`), `role` (`_id name id`), `createdBy` and `updatedBy` (`_id fullName`), sorted by `createdAt` descending.
-   - For **each** user it runs one more `Auth.findOne({ user, status: ACTIVE })` and sets `element.isBlock = auth.isBlocked` (an N+1 query pattern).
-   - The result is cached only if non-empty.
+   - Blocked flags come from **one** extra query (`user.service.ts:133-138`): `Auth.find({ user: { $in: <all user ids> }, status: ACTIVE }).select('user isBlocked').lean()`. The results go into a `Map` keyed by user id (first auth per user wins), and each user gets `element.isBlock = authByUser.get(id).isBlocked`.
+   - The result is cached only if non-empty. The cache does not clone (`useClones: false`), so every request gets the same array of Mongoose documents. `getAllUsers` only filters (new array) and maps, so it does not mutate the cached copy.
 2. Users whose `_id` equals `req.auth.id` (the caller) are removed.
 3. The rest are mapped with `userUtil.userModelToUserResponseDtos`.
 
 **Response**: **200**, `data: UserResponseDto[]` (see §6).
 
-### 4.7 `GET /user/:id` — getUserById (`user.controller.ts:363-377`)
+### 4.7 `GET /user/:id` — getUserById (`user.controller.ts:362-376`)
 
 `userService.findByIdWithGenderRole(id)` uses the same populate as the list, ACTIVE only, and **no cache**. The result is mapped to a DTO. If not found, **404** `User not found!`. An invalid ObjectId gives a CastError, which becomes **404** `No item found with ID "<id>"!`.
 
 `isBlackListed` is always `false` here, because `isBlock` is only set by `findAllWithGenderRole`.
 
-### 4.8 `DELETE /user/:id` — deleteUser (`user.controller.ts:435-478`)
+### 4.8 `DELETE /user/:id` — deleteUser (`user.controller.ts:434-477`)
 
 1. Load the ACTIVE auth (`findByUserId`) and the ACTIVE user (`findById`). If either is missing, **404** `User not found!`.
 2. Transaction: set `status = DELETED (3)` and `updatedBy` on both, save the user (clears all caches), save the auth (clears `auth-`), commit.
@@ -186,26 +188,26 @@ Afterwards the auth middleware's `authService.findById` (ACTIVE only) returns nu
 
 There is no check for self-deletion or for open trips or leaves.
 
-### 4.9 `GET /user/userByRole/:id` — getAllUsersByRole (`user.controller.ts:480-491`)
+### 4.9 `GET /user/userByRole/:id` — getAllUsersByRole (`user.controller.ts:479-489`)
 
 **Params**: `id` is the numeric role id (e.g. `3` for drivers).
 
 1. `roleService.findByCustomId(id)`. If the role is not found, `data: []`.
-2. Otherwise `userService.findAllByRoleId(role._id)` (`user.service.ts:156-176`):
+2. Otherwise `userService.findAllByRoleId(role._id)` (`user.service.ts:158-178`):
    - Reads cache key `user-<role ObjectId>`, then evaluates `cached.length > 0`.
    - On a miss: `Auth.find({ role, status: ACTIVE, isBlocked: false }).populate('user')`, mapped to `auth.user`, cached for one week if non-empty.
 
 **Response**: **200**, `data` is an array of raw `User` documents (not DTOs).
 
-> ⚠️ **Bug**: on a cache miss, `cacheUtil.getCache` returns `undefined`, and `cached.length` throws `TypeError`. Nothing else ever writes this key before line 159 runs, so as written this endpoint returns **500** whenever the role exists. The same applies to `dashboard.controller.ts:74`. See §8.
+> ⚠️ **Bug**: on a cache miss, `cacheUtil.getCache` returns `undefined`, and `cached.length` throws `TypeError` (`user.service.ts:161`). Nothing else ever writes this key before that line runs, so as written this endpoint returns **500** whenever the role exists. (The dashboard no longer calls this function.) See §8.
 
-### 4.10 `GET /user/getDriversForTrip` — getDriversForTrip (`user.controller.ts:493-511`)
+### 4.10 `GET /user/getDriversForTrip` — getDriversForTrip (`user.controller.ts:491-509`)
 
 **Query**: `startDate`, `endDate` (date strings, cast by Mongoose), `tripId` (optional; defaults to `''`).
 
 1. Resolve the DRIVER role (`findByCustomId('3')`).
-2. `userService.findDriversByNotInInternalTripsAndNormalTrips(role._id, startDate, endDate, tripId)` (`user.service.ts:178-235`):
-   - **Only if both dates are given**:
+2. `userService.findDriversByNotInInternalTripsAndNormalTrips(role._id, startDate, endDate, tripId)` (`user.service.ts:180-239`):
+   - **Only if both dates are given**, the two busy-driver queries run **in parallel** (`Promise.all`, `:189-222`), both `.lean()`:
      - Internal-trip drivers: `InternalTrip.find({ $or: OVERLAP, status: WellKnownStatus.ACTIVE }).select('driver')`, mapped to `driver.toString()`.
      - Normal-trip drivers: `Trip.find({ $or: OVERLAP, _id: { $ne: tripId }, status: { $in: [PENDING(1), START(3)] } }).select('drivers.driver drivers.isActive')`, flattened to the drivers with `isActive === true`.
      - `OVERLAP` is:
@@ -223,8 +225,8 @@ There is no check for self-deletion or for open trips or leaves.
 
 ## 5. Business Rules & State Transitions
 
-- **Uniqueness**: `userName`, `email` and `nic` must be unique **among ACTIVE users** (`user.service.ts:21-70`). Values belonging to soft-deleted users can be reused. There is no DB index backing this, so two concurrent creates can race.
-- **Default password**: new users get `12345` (`user.controller.ts:119`). The same value is used by `/auth/resetPassword`.
+- **Uniqueness**: `userName`, `email` and `nic` must be unique **among ACTIVE users** (`user.service.ts:21-70`). Values belonging to soft-deleted users can be reused. The new `{field, status}` indexes speed up the lookups but are not unique, so two concurrent creates can still race.
+- **Default password**: new users get `12345` (`user.controller.ts:118`). The same value is used by `/auth/resetPassword`.
 - **User status**: `ACTIVE (1)` changes to `DELETED (3)` via `DELETE /user/:id`. `INACTIVE (2)` is never set by this module. Every finder filters `status: ACTIVE`.
 - **Blocked flag** (on `Auth`): `false ⇄ true` via block and unblock. Repeating the same transition is rejected with 400.
 - **Role display**: drivers are shown as `"Driver (Freelance)"` or `"Driver (Permanent)"` depending on `isFreelanceDriver` (`user.util.ts:35-40`).
@@ -263,15 +265,16 @@ This expects a user with `gender`, `role`, `createdBy` and `updatedBy` populated
 | `validateUserDataForUpdate(type, data, id)` | Same, plus `_id ≠ id` |
 | `findById(id)` | ACTIVE user, no populate |
 | `findByIdWithGenderRole(id)` | ACTIVE user, populates gender, role, createdBy and updatedBy |
-| `findAll()` | All ACTIVE users (no caller found in this module) |
 | `findAllWithGenderRole()` | See §4.6 |
 | `findAllByRoleId(roleId)` | See §4.9 |
 | `findDriversByNotInInternalTripsAndNormalTrips(...)` | See §4.10 |
+| `findAllByIdsWithRole(ids)` (`:242-257`) | One `User.find({ _id: { $in: ids }, status: ACTIVE })` with `role` populated (`_id name id`). Returns a `Map<idString, UserDocument>`; an empty `ids` returns an empty map without querying. Not lean, not cached. Used by Month Audit `getPendingLeaves` |
 
 ## 7. Dependencies
 
 **Uses**
 - `auth` module: `Auth` model and `authService` (`save`, `findByUserId`).
+- `util/cache` (`useClones: false`: cached lists are shared references).
 - `common` module:
   - `roleService.findByCustomId`.
   - `commonService.findGenderByCustomId`.
@@ -285,24 +288,34 @@ This expects a user with `gender`, `role`, `createdBy` and `updatedBy` populated
 
 **Used by**
 - `leave` module: `userService.findById` and `findByIdWithGenderRole` (leave quotas use `User.leaveCount`).
-- `monthAudit`: `findByIdWithGenderRole`.
-- `trip.controller.ts:707`: `userService.findById` (driver lookup on assignment).
-- `dashboard.controller.ts:74`: `findAllByRoleId`.
+- `monthAudit.controller.ts:313` (`getPendingLeaves`): `findAllByIdsWithRole` (one query for all pending-leave applicants, replacing a per-leave `findByIdWithGenderRole`).
+- `trip.controller.ts:654`: `userService.findById` (driver lookup on assignment).
 - `auth` module: `Auth.user` refers to User. Login returns the populated User.
 - Many collections reference `User` via `createdBy` and `updatedBy`, plus Leave `appliedUser`, Trip `drivers.driver` and InternalTrip `driver`.
 
 ## 8. Notes / Gotchas
 
-1. ⚠️ **`findAllByRoleId` crashes on a cache miss** (`user.service.ts:158-159`): `cached` is `undefined`, so `.length` throws `TypeError` and the result is a 500. This affects `GET /user/userByRole/:id` and dashboard driver counts. The guard should probably be `if (cached?.length)`.
-2. ⚠️ **`getDriversForTrip` without `tripId`** (with dates) gives a 404 CastError (`user.service.ts:205`).
+1. ⚠️ **`findAllByRoleId` crashes on a cache miss** (`user.service.ts:160-161`): `cached` is `undefined`, so `.length` throws `TypeError` and the result is a 500. This affects `GET /user/userByRole/:id` (the dashboard no longer calls it). The guard should probably be `if (cached?.length)`.
+2. ⚠️ **`getDriversForTrip` without `tripId`** (with dates) gives a 404 CastError (`user.service.ts:208`). The two trip queries now run in parallel, so the CastError rejects the `Promise.all`; the outcome is the same.
 3. ⚠️ **Stale block status in the user list**: block and unblock save only `Auth`, and `authService.save` clears only the `auth-` prefix. The cached `user-findAllWithGenderRole` list (one week) keeps the old `isBlackListed` until another User save clears all caches.
-4. `findAllWithGenderRole` does `auth.isBlocked` without a null check (`user.service.ts:145`). An active user with no active Auth makes the whole list fail with 500. It also runs one Auth query per user (N+1).
+4. `findAllWithGenderRole` does `authByUser.get(id).isBlocked` without a null check (`user.service.ts:147`). An active user with no active Auth makes the whole list fail with 500. (The N+1 Auth queries were replaced by one batched query; if a user has several ACTIVE auths, the first returned wins, as `findOne` did before.)
 5. `userModelToUserResponseDto` uses `user.gender.name` and `user.role.id` without optional chaining. A user with no gender or role crashes the mapper.
 6. `Save` clears **the entire application cache** (every prefix) on any user save. This is heavy, but it does keep other modules' populated user data fresh.
-7. Uniqueness is application-level only and limited to ACTIVE users, with no unique index on `userName`, `email` or `nic` in `User` or `Auth`.
+7. Uniqueness is application-level only and limited to ACTIVE users. The new indexes on `userName`, `email` and `nic` (with `status`) in `User`, and `userName` in `Auth`, are non-unique.
 8. `updateUser` overwrites every field from the body. A partial update wipes out omitted fields. The user lookup inside the transaction is not bound to the session.
 9. A role change does not invalidate existing JWTs, because the role is embedded in the token (`jwt.util.ts:12`).
 10. `getUserById` is open to **any authenticated role** and returns full bank and identity data for any user id.
 11. `saveUser` and `updateUser` return the raw Mongoose document, while list and get return the DTO. The response shapes are inconsistent.
-12. `getAllUsersByRole` declares `userAuth` but never uses it. `findAll` is unused.
-13. Roles 6 (DRIVERASSISTANT) and 7 (TRIPASSISTANT) exist in `constants` but are **not seeded** in `dbscripts/privilegeDataScript.js`, which seeds only ids 1–5. Creating users with those roles returns `Valid Role is required!` unless the roles are inserted manually.
+12. Roles 6 (DRIVERASSISTANT) and 7 (TRIPASSISTANT) exist in `constants` but are **not seeded** in `dbscripts/privilegeDataScript.js`, which seeds only ids 1–5. Creating users with those roles returns `Valid Role is required!` unless the roles are inserted manually.
+13. `findAllWithGenderRole` sets the ad-hoc `isBlock` property on Mongoose documents that are then cached and shared by reference (`useClones: false`). Nothing mutates them afterwards today, but any caller that does would change the list for every request for up to a week.
+
+## Changelog
+
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
+
+- `User` schema gained non-unique indexes `{userName, status}`, `{email, status}`, `{nic, status}`.
+- `findAllWithGenderRole`: per-user `Auth.findOne` (N+1) replaced by one `Auth.find({ user: { $in } }).select('user isBlocked').lean()` plus a `Map`.
+- `findDriversByNotInInternalTripsAndNormalTrips`: internal-trip and trip queries now run in parallel (`Promise.all`).
+- New `findAllByIdsWithRole(ids)` (batch lookup returning a `Map`), used by Month Audit `getPendingLeaves`; unused `findAll` removed.
+- Controller: unused `UserResponseDto` import and `userAuth` variable removed (line numbers shifted). Dashboard no longer calls `findAllByRoleId`.
+- Gotchas: #4 partially resolved (N+1 gone, null crash remains); #1, #2, #7 adjusted; old #12 resolved and removed; #13 added.

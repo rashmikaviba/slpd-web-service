@@ -21,7 +21,7 @@ All API paths are relative to `/api/v1`.
 |---|---|
 | `src/modules/store/store.route.ts` | Routes, wiring the multer middleware to controllers |
 | `src/modules/store/store.controller.ts` | `UploadFile`, `UploadMultipleFiles`: build public URLs |
-| Shared: `src/util/multer.util.ts` | Multer `diskStorage` config (`upload`), plus the unused `DeleteFileFromName` |
+| Shared: `src/util/multer.util.ts` | Multer `diskStorage` config (`upload`). The unused `DeleteFileFromName` helper was removed |
 | Shared: `src/util/enums/well-known-upload-type.enum.ts` | Upload type → folder name |
 | Shared: `src/app.ts:29-35` | Static serving of `/uploads` |
 
@@ -45,18 +45,18 @@ The `type` query parameter selects the target folder, `src/uploads/<Name>/`:
 | 8 | `VehicleDamage` |
 | 9 | `MaintenanceInvoice` |
 
-### Storage configuration (`src/util/multer.util.ts:8-27`)
+### Storage configuration (`src/util/multer.util.ts:6-23`)
 
 - **destination**:
   - `type = Number(req.query.type)`.
-  - If `!Object.values(WellKnownUploadType).includes(type)`, call `cb(new BadRequestError('Invalid upload type'))`.
+  - If `!helperUtil.isValueInEnum(WellKnownUploadType, type)` (i.e. `Object.values(...).includes(type)`), call `cb(new BadRequestError('Invalid upload type'))`.
   - Otherwise use `'src/uploads/' + WellKnownUploadType[type] + '/'`. This path is **relative to the process working directory**.
 - **filename**: `` `${Date.now()}-${file.originalname}` ``. Busboy runs with the default `preservePath: false`, so any directory part of the client filename is stripped.
 - **limits / fileFilter**: **none**. There is no size limit and no MIME or extension restriction.
 
 ## 4. API Endpoints
 
-Base path `/store` (`src/applicationRoutes.ts:12-16`, mounted in `src/mapping.ts:94`).
+Base path `/store` (`src/applicationRoutes.ts:11-15`, mounted in `src/mapping.ts:29`).
 
 | Method | Full path | Middleware | Controller | Auth | Description |
 |---|---|---|---|---|---|
@@ -101,21 +101,20 @@ Base path `/store` (`src/applicationRoutes.ts:12-16`, mounted in `src/mapping.ts
 - **URL formula**: `publicUrl = BASE_URL + '/' + <saved path after the last "src/">`. `BASE_URL` comes from the env file (`.env.dev` or `.env.prod`, `src/config/environment.config.ts`). It must be the server origin, **without** `/api/v1`, because files are served at `/<origin>/uploads/...`.
 - **Static serving**: `app.use('/uploads', express.static(uploadsPath))`. `uploadsPath` is `/app/src/uploads` when `NODE_ENV=production`, and `path.join(__dirname, 'uploads')` (i.e. `src/uploads`) otherwise. Uploaded files are publicly readable without authentication.
 - **File naming**: a millisecond timestamp plus the original name. Two uploads of the same name in the same millisecond would overwrite each other.
-- There is no record of uploads and no ownership. Files are never deleted by this module.
+- There is no record of uploads and no ownership. Files are never deleted: there is no delete helper anywhere in the codebase now.
 
 ## 6. Utilities
 
 | Function | File | Behaviour |
 |---|---|---|
-| `upload` | `src/util/multer.util.ts:27` | `multer({ storage })` with the destination and filename rules from §3 |
-| `DeleteFileFromName(imageUrl)` | `src/util/multer.util.ts:29-40` | Takes the part after `/uploads` from a URL and calls `fs.remove(path.join(__dirname, '..', 'uploads', <rest>))`. Returns `true`/`false`. **Not called anywhere** |
+| `upload` | `src/util/multer.util.ts:25` | `multer({ storage })` with the destination and filename rules from §3 |
 | `helperUtil.isValueInEnum` / `getNameFromEnum` | `src/util/helper.util.ts:5-12` | Type validation and folder-name lookup |
 
 There are no DTOs.
 
 ## 7. Dependencies
 
-**Uses**: `multer` 1.4.5-lts.1 (busboy 1.x), `fs-extra` (only in the unused delete helper), `envConfig.BASE_URL`, `WellKnownUploadType`, `BadRequestError`, `CommonResponse`.
+**Uses**: `multer` 1.4.5-lts.1 (busboy 1.x), `envConfig.BASE_URL`, `WellKnownUploadType`, `BadRequestError`, `CommonResponse`.
 
 **Used by**: the front-end only. No backend module calls this one. Its URLs end up in:
 - `User.profileImageUrl`, `nicImageUrl`, `gsCertificateUrl`, `drivingLicenseUrl`, `sltdaCertificateUrl` and `policeReportUrl` (see `user.md`);
@@ -129,5 +128,14 @@ There are no DTOs.
 4. The upload path is relative to the CWD (`src/uploads/`), but the static path in development is relative to `__dirname`. These agree only when the process starts from the project root. In production both rely on the CWD being `/app`.
 5. `UploadMultipleFiles` does not normalize backslashes the way `UploadFile` does. On Windows, the returned URLs would contain `\`.
 6. The `ExpensesRecept` folder name is misspelled. Changing it now would break stored URLs.
-7. `DeleteFileFromName` is unused, so replaced or orphaned documents (e.g. an old profile photo after `PUT /user/:id`) accumulate on disk.
+7. There is no file-delete path at all (the unused `DeleteFileFromName` helper and the `fs-extra` dependency were removed), so replaced or orphaned documents (e.g. an old profile photo after `PUT /user/:id`) accumulate on disk.
 8. Wrong field names or too many files return a 500 instead of a 400, because `MulterError` is not mapped in `error.middleware.ts`.
+
+## Changelog
+
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
+
+- No changes in `src/modules/store`.
+- `src/util/multer.util.ts`: unused `DeleteFileFromName` and its `path`/`fs-extra` imports removed; `fs-extra` dropped from `package.json`. Storage config and `upload` line references updated.
+- `src/applicationRoutes.ts` line references shifted; `mapping.ts` reference corrected.
+- Gotcha #7 reworded (no delete helper exists any more).

@@ -542,7 +542,7 @@ The pipeline does not lint, test or deploy. The server pulls and runs the image 
 
 ## Changelog
 
-### 2026-10-25 — synced with uncommitted code changes
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
 
 - Dependencies: removed `fs-extra`, `class-validator`, `class-transformer`, `morgan`, `winston` and the dev packages `@types/fs-extra`, `@types/joi`, `@types/mongoose`, `@types/morgan`, `@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`; added `engines.node >=20`.
 - Scripts: `build` is now `tsc` with a `prebuild` that deletes `dist/`; new `typecheck`; `dev` fixed (`cross-env` now wraps nodemon); `lint` is `eslint .`.

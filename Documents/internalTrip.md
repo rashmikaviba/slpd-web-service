@@ -12,7 +12,7 @@ Internal trips matter to the rest of the system for three reasons:
 
 Internal trips take part in the month-end audit (`isMonthEndDone`).
 
-Routes are mounted at `/api/v1/internalTrip` (`src/applicationRoutes.ts:141-148`, `src/mapping.ts:40`).
+Routes are mounted at `/api/v1/internalTrip` (`src/applicationRoutes.ts:140-147`, `src/mapping.ts:40`).
 
 ## 2. Files
 
@@ -21,14 +21,14 @@ Routes are mounted at `/api/v1/internalTrip` (`src/applicationRoutes.ts:141-148`
 | `src/modules/internalTrip/internalTrip.model.ts` | Mongoose schema/model `InternalTrip` |
 | `src/modules/internalTrip/internalTrip.route.ts` | Router and role guards |
 | `src/modules/internalTrip/internalTrip.controller.ts` | Request handlers (transactions for mileage updates) |
-| `src/modules/internalTrip/internalTrip.service.ts` | DB access, cache, overlap validation, month-end query |
+| `src/modules/internalTrip/internalTrip.service.ts` | DB access, cache, overlap validation, month-end query and bulk month-end flag |
 | `src/modules/internalTrip/internalTrip.validation.ts` | Joi `internalTripSchema` |
 | `src/modules/internalTrip/internalTrip.util.ts` | Model → `InternalTripResponseDto` mappers |
 | `src/modules/internalTrip/dto/internalTripResponseDto.ts` | DTO interface |
 
 ## 3. Data Model: `InternalTrip` (collection `internaltrips`)
 
-Source: `internalTrip.model.ts:4-76`. Options: `timestamps: true`, `versionKey: false`.
+Source: `internalTrip.model.ts:4-80` (schema 4-74, indexes 77-78). Options: `timestamps: true`, `versionKey: false`.
 
 | Field | Type | Required / Default | Notes |
 |---|---|---|---|
@@ -45,9 +45,11 @@ Source: `internalTrip.model.ts:4-76`. Options: `timestamps: true`, `versionKey: 
 | `createdBy` | ObjectId → `User` | | |
 | `updatedBy` | ObjectId → `User` | | |
 
-- Indexes: none declared.
+- Indexes (`internalTrip.model.ts:77-78`, non-unique):
+  - `{ vehicle: 1, status: 1, startDate: 1, endDate: 1 }`: per-vehicle list and overlap check.
+  - `{ status: 1, isMonthEndDone: 1, createdAt: 1 }`: month-end candidate query.
 - Hooks / virtuals: none.
-- There is **no `batchId` field**, although the month audit assigns one (see Gotchas).
+- There is **no `batchId` field**, although the month-end bulk update `$set`s one (see Gotchas).
 
 ## 4. API Endpoints
 
@@ -135,12 +137,12 @@ If `meterReading` is missing or ≤ 0, the vehicle id is **not** checked for exi
 
 ### 4.5 GET `/internalTrip/getByVehicle/:id` (`getInternalTripByVehicle`, `internalTrip.controller.ts:263-278`)
 
-1. Call `internalTripService.findAllByVehicleId(vehicleId)` (`internalTrip.service.ts:23-52`):
+1. Call `internalTripService.findAllByVehicleId(vehicleId)` (`internalTrip.service.ts:23-53`):
    - Cache key: `"internalTrip-" + vehicleId`. On a hit, return the cached value.
    - Query: `find({ vehicle: vehicleId, status: ACTIVE })`.
    - Populates `driver` (`_id fullName`), `createdBy` (`_id userName`), and `updatedBy` (`_id userName`).
-   - Sort `startDate: -1` (newest first).
-   - Cache the result for ONE_WEEK.
+   - Sort `startDate: -1` (newest first), then `.lean()`, so plain objects are returned.
+   - Cache the result for ONE_WEEK. The cache keeps the array by reference (`useClones: false`), so every request shares the same objects.
 2. Map the results with `modelsToInternalTripResponseDto`.
 3. Response: 200 with `data` set to `InternalTripResponseDto[]`, or `[]`.
 
@@ -163,7 +165,7 @@ If `meterReading` is missing or ≤ 0, the vehicle id is **not** checked for exi
 
 The DTO does not include `dateCount`, `meterReading`, `calcDistance`, or `vehicle`.
 
-### 4.6 Overlap validation (`validateVehicleForDateRange`, `internalTrip.service.ts:81-135`)
+### 4.6 Overlap validation (`validateVehicleForDateRange`, `internalTrip.service.ts:86-140`)
 
 Returns `true` (conflict) if **either** query finds a match.
 
@@ -193,15 +195,15 @@ No endpoint sets INACTIVE. Update and delete only operate on ACTIVE trips, while
 
 ### Month-end
 
-The month audit runs `monthEndDoneForInternalTrip` (`monthAudit.controller.ts:193-215`). It calls `findAllByEndMonthAndStatusIn(workingMonth, workingYear, [ACTIVE, INACTIVE])` (`internalTrip.service.ts:54-79`):
+The month audit runs `monthEndDoneForInternalTrip` (`monthAudit.controller.ts:188-208`) inside the `createNewDate` transaction. It calls `findAllByEndMonthAndStatusIn(workingMonth, workingYear, [ACTIVE, INACTIVE])` (`internalTrip.service.ts:55-76`):
 
 ```js
 endDate = new Date(); endDate.setFullYear(currYear); endDate.setMonth(endMonth); // 1-based month → next month index
 endDate = new Date(Y, M, 1);                                                     // 1st of next month 00:00 local
-find({ createdAt < endDate, status ∈ [1,2], isMonthEndDone: false })            // NOTE: filters on createdAt, not startDate
+find({ createdAt < endDate, status ∈ [1,2], isMonthEndDone: false }).select('_id').lean()   // NOTE: filters on createdAt, not startDate
 ```
 
-The result is cached under `"internalTrip-" + endMonth + currYear + JSON.stringify(status)` for ONE_WEEK. For each trip: `isMonthEndDone = true`, `batchId = <batch>` (not persisted, see Gotchas), `updatedBy`, then save with the session.
+The result is **not cached** and contains only `_id`s. The audit then calls `markMonthEndDone(ids, userId, batchId, session)` (`internalTrip.service.ts:78-84`): it returns early for an empty list, otherwise clears cache prefix `internalTrip-` and runs one `updateMany({ _id ∈ ids }, { $set: { isMonthEndDone: true, batchId, updatedBy } }, { session })`. `batchId` is stripped by Mongoose strict mode (not persisted, see Gotchas). Finally one `MONTH_AUDIT | Internal Trip Month End Done …` line is logged per id.
 
 `isMonthEndDone` is **not enforced** by the update or delete endpoints.
 
@@ -225,9 +227,10 @@ The result is cached under `"internalTrip-" + endMonth + currYear + JSON.stringi
 | `modelsToInternalTripResponseDto` | `internalTrip.util.ts:22-28` | Array map |
 | `save(body, session)` | `internalTrip.service.ts:8-17` | Clears prefix `internalTrip-`, then saves (with an optional session) |
 | `findByIdAndStatusIn(id, status)` | `:19-21` | Plain `findOne` |
-| `findAllByVehicleId(vehicleId)` | `:23-52` | Cached per-vehicle list |
-| `findAllByEndMonthAndStatusIn(month, year, status)` | `:54-79` | Month-end candidates (cached) |
-| `validateVehicleForDateRange(start, end, vehicleId, excludeId)` | `:81-135` | Overlap check (see 4.6) |
+| `findAllByVehicleId(vehicleId)` | `:23-53` | Cached per-vehicle list (lean) |
+| `findAllByEndMonthAndStatusIn(month, year, status)` | `:55-76` | Month-end candidates: lean `{ _id }` objects, not cached |
+| `markMonthEndDone(ids, userId, batchId, session)` | `:78-84` | Bulk `updateMany` setting `isMonthEndDone` and `updatedBy` (and `batchId`, which strict mode drops); clears the `internalTrip-` cache; no-op for an empty list |
+| `validateVehicleForDateRange(start, end, vehicleId, excludeId)` | `:86-140` | Overlap check (see 4.6) |
 
 ## 7. Dependencies
 
@@ -247,9 +250,9 @@ The result is cached under `"internalTrip-" + endMonth + currYear + JSON.stringi
 
 | Module | Usage |
 |---|---|
-| `vehicle` (`vehicle.service.ts:95-105`) | Imports the `InternalTrip` model and excludes vehicles on overlapping ACTIVE internal trips from the availability search |
-| `user` (`user.service.ts:178-200`) | Imports the `InternalTrip` model and excludes drivers on overlapping ACTIVE internal trips (`GET /user/getDriversForTrip`) |
-| `monthAudit` (`monthAudit.controller.ts:29, 70-77, 193-215`) | Uses `findAllByEndMonthAndStatusIn` and `save` to mark trips as month-end done |
+| `vehicle` (`vehicle.service.ts:96-106`) | Imports the `InternalTrip` model and excludes vehicles on overlapping ACTIVE internal trips from the availability search (run in parallel with the customer-trip query) |
+| `user` (`user.service.ts:180-205`) | Imports the `InternalTrip` model and excludes drivers on overlapping ACTIVE internal trips (`GET /user/getDriversForTrip`) |
+| `monthAudit` (`monthAudit.controller.ts:27, 69-76, 188-208`) | Uses `findAllByEndMonthAndStatusIn` and `markMonthEndDone` to mark trips as month-end done |
 
 ## 8. Notes / Gotchas
 
@@ -257,11 +260,22 @@ The result is cached under `"internalTrip-" + endMonth + currYear + JSON.stringi
 2. **`meterReading` is never persisted on update** (`internalTrip.controller.ts:147-172`). The guard `internalTrip.meterReading <= 0 && body.meterReading > 0` therefore stays true for a trip created without a reading. After one update adds a reading, the vehicle's `currentMileage` equals that reading. Any later update that sends the same `meterReading` fails with `Vehicle current mileage is greater than meter reading!`. A later update with a higher reading adds the extra distance again and **overwrites** `calcDistance`, so a delete only rolls back the last delta.
 3. **The mileage rollback on delete is naive.** `currentMileage -= calcDistance` ignores mileage added afterwards by other trips. The result is still mathematically consistent as a sum of deltas, but the record no longer matches the actual odometer history.
 4. **No month-end lock.** Update and delete do not check `isMonthEndDone`, unlike vehicle maintenance and trip summaries.
-5. **`batchId` is not in the schema.** `monthAudit` sets `internalTrip.batchId = batchId`, but under Mongoose strict mode the value is silently dropped and never saved.
+5. **`batchId` is not in the schema.** `markMonthEndDone` includes `batchId` in its `updateMany` `$set`, but under Mongoose strict mode the unknown path is silently stripped and never saved (the code comment at `internalTrip.service.ts:78-79` acknowledges this).
 6. **Month-end uses `createdAt` instead of the trip dates.** An internal trip created late, for example on the 2nd of the next month for last month's dates, is not closed in that month's batch.
 7. **The vehicle is only checked when a meter reading is given.** With no reading, any syntactically valid ObjectId is accepted as `vehicle`. The `driver` is never validated: it is not checked for existence, for the DRIVER role, or for overlapping assignments on other internal or customer trips.
 8. **Inconsistent overlap rules.** This module treats FINISHED customer trips, and non-active vehicle entries in `trip.vehicles`, as conflicts. The vehicle availability search only considers PENDING/START trips and active entries. `$lt E` means a trip that starts exactly at `endDate` does not count as a conflict.
 9. **No date sanity checks.** `endDate < startDate` is accepted, and `dateCount` is never reconciled with the dates.
 10. **GET by id returns 200 with `null`** when nothing is found. It returns INACTIVE trips, but no endpoint creates them.
 11. **The error message is misleading.** `Vehicle current mileage is greater than meter reading!` is also thrown when the two values are **equal** (`>=`).
-12. **The per-vehicle cache is invalidated only by internal-trip saves.** That is acceptable here because all mutations go through `internalTripService.save`. Changes to user names, such as a driver's `fullName`, stay stale for up to a week.
+12. **The per-vehicle cache is invalidated only by internal-trip writes.** That is acceptable here because all mutations go through `internalTripService.save` or `markMonthEndDone`, both of which clear the `internalTrip-` prefix. The cached value is a lean array shared by reference between requests (`useClones: false`), so it must not be mutated. Changes to user names, such as a driver's `fullName`, stay stale for up to a week.
+13. **The month-end bulk write bypasses document middleware and clears the cache before commit.** `markMonthEndDone` uses `updateMany` (no `save` hooks or validators; `timestamps` still sets `updatedAt`). It clears the `internalTrip-` cache before the write inside the audit transaction, so a per-vehicle list read before the commit can re-cache `isMonthEndDone: false` for up to a week.
+
+## Changelog
+
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
+
+- Model: added non-unique indexes `{ vehicle, status, startDate, endDate }` and `{ status, isMonthEndDone, createdAt }`.
+- Service: `findAllByVehicleId` now returns lean objects; `getCache` is no longer awaited.
+- Service: `findAllByEndMonthAndStatusIn` is **no longer cached** (it used to cache month-end candidates for a week, which could return stale candidates) and selects only `_id`. The new `markMonthEndDone` replaces the per-document `save` loop in `monthAudit` with one `updateMany`. Gotcha 5 reworded (batchId still dropped); added gotcha 13.
+- Cache util: `useClones: false` (shared cached references); gotcha 12 extended.
+- Updated `file:line` references for the service, monthAudit, vehicle, user and `applicationRoutes`.

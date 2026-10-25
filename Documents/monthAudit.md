@@ -220,7 +220,7 @@ Owning modules reject edits when set (e.g. expenses: `Cannot add/update/delete e
 
 ## Changelog
 
-### 2026-10-25 — synced with uncommitted code changes
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
 - `createNewDate` loads the working info with `getCompanyWorkingInfoFresh()` (uncached) instead of the shared cached copy.
 - Every close-out helper now does a lean `_id`(+`status`) lookup and one bulk `markMonthEndDone` `updateMany` per collection (leave, trip, expenses header, POS, internal trip, monthly expenses, vehicle maintenance) instead of per-document `save`s; trip close fetches expense-header and POS ids for all FINISHED trips in one query each; internal-trip and monthly-expense lookups are no longer cached.
 - `getPendingLeaves`: users loaded once (`findAllByIdsWithRole`) and leave totals once (`getTotalLeaveDaysForUsers`) instead of per leave.

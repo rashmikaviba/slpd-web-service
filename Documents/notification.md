@@ -27,8 +27,8 @@ Its DTO mapper for expense requests is also reused by the expense-request module
 | File | Role |
 |---|---|
 | `notification.route.ts` | Express router for `/notification`. |
-| `notification.controller.ts` | `getAllNotifications` plus role-independent fetch helpers. |
-| `notification.service.ts` | Mongo queries against ExpenseRequest, Vehicle, Trip, Leave. |
+| `notification.controller.ts` | `getAllNotifications` plus four fetch helpers that do not depend on role. |
+| `notification.service.ts` | Mongo queries against ExpenseRequest, Vehicle, Trip and Leave (all `.lean()` with field projections). |
 | `notification.util.ts` | Model → DTO mappers, `setMidnightDate`. |
 | `dto/expensesExtensionResponseDto.ts` | `ExpensesExtensionResponseDto`. |
 | `dto/InsuranceInsuranceRenewalResponseDto.ts` | `InsuranceInsuranceRenewalResponseDto` (used for both insurance and licence). |
@@ -71,7 +71,7 @@ Base path `/notification` (`src/applicationRoutes.ts:127-130`, mounted `src/mapp
 
 Auth: Bearer JWT required, otherwise `401 "Authentication invalid!"`. An expired token gives `401 "Your session is expired!"`, an invalid one `403`, and a blocked account `401 "Your account is blocked, Please contact admin!"` (`src/middleware/auth.middleware.ts`). Role filtering is done in the controller, not the middleware.
 
-### 4.1 GET `/notification/` — `getAllNotifications` (`notification.controller.ts:9`)
+### 4.1 GET `/notification/` — `getAllNotifications` (`notification.controller.ts:8`)
 
 **Params/query/body:** none. Uses `req.auth.role`.
 
@@ -82,10 +82,9 @@ Auth: Bearer JWT required, otherwise `401 "Authentication invalid!"`. An expired
    | Role | Notifications included |
    |---|---|
    | SUPERADMIN (1), ADMIN (2), FINANCEOFFICER (4), TRIPMANAGER (5) | all four groups: expense requests, vehicle renewals, pending trips, pending leaves |
-   | DRIVER (3) | none (empty branch) |
-   | DRIVERASSISTANT (6), TRIPASSISTANT (7), other | none (no branch) |
+   | DRIVER (3), DRIVERASSISTANT (6), TRIPASSISTANT (7), other | none |
 
-   The four groups are fetched **sequentially** (one `await` after another) and concatenated.
+   This is now a single `if` with the four roles OR-ed together (`notification.controller.ts:12-17`). The four groups are fetched **in parallel** (`Promise.all`) and concatenated in a fixed order: expense requests, renewals, trips, leaves.
 3. Sort the combined list by `createdAt` descending (`new Date(b.createdAt) - new Date(a.createdAt)`). For non-expense items, `createdAt` is a synthetic "notify-from" date (see below).
 
 **Response:** `200 ''`, `data`: a heterogeneous array of the DTOs in §4.2–4.5 (distinguish them by `type`).
@@ -96,7 +95,10 @@ Auth: Bearer JWT required, otherwise `401 "Authentication invalid!"`. An expired
 
 `notificationService.getPendingExpenseRequest()` (`notification.service.ts:9`):
 ```js
-ExpenseRequest.find({ status: WellKnownLeaveStatus.PENDING /* 1 */ }).populate('tripId createdBy')
+ExpenseRequest.find({ status: WellKnownLeaveStatus.PENDING /* 1 */ })
+  .populate({ path: 'tripId',    select: '_id tripConfirmedNumber' })
+  .populate({ path: 'createdBy', select: '_id fullName userName' })
+  .lean()
 ```
 No date window, no sort.
 
@@ -116,16 +118,16 @@ Mapped by `modelToExpensesExtensionResponseDto`:
 
 ### 4.3 Group: vehicle insurance / licence renewals
 
-`notificationService.findVehicleRenewalBy7DaysBefore()` (`notification.service.ts:15`):
+`notificationService.findVehicleRenewalBy7DaysBefore()` (`notification.service.ts:17`):
 1. `date = today + 7 days`, at 00:00:00.000 (server local time).
-2. Query (lean):
+2. Query (lean, projected):
    ```js
    Vehicle.find({
      $or: [{ insuranceRenewalDate: { $lte: date } }, { licenseRenewalDate: { $lte: date } }],
      isFreelanceVehicle: false,
      isRentalVehicle: false,
      status: { $ne: DELETED }     // ACTIVE and INACTIVE vehicles
-   })
+   }).select('_id registrationNumber insuranceRenewalDate licenseRenewalDate').lean()
    ```
 3. For each vehicle, push `{...vehicle, insuranceRenewalFlag: true}` if `insuranceRenewalDate <= date`, and separately `{...vehicle, licenseRenewalFlag: true}` if `licenseRenewalDate <= date`. One vehicle can therefore produce **two** notifications with the same `_id`.
 
@@ -147,7 +149,7 @@ Mapped by `modelToInsuranceInsuranceRenewalResponseDto`:
 
 ### 4.4 Group: pending trips missing driver/vehicle
 
-`notificationService.findTripsBy3DaysBefore()` (`notification.service.ts:52`):
+`notificationService.findTripsBy3DaysBefore()` (`notification.service.ts:56`):
 ```js
 date  = today + 3 days @ 00:00 local;  today = today @ 00:00 local
 Trip.find({
@@ -160,7 +162,7 @@ Trip.find({
     { 'vehicles.isActive': false },             // ANY vehicle entry inactive
   ],
   status: WellKnownTripStatus.PENDING           // 1
-}).lean()
+}).select('_id tripConfirmedNumber startDate').lean()
 ```
 
 Mapped by `modelToPendingTripResponseDto`:
@@ -176,13 +178,15 @@ Mapped by `modelToPendingTripResponseDto`:
 
 ### 4.5 Group: pending leaves
 
-`notificationService.findPendingLeaveBy3DaysBefore()` (`notification.service.ts:75`):
+`notificationService.findPendingLeaveBy3DaysBefore()` (`notification.service.ts:81`):
 ```js
 Leave.find({
   startDate: { $lte: today + 3 days @ 00:00 },
   endDate:   { $gte: today @ 00:00 },
   status: WellKnownLeaveStatus.PENDING          // 1
-}).populate('appliedUser').lean()
+}).select('_id startDate appliedUser')
+  .populate({ path: 'appliedUser', select: '_id fullName' })
+  .lean()
 ```
 
 Mapped by `modelToPendingLeaveResponseDto`:
@@ -216,7 +220,7 @@ Mapped by `modelToPendingLeaveResponseDto`:
 
 | Function | Purpose |
 |---|---|
-| `modelToExpensesExtensionResponseDto(expenseRequest)` / `modelsToExpensesExtensionResponseDto(list)` | §4.2. Also imported by `src/modules/expenseRequest/expenseRequest.controller.ts:17,79,172,246`. |
+| `modelToExpensesExtensionResponseDto(expenseRequest)` / `modelsToExpensesExtensionResponseDto(list)` | §4.2. Also imported by `src/modules/expenseRequest/expenseRequest.controller.ts:17` and called from its `emitExpenseRequestEvent` helper (`:29-46`). |
 | `modelToInsuranceInsuranceRenewalResponseDto(v)` / `modelsToInsuranceInsuranceRenewalResponseDtos(list)` | §4.3. |
 | `modelToPendingTripResponseDto(trip)` / `modelsToPendingTripResponseDtos(list)` | §4.4. |
 | `modelToPendingLeaveResponseDto(leave)` / `modelsToPendingLeaveResponseDtos(list)` | §4.5. |
@@ -231,7 +235,7 @@ Mapped by `modelToPendingLeaveResponseDto`:
 
 ### 6.3 Real-time push (outside this module, uses its DTO)
 
-`src/config/soket.config.ts` keeps an in-memory map `userWithRoleId → socket.id`. The key comes from the client handshake query `userWithRoleId`, and `getActiveSocketIdsByRoles(roles)` selects keys whose string **starts with** the role id. `expenseRequest.controller.ts` emits to SUPERADMIN, ADMIN, FINANCEOFFICER and TRIPMANAGER sockets:
+`src/config/soket.config.ts` keeps an in-memory map `userWithRoleId → socket.id`. The key comes from the client handshake query `userWithRoleId`, and `getActiveSocketIdsByRoles(roles)` selects keys whose string **starts with** the role id. `expenseRequest.controller.ts` emits to SUPERADMIN, ADMIN, FINANCEOFFICER and TRIPMANAGER sockets through one helper, `emitExpenseRequestEvent(activeSockets, event, expenseRequest, getMessage)` (`:29`). The helper maps the request with `modelToExpensesExtensionResponseDto` and emits only when there are active sockets and a request (calls at `:99`, `:179`, `:237`):
 - `new-expense-request`: `{message: "New expense request has been created for trip <no> by <name> ", data: ExpensesExtensionResponseDto}` (on create),
 - `expense-request-approved`: `{message: '', data}` (on approve),
 - `expense-request-rejected`: `{message: '', data}` (on reject).
@@ -242,7 +246,7 @@ The front end presumably re-fetches `GET /notification/` or merges these events 
 
 ## 7. Dependencies
 
-**Reads:** `ExpenseRequest`, `Vehicle`, `Trip`, `Leave`, `User` (populate) models directly (not through their services, and without caching). Enums `WellKnownLeaveStatus`, `WellKnownStatus`, `WellKnownTripStatus`, `WellKnownNotificationType`.
+**Reads:** `ExpenseRequest`, `Vehicle`, `Trip`, `Leave`, `User` (populate) models directly (not through their services, and without caching). Every query is `.lean()` and projects only the fields the DTO mappers read. Enums `WellKnownLeaveStatus`, `WellKnownStatus`, `WellKnownTripStatus`, `WellKnownNotificationType`.
 
 **Writes:** none.
 
@@ -259,7 +263,19 @@ The front end presumably re-fetches `GET /notification/` or merges these events 
 5. **Duplicate `_id`s**: a vehicle with both insurance and licence due returns two items with the same `_id`. Clients keying lists by `_id` should combine `type` + `_id`.
 6. **Overdue renewals never expire from the list**, and INACTIVE vehicles are included (`status: {$ne: DELETED}`).
 7. **Null `appliedUser` crashes the endpoint**: `leave.appliedUser.fullName` has no optional chaining (`notification.util.ts:97`), so a leave whose user was removed gives a `500` for every admin.
-8. **No role restriction at the route level**: drivers and assistants get `200` with an empty array. The SUPERADMIN/ADMIN/FINANCEOFFICER/TRIPMANAGER branches are identical copies.
-9. **Sequential queries and no caching**: four DB round-trips per call, run one after another. Expense requests have no date window, so old un-actioned requests accumulate.
+8. **No role restriction at the route level**: drivers and assistants get `200` with an empty array. (The four duplicated role branches were merged into one condition.)
+9. **No caching**: four DB queries on every call. They now run in parallel with projections, so the cost is one round-trip, but nothing is cached. Expense requests have no date window, so old un-actioned requests accumulate.
 10. **Socket role matching by prefix**: `key.startsWith(role.toString())` means role `1` would also match keys beginning with `1x...` if the key format were ambiguous. This depends on the client's `userWithRoleId` format (`soket.config.ts:20-22`). The socket map is also per-process (it does not work across multiple instances).
 11. The DTO filename/type name `InsuranceInsuranceRenewalResponseDto` is duplicated wording; it covers both insurance and licence renewals.
+12. **Projections must track the mappers**: the service now `select`s only the fields `notification.util.ts` reads today. If a DTO starts using another field (e.g. trip `endDate`, vehicle `status`), it will silently be `undefined` until the projection is extended.
+
+---
+
+## Changelog
+
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
+- `getAllNotifications` merged the four identical role branches into one condition and fetches the four groups in parallel with `Promise.all` (same concatenation order).
+- All four service queries are now `.lean()` and project only the fields the DTO mappers use (expense-request populates limited to `tripId: _id tripConfirmedNumber` and `createdBy: _id fullName userName`; leave `appliedUser: _id fullName`).
+- Removed the unused imports (`ExpensesExtensionResponseDto` in the controller, `constants` in the route). Service line references were updated.
+- `expenseRequest.controller.ts` now pushes its socket events through a single `emitExpenseRequestEvent` helper.
+- Gotchas: #8 (duplicated branches) is partly resolved, and #9 (sequential queries) is resolved except for the lack of caching. Added #12 (projections must track the mappers).

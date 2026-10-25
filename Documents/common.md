@@ -205,7 +205,7 @@ There are no DTOs. Raw documents are returned.
 
 ## Changelog
 
-### 2026-10-25 — synced with uncommitted code changes
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
 
 - New non-unique indexes: `Role {id}`, `Gender {id}`, `CompanyWorkingInfo {status, createdAt: -1}`.
 - `companyWorkingInfo.service`: query extracted to `findLatestActive`; new uncached `getCompanyWorkingInfoFresh()`, used by Month Audit `createNewDate` before it mutates and saves the row.

@@ -279,7 +279,7 @@ grossTotal  = netTotal − effectiveMaintenanceCost
 
 ## Changelog
 
-### 2026-10-25 — synced with uncommitted code changes
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
 
 - Model: added non-unique indexes `{ maintenanceDate, status }` and `{ vehicle, maintenanceDate }`.
 - Service: `findAllByMaintenanceDateAndStatusIn` populates with field projections (`vehicle`, `garage`, users) instead of whole documents; `getCache` is no longer awaited.

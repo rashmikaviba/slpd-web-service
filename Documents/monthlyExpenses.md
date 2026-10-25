@@ -193,7 +193,7 @@ MonthlyExpenses.find({ month: { $lt: endDate }, status: { $in }, isMonthEndDone:
 
 ## Changelog
 
-### 2026-10-25 — synced with uncommitted code changes
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
 - Model: added non-unique index `{ month: 1 }`.
 - Service: `findAllByEndMonthAndStatusIn` is no longer cached and now returns `.select('_id').lean()` ids; new `markMonthEndDone` bulk `updateMany` (session-bound) replaces per-document saves at month end.
 - Service: `advanceSearch` populates `createdBy`/`updatedBy` with only `_id userName`; cache read is synchronous and the shared cache is `useClones: false` (gotcha 8 adjusted).

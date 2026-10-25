@@ -207,7 +207,7 @@ No body or query parameters. The endpoint is a **toggle**.
 
 ## Changelog
 
-### 2026-10-25 — synced with uncommitted code changes
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
 
 - Controller: removed the redundant `try { … } catch (e) { throw e }` wrappers from create, update, delete and toggle (no behaviour change); `file:line` references updated.
 - Service: `findAllAndStatusIn` no longer `await`s the (synchronous) `getCache`.

@@ -550,3 +550,15 @@ The private copies that used to live in `grn.controller.ts`, `product.util.ts`, 
 18. **Single-document transactions**: product save/update/toggle/delete and GRN save/reject/cancel open a transaction around a single document save. The transaction is only meaningful in `approveGrn`. Transactions require a replica-set Mongo deployment.
 19. **Same product on two lines of one GRN loses stock on approval** (pre-existing, kept on purpose by `createBatchLoader`): the second line re-reads the product outside the session, so it sees the stock from before the transaction. Saving it sets `inventory = original + qty2`, dropping `qty1`, while both log entries are still appended (the second with a wrong `before`). Product reads in approval are not bound to the session at all. Nothing stops duplicate product lines on save.
 20. **Cached values are shared objects** (`useClones: false` in `src/util/cache.ts`): `findAllAndByStatusIn` caches full Mongoose documents and `advanceSearch` caches lean GRNs, and every hit returns the same instances. Mutating them (or calling `.save()` on a cached product) would corrupt the cache for every later request. Current callers only read them.
+
+---
+
+## Changelog
+
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
+- Added the non-unique indexes `InventoryProduct {status: 1}`, `GRN {grnNumber: -1}` and `GRN {grnDate: 1, status: 1}`.
+- GRN save/update now load all line products in one `$in` query (`productService.findAllByIdsAndStatusIn`). GRN approval uses `productService.createBatchLoader`. Both are new service functions (§6.5).
+- GRN advance search now ends with `.lean()`. The cache (`useClones: false`) returns shared objects on every hit.
+- The private unit-conversion copies were removed from `grn.controller.ts` and `product.util.ts`. Callers now use `helperUtil.fromMeasureUnitToSiMeasureUnit`, `fromSiToMeasureUnit` (new) and `getSiUnitCode` (new). Log entries are built by the new `src/util/inventory.util.ts` → `buildInventoryLog`.
+- `updateProduct` no longer reads `measureUnit` from the body (behaviour unchanged). Controller line references were updated.
+- Gotchas: #16 (duplicated helpers) is mostly resolved. Added #19 (duplicate product lines on GRN approval lose stock, pre-existing) and #20 (shared cached objects).

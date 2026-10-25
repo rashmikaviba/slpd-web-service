@@ -197,7 +197,7 @@ Recipients: socket IDs from `useSocketMap` whose key (client-supplied `userWithR
 
 ## Changelog
 
-### 2026-10-25 — synced with uncommitted code changes
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
 - Model: added non-unique indexes `{ tripId: 1, status: 1 }` and `{ status: 1 }`.
 - Controller: socket fan-out extracted into local helpers `getAdminSocketIds` and `emitExpenseRequestEvent` (same events, payloads and "only if sockets and doc" guard); no-op `try/catch → rethrow` wrappers removed; line references updated.
 - Service: `getCache` read is synchronous; shared cache now `useClones: false` (gotcha 12).

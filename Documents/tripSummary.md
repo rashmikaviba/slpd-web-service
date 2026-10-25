@@ -15,7 +15,7 @@ The log supports the trip's operational record (distance and fuel per day) and i
 
 Drivers can only log while the trip is in progress (status START). Office roles can also log after the trip is FINISHED. Nobody can change logs once the trip's month-end audit is done (`trip.isMonthEndDone`).
 
-Routes are mounted at `/api/v1/tripSummary` (`src/applicationRoutes.ts:100-107`, `src/mapping.ts:41`).
+Routes are mounted at `/api/v1/tripSummary` (`src/applicationRoutes.ts:99-106`, `src/mapping.ts:41`).
 
 ## 2. Files
 
@@ -31,7 +31,7 @@ Routes are mounted at `/api/v1/tripSummary` (`src/applicationRoutes.ts:100-107`,
 
 ## 3. Data Model: `TripSummary` (collection `tripsummaries`)
 
-Source: `tripSummary.model.ts:4-81`. Options: `timestamps: true`, `versionKey: false`.
+Source: `tripSummary.model.ts:4-84` (schema 4-79, index 82). Options: `timestamps: true`, `versionKey: false`.
 
 | Field | Type | Required / Default | Notes |
 |---|---|---|---|
@@ -50,7 +50,7 @@ Source: `tripSummary.model.ts:4-81`. Options: `timestamps: true`, `versionKey: f
 | `isMonthEndDone` | Boolean | default `false` | **Never set anywhere in the codebase.** The month-end lock uses `trip.isMonthEndDone` instead. |
 | `batchId` | Number | default `0` | Never set anywhere |
 
-- Indexes: none declared.
+- Indexes (`tripSummary.model.ts:82`, non-unique): `{ tripId: 1, status: 1 }`, matching the per-trip list query.
 - Hooks / virtuals: none.
 
 ## 4. API Endpoints
@@ -87,10 +87,10 @@ Unknown keys are rejected.
 
 ---
 
-### 4.1 POST `/tripSummary/` (`saveTripSummary`, `tripSummary.controller.ts:17-74`)
+### 4.1 POST `/tripSummary/` (`saveTripSummary`, `tripSummary.controller.ts:17-70`)
 
 1. Validate the body. On failure, return 400 with the Joi message.
-2. Call `tripService.findByIdAndStatusIn(body.tripId, [START, FINISHED])`. This is a plain `Trip.findOne` with no populate (`trip.service.ts:14-25`). If no trip is found, return 400 `No trip found!`.
+2. Call `tripService.findByIdAndStatusIn(body.tripId, [START, FINISHED])`. This is a plain `Trip.findOne` with no populate (`trip.service.ts:13-15`). If no trip is found, return 400 `No trip found!`.
 3. If `auth.role === DRIVER` and `trip.status != START`, return 400 `You can not save trip summary, because trip is already finished!`.
 4. Otherwise, if `trip.isMonthEndDone`, return 400 `You can not save trip summary, because month end is already done!`.
 5. Create a new `TripSummary` with this field mapping:
@@ -113,7 +113,7 @@ Unknown keys are rejected.
 
 The module does not check that a driver is actually assigned to the trip. It also does not reconcile km values or update the vehicle mileage.
 
-### 4.2 PUT `/tripSummary/:id` (`updateTripSummary`, `tripSummary.controller.ts:75-132`)
+### 4.2 PUT `/tripSummary/:id` (`updateTripSummary`, `tripSummary.controller.ts:71-124`)
 
 1. Validate the body. On failure, return 400.
 2. Call `getTripSummaryByIdAndStatusIn(id, [ACTIVE])`, which populates `tripId` with the full Trip document. If nothing is found, return 400 `No trip summary found!`.
@@ -126,19 +126,20 @@ The module does not check that a driver is actually assigned to the trip. It als
 
 For non-driver roles the trip status is not re-checked, so a summary can be edited regardless of the trip's current status.
 
-### 4.3 GET `/tripSummary/trip/:tripId` (`getAllSummaryByTrip`, `tripSummary.controller.ts:134-171`)
+### 4.3 GET `/tripSummary/trip/:tripId` (`getAllSummaryByTrip`, `tripSummary.controller.ts:126-159`)
 
-1. Call `tripSummaryService.findTripByIdAndStatusIn(tripId, [START, FINISHED])` (`tripSummary.service.ts:43-58`). It runs `Trip.findOne` and populates:
-   - `createdBy`, `updatedBy`, `startedBy`, `endedBy`
-   - `drivers.driver` and `drivers.driverAssignedBy` (User)
-   - `vehicles.vehicle` (Vehicle)
+1. Call `tripSummaryService.findTripByIdAndStatusIn(tripId, [START, FINISHED])` (`tripSummary.service.ts:43-65`). It runs `Trip.findOne(...).lean()` (a plain object) and populates only the fields the DTO reads:
+   - `createdBy`, `updatedBy`, `startedBy`, `endedBy` → `_id fullName`
+   - `drivers.driver` (User) → `_id fullName userName`
+   - `drivers.driverAssignedBy` (User) → `_id fullName`
+   - `vehicles.vehicle` (Vehicle) → `_id registrationNumber licenseRenewalDate insuranceRenewalDate`
 
    If no trip is found, return 400 `No trip found!`.
-2. Map the trip with `tripUtil.tripModelToTripResponseDtoGetAll(trip)` (`src/modules/trip/trip.util.ts:127-188`), which produces a `TripResponseDtoGetAll`.
+2. Map the trip with `tripUtil.tripModelToTripResponseDtoGetAll(trip)` (`src/modules/trip/trip.util.ts:126-187`), which produces a `TripResponseDtoGetAll`.
 3. Call `findAllTripSummaryByTripIdAndStatusIn(tripId, [ACTIVE])` (`tripSummary.service.ts:23-41`):
    - Cache key: `"tripSummary-" + tripId + "[1]"`.
-   - Query: `TripSummary.find({ tripId, status ∈ })`. There is **no sort**, so the order is natural or insertion order.
-   - The result is cached for ONE_WEEK.
+   - Query: `TripSummary.find({ tripId, status ∈ }).lean()`. There is **no sort**, so the order is natural or insertion order.
+   - The result (plain objects) is cached for ONE_WEEK and shared by reference between requests (`useClones: false`).
 4. Map the summaries with `modelsToTripSummaryResponseDtos`.
 5. Response: 200 with this `data`:
 
@@ -182,7 +183,7 @@ For non-driver roles the trip status is not re-checked, so a summary can be edit
 
 The DTO has no audit fields.
 
-### 4.4 GET `/tripSummary/:id` (`getTrpSummaryById`, `tripSummary.controller.ts:173-194`)
+### 4.4 GET `/tripSummary/:id` (`getTrpSummaryById`, `tripSummary.controller.ts:161-178`)
 
 1. Call `getTripSummaryByIdAndStatusIn(id, [ACTIVE])`, which populates `tripId`.
 2. If the summary is found:
@@ -191,7 +192,7 @@ The DTO has no audit fields.
    - `tripSummary.tripId = trip._id`. This depopulates the field back to the id.
 3. Response: 200 with `data` set to the raw document (model field names `startingTime`/`endingTime`, plus the audit fields), with `tripId` as an id. If nothing is found, `data` is `null` (no 404).
 
-### 4.5 DELETE `/tripSummary/:id` (`deleteTripSummary`, `tripSummary.controller.ts:196-239`)
+### 4.5 DELETE `/tripSummary/:id` (`deleteTripSummary`, `tripSummary.controller.ts:180-219`)
 
 1. Load the summary with `[ACTIVE]` and the trip populated. If nothing is found, return 400 `No trip summary found!`.
 2. If `trip.status != START` and the role is DRIVER, return 400 `You can not delete trip summary, because trip is already finished!`.
@@ -233,8 +234,8 @@ None. `totalKm` is stored exactly as sent. The module does not compute `endingKm
 | `modelsToTripSummaryResponseDtos` | `tripSummary.util.ts:20-24` | Array map (typed `any`) |
 | `save(doc, session)` | `tripSummary.service.ts:6-14` | Clears prefix `tripSummary-`, then saves |
 | `getTripSummaryByIdAndStatusIn(id, status)` | `:16-21` | `findOne` + `populate('tripId')` |
-| `findAllTripSummaryByTripIdAndStatusIn(tripId, status)` | `:23-41` | Cached list per trip (ONE_WEEK) |
-| `findTripByIdAndStatusIn(id, status)` | `:43-58` | Fully populated `Trip` lookup (duplicates a trip-module concern) |
+| `findAllTripSummaryByTripIdAndStatusIn(tripId, status)` | `:23-41` | Cached list per trip (ONE_WEEK), lean |
+| `findTripByIdAndStatusIn(id, status)` | `:43-65` | Lean `Trip` lookup with projected populates (duplicates a trip-module concern) |
 
 ## 7. Dependencies
 
@@ -262,4 +263,15 @@ None. `totalKm` is stored exactly as sent. The module does not compute `endingKm
 9. **`tripId` is required in the PUT body but ignored.** A summary cannot be moved to another trip.
 10. **No ordering on the list.** Summaries come back in natural order, not sorted by `date` or `startingTime`.
 11. **No km or fuel validation.** Negative values, `endingKm < startingKm`, and a `totalKm` inconsistent with the two readings are all accepted. Joi `fuel.default(0)` is not applied, because the controller reads from `req.body`, but the Mongoose default of 0 covers create.
-12. **The cache is in-process only.** The summary list is cached per trip for one week in `node-cache`. Every mutation goes through `save`, which clears the `tripSummary-` prefix, so the cache only goes stale after out-of-band DB edits. Running more than one API instance would also leave stale data, because each process has its own cache. The trip header is always fetched fresh.
+12. **The cache is in-process only and shared by reference.** The summary list is cached per trip for one week in `node-cache`. Every mutation goes through `save`, which clears the `tripSummary-` prefix, so the cache only goes stale after out-of-band DB edits. Running more than one API instance would also leave stale data, because each process has its own cache. The trip header is always fetched fresh. With `useClones: false` the cached lean array is the same object for every request, so it must not be mutated (the DTO mapper only reads it).
+13. **The trip-header populate projection is coupled to the DTO.** `findTripByIdAndStatusIn` now loads only the user/vehicle fields `tripModelToTripResponseDtoGetAll` reads today. If that mapper starts reading another populated field (for example a vehicle's `vehicleType`, or a user's `userName` on `createdBy`), the value will silently come back empty here until the `select` lists are extended.
+
+## Changelog
+
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
+
+- Model: added non-unique index `{ tripId, status }`.
+- Service: `findAllTripSummaryByTripIdAndStatusIn` now returns lean objects; `getCache` is no longer awaited.
+- Service: `findTripByIdAndStatusIn` is `.lean()` and populates with field projections instead of whole User/Vehicle documents. Added gotcha 13.
+- Controller: removed the redundant `try { … } catch (e) { throw e }` wrappers from all five handlers (no behaviour change); `file:line` references updated.
+- Cache util: `useClones: false` (shared cached references); gotcha 12 extended.

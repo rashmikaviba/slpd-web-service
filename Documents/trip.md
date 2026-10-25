@@ -688,35 +688,67 @@ Internal sub-mappers: `mapPassengerToPassengerDto` (`id` = Mongoose virtual id),
 
 **Possible bugs**
 
-1. **Reached places can be wiped** — `updateTrip` only runs the "can't delete reached place" check when `body.places.length > 0` (`trip.controller.ts:352`). Sending `places: []` (allowed by Joi) sets `trip.places = []`, deleting reached places and their mileage history.
-2. **Place re-ordering not persisted for unchanged places** — unchanged saved places are pushed as-is (`:401-403`); their stored `index` keeps the old value even if the order changed. Also `JSON.stringify(savedDates) !== JSON.stringify(bodyDates)` compares ISO strings against whatever the client sent; any format difference marks a reached place as "changed" → `Can not update reached place!`.
-3. **Driver/vehicle re-activation never matches** — `driver.driver === body.driverId` and `vehicle.vehicle === body.vehicleId` compare an ObjectId to a string with `===` (`:730`, `:778`), so switching back to a previous driver/vehicle on a started trip always pushes a duplicate entry instead of reactivating it.
-4. **Missing active entry → 500** — in START, `activeDriver.driver` / `activeVehicle.vehicle` (`:728`, `:776`) and `activeVehicle.vehicle` in `markPlaceAsReached` (`:1202`) throw `TypeError` if no active entry exists (e.g. started without assigning a vehicle).
-5. **Driver role not verified** — assignment accepts any active user id as a driver (`userService.findById`). Any DRIVER can start *any* pending trip and save its checklist; there's no check that they are the assigned driver, that a vehicle is assigned, or that the checklist is done.
-6. **Expense guard uses AND** — revert-to-pending is blocked only if there are active expense lines **and** driver salaries (`:881`, `:990`), though the message says "or". A trip with expenses but no salary can be reverted, and `findAndHardDeleteByTripId` then **permanently deletes those expenses**.
-7. **Inconsistent revert** — driver revert clears `checkListAnswers`/`checkListCheckBy`; admin revert does not.
-8. **`updateHotelActivityPayment` has no validation** — `tripHotelActivityPaymentSchema` exists but is never called; any body passes. `type` uses strict `=== 1/2`, so a string `"1"` gives `Invalid request type!`. Already-paid items can be overwritten.
-9. **Cancel drops voided POS lines** — `findByTripIdAndStatusInWIthProducts` replaces `pos.products` with only ACTIVE lines in memory; saving that document in `cancelTrip` permanently removes the previously voided lines from the POS record. If the POS has no active lines it's left ACTIVE. Cancellation logs use `POS_TRANSACTION` rather than `POS_TRANSACTION_RETURN`. Inactive products are skipped (stock not restored) but the POS is still marked DELETED. A product with an unknown `measureUnit` causes a 500.
-10. **Public QR endpoint exposes data** — `GET /trip/tripForQrCode/:id` needs no auth and returns the full trip (passenger names/ages/nationalities, email, phone, costs) plus expenses and driver salaries.
-11. **Date-range overlap** — `findAllByStatusIn` misses trips that start before and end after the selected range. Missing `startDate`/`endDate` gives a CastError → 404 `No item found with ID "Invalid Date"!`.
-12. **`findAllByEndMonthAndStatusIn` month overflow** — it calls `setMonth(endMonth)` on *today's* date before rebuilding the 1st of the month (`trip.service.ts:126-129`). On the 29th–31st, `setMonth` can roll over into the next month, so the cutoff can be one month too late.
-13. **`generateTripId` (unused)** — `tripConfirmedNumber` is a String, so `-tripConfirmedNumber` sorts lexicographically and `+ 1` concatenates (`"12" + 1 = "121"`).
-14. **Not-found inconsistency** — `getTripForReport`, `getTripForQrCode` and `getTripHotelsAndActivities` return 200 with `null`/empty data when the trip doesn't exist; others return 400 (not 404).
-15. **Month-end not enforced everywhere** — `updateTrip`, `assignDriverAndVehicle`, `saveCheckListAnswers` and `markPlaceAsReached` don't check `isMonthEndDone`.
-16. **`mapVehicleToVehicleDto`** reads `vehicle.vehicle.licenseRenewalDate` without optional chaining (`trip.util.ts:67-68`); a vehicle ref that fails to populate (deleted document) throws.
+1. **Reached places can be wiped**: `updateTrip` only runs the "can't delete reached place" check when `body.places.length > 0` (`trip.controller.ts:335`). Sending `places: []` (allowed by Joi) sets `trip.places = []`, which deletes reached places and their mileage history.
+2. **Place re-ordering not persisted for unchanged places**: unchanged saved places are pushed as-is (`:384-386`), so their stored `index` keeps the old value even if the order changed. Also, `JSON.stringify(savedDates) !== JSON.stringify(bodyDates)` compares ISO strings against whatever the client sent. Any format difference marks a reached place as "changed" and returns `Can not update reached place!`.
+3. **Driver/vehicle re-activation never matches**: `driver.driver === body.driverId` and `vehicle.vehicle === body.vehicleId` compare an ObjectId to a string with `===` (`:677`, `:725`). Switching back to a previous driver/vehicle on a started trip therefore always pushes a duplicate entry instead of reactivating the old one.
+4. **Missing active entry → 500**: in START, `activeDriver.driver` / `activeVehicle.vehicle` (`:675`, `:723`) throw `TypeError` if no active entry exists (for example, a trip started without a vehicle). The same applies to `activeVehicle.vehicle` in `markPlaceAsReached` (`:1142`).
+5. **Driver role not verified**: assignment accepts any active user id as a driver (`userService.findById`). Any DRIVER can start *any* pending trip and save its checklist. Nothing checks that they are the assigned driver, that a vehicle is assigned, or that the checklist is done.
+6. **Expense guard uses AND**: revert-to-pending is blocked only if there are active expense lines **and** driver salaries (`:825`, `:934`), though the message says "or". A trip with expenses but no salary can be reverted, and `findAndHardDeleteByTripId` then **permanently deletes those expenses**.
+7. **Inconsistent revert**: the driver revert clears `checkListAnswers`/`checkListCheckBy`, but the admin revert does not.
+8. **`updateHotelActivityPayment` has no validation**: `tripHotelActivityPaymentSchema` exists but is never called, so any body passes. `type` uses strict `=== 1/2`, so a string `"1"` gives `Invalid request type!`. Already-paid items can be overwritten.
+9. **Cancel drops voided POS lines**: `findByTripIdAndStatusInWIthProducts` replaces `pos.products` with only ACTIVE lines in memory. Saving that document in `cancelTrip` permanently removes the previously voided lines from the POS record. Other issues in this flow:
+   - If the POS has no active lines, it is left ACTIVE.
+   - Cancellation logs use `POS_TRANSACTION` rather than `POS_TRANSACTION_RETURN`.
+   - Inactive products are skipped (stock not restored), but the POS is still marked DELETED.
+   - A product with an unknown `measureUnit` causes a 500 (now thrown from `helperUtil.getSiUnitCode`).
+   - **Lost stock update for duplicate product lines** (not introduced by this change, but now explicit in `createBatchLoader`): products are read *outside* the transaction session. When two POS lines share a product, the loader re-reads that product for the second line without the session, so the read does not see the first line's uncommitted `inventory` increment. The second save then overwrites `inventory` with `original + qty2`, and `qty1` is lost.
+10. **Public QR endpoint exposes data**: `GET /trip/tripForQrCode/:id` needs no auth. It returns the full trip (passenger names/ages/nationalities, email, phone, costs) plus expenses and driver salaries.
+11. **Date-range overlap**: `findAllByStatusIn` misses trips that start before and end after the selected range. A missing `startDate`/`endDate` gives a CastError → 404 `No item found with ID "Invalid Date"!`.
+12. **Month-end month overflow**: `monthEndFilter` calls `setMonth(endMonth)` on *today's* date before rebuilding the 1st of the month (`trip.service.ts:96-99`). On the 29th–31st, `setMonth` can roll over into the next month, so the cutoff can be one month too late. This now affects both `findAllIdsByEndMonthAndStatusIn` (flagging) and `findAllByEndMonthAndStatusIn` (listing).
+13. **Not-found inconsistency**: `getTripForReport`, `getTripForQrCode` and `getTripHotelsAndActivities` return 200 with `null`/empty data when the trip doesn't exist. The other handlers return 400 (not 404).
+14. **Month-end not enforced everywhere**: `updateTrip`, `assignDriverAndVehicle`, `saveCheckListAnswers` and `markPlaceAsReached` don't check `isMonthEndDone`.
+15. **`mapVehicleToVehicleDto`** reads `vehicle.vehicle.licenseRenewalDate` without optional chaining (`trip.util.ts:66-67`). A vehicle ref that fails to populate (deleted document) throws. The new `|| []` guards in the list mapper don't cover this.
 
 **Inconsistencies / quirks**
 
-17. `status` default is `WellKnownLeaveStatus.PENDING` (works only because both equal 1). `expenseRequest` statuses also use the leave enum.
-18. `tripConfirmedNumber` String default `0`; `paymentMode` in hotels/activities is String with default `0`, while the payment Joi schema expects a number.
-19. Joi vs Mongoose mismatch: `phoneNumber` and `contactPerson` required in Joi but optional in the schema; `specialRequirement` has a `'string.max'` message but no `.max()` rule (only Mongoose's 500 limit applies). Joi's validated `value` is discarded, so Joi defaults (e.g. `isPaymentCollected: false`) are not applied (Mongoose defaults cover it).
-20. `saveTrip` rejects unknown body keys; `updateTrip` allows them (`allowUnknown: true`).
-21. Uniqueness of `tripConfirmedNumber` is enforced only in code (race-prone, no unique index). Numbers of cancelled trips can be reused.
-22. Status value `5` (`REACHED`) is never stored; `GET /trip?status=5` reuses it to mean "finished with driver salary done". For drivers, `status=4/5` return all finished trips not yet month-closed (no salary filter).
-23. `isDriverSalaryDone` and `isActiveDriver` are set as ad-hoc properties on Mongoose documents and read by the DTO.
-24. `tripService.save` doesn't clear the `trip-` cache prefix (only `vehicleService.save` does); the trip module itself doesn't use the cache.
-25. Populate `match` filters (`'drivers.isActive'`, `'vehicles.isActive'`, `'places.isReached'`) target the wrong collection and are silently dropped by `strictQuery: true`.
-26. Hotel sorting uses lexicographic sort of date strings and `new Date(string)` parsing; activities without `date` sort as `NaN`.
-27. Dead code / unused imports: `start` from `repl` (`trip.service.ts:1`), `truncate` from `fs/promises` (`trip.util.ts:16`), `number` from `joi` and `commonUtil` (`trip.controller.ts:12,21`), `tripModelToTripResponseDto(s)`, `generateTripId`, `applicationRoutes.trip.undoTripStatus`. The `try { … } catch (e) { throw e; }` blocks in several handlers do nothing.
-28. Typos in user-facing messages: `You'r not allowed…`; fields `startMilage`/`endMilage`/`currentMilage` (vs `currentMileage` on Vehicle).
-29. Transactions (`cancelTrip`, `changeTripStatus`, `markPlaceAsReached`) need MongoDB running as a replica set. Reads in those flows (POS, expense requests) are not done inside the session.
+16. `status` defaults to `WellKnownLeaveStatus.PENDING`, which works only because both enums use 1. `expenseRequest` statuses also use the leave enum.
+17. `tripConfirmedNumber` is a String with default `0`. `paymentMode` in hotels/activities is also a String with default `0`, while the payment Joi schema expects a number.
+18. Joi vs Mongoose mismatch:
+    - `phoneNumber` and `contactPerson` are required in Joi but optional in the schema.
+    - `specialRequirement` has a `'string.max'` message but no `.max()` rule, so only Mongoose's 500 limit applies.
+    - Joi's validated `value` is discarded, so Joi defaults (e.g. `isPaymentCollected: false`) are not applied. Mongoose defaults cover this.
+19. `saveTrip` rejects unknown body keys; `updateTrip` allows them (`allowUnknown: true`).
+20. Uniqueness of `tripConfirmedNumber` is enforced only in code. The new `{tripConfirmedNumber, status}` index is **non-unique**, so the check-then-save stays race-prone. Numbers of cancelled trips can be reused.
+21. Status value `5` (`REACHED`) is never stored. `GET /trip?status=5` reuses it to mean "finished with driver salary done". For drivers, `status=4/5` return all finished trips not yet month-closed, with no salary filter.
+22. `isDriverSalaryDone` and `isActiveDriver` are set as ad-hoc properties on the trip objects and read by the DTO. In the list endpoints these are now lean plain objects. The monthAudit listing still sets them on Mongoose documents.
+23. **Lean list results**: `findAllByStatusIn`, `findAllByDriverIdAndStatusIn` and `findAllByStatusInAndOnlyFromEndDate` return plain objects. Schema defaults are not applied to older documents that lack a field, and virtuals such as `passenger.id` are absent. Only the DTO path is safe (it was hardened with `?.`/`|| []`). The unused `tripModelToTripResponseDto` would emit `id: undefined` for passengers if fed lean data. Populated users/vehicles are projected to the DTO's fields only, so callers can't rely on other user/vehicle fields from these queries.
+24. `tripService.save` doesn't clear the `trip-` cache prefix (only `vehicleService.save` does). The trip module itself doesn't use the cache. `markMonthEndDone` (`updateMany`) doesn't touch any cache either.
+25. Populate `match` filters (`'drivers.isActive'`, `'vehicles.isActive'`, `'places.isReached'`) target the wrong collection and are silently dropped by `strictQuery: true` (still present on the new projected populates).
+26. Hotel sorting uses a lexicographic sort of date strings and `new Date(string)` parsing. Activities without `date` sort as `NaN`.
+27. Dead code: `tripModelToTripResponseDto(s)`, the unused `tripHotelActivityPaymentSchema`, `applicationRoutes.trip.undoTripStatus`, and the commented-out `generateTripId()` call in `saveTrip` (`:90`), which references a function that no longer exists. The `try/catch` blocks that only re-threw have been removed. The remaining ones (`cancelTrip`, `changeTripStatus`, `markPlaceAsReached`) do abort the transaction.
+28. Typos in user-facing messages and fields: `You'r not allowed…`; fields `startMilage`/`endMilage`/`currentMilage` (vs `currentMileage` on Vehicle).
+29. Transactions (`cancelTrip`, `changeTripStatus`, `markPlaceAsReached`) need MongoDB running as a replica set. Reads in those flows (trip, POS, products incl. the batch preload, expenses, expense requests) are not done inside the session.
+
+---
+
+## Changelog
+
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
+- **Model**: added five non-unique indexes: `{status, startDate, endDate}`, `{endDate, status, isMonthEndDone}`, `{'drivers.driver', status, isMonthEndDone}`, `{'vehicles.vehicle'}`, `{tripConfirmedNumber, status}`.
+- **Service**:
+  - `findAllByStatusIn`, `findAllByDriverIdAndStatusIn` and `findAllByStatusInAndOnlyFromEndDate` now use projected populates (`_id fullName` / `_id fullName userName` / vehicle DTO fields) and `.lean()`.
+  - Removed `generateTripId` and the unused `repl` import.
+  - Added `monthEndFilter` (shared), `findAllIdsByEndMonthAndStatusIn` (`_id status`, lean) and `markMonthEndDone` (bulk `updateMany`). monthAudit now flags trips through these instead of per-trip saves.
+- **List endpoint**: the per-trip parallel expense lookups are replaced by a single batched query in `expensesService.applyDriverSalaryDone`. The result is unchanged.
+- **Cancel**:
+  - Products are preloaded with `productService.createBatchLoader` (one query).
+  - The unit code now comes from `helperUtil.getSiUnitCode`.
+  - Log entries are built by the new `src/util/inventory.util.ts` (`buildInventoryLog`).
+  - Behaviour is unchanged.
+- **Print/QR**: the expense totals now come from the shared `expensesUtil.expenseWithTotalsToResponseDto`. Same formula.
+- **Util**: the list DTO mapper is null-safe for lean docs (`passengers?.`, `places?.`, `vehicles?.`, `drivers || []`). Removed the unused `truncate` import.
+- **Controller cleanup**: removed the re-throw-only `try/catch` wrappers and the unused imports (`commonUtil`, which was deleted, plus `number` from joi and `measureUnit`). All handler line ranges are updated.
+- **Gotchas**:
+  - Removed the `generateTripId` item, which no longer applies.
+  - Updated the dead-code, month-overflow, populate-match and line-reference items.
+  - Added the lean-results item (#23) and the duplicate-product lost-update note under #9.

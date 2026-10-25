@@ -311,7 +311,7 @@ Cache is an in-process `node-cache` (`src/util/cache.ts`), so it is per-instance
 
 ## Changelog
 
-### 2026-10-25 — synced with uncommitted code changes
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
 - Model: added non-unique compound index `{ tripId: 1, status: 1 }`.
 - Util: new `sumActiveExpenses` and `expenseWithTotalsToResponseDto` (filter-active + totals + DTO); `getExpenseByTripId`, `calculateDriverSalary`, `calcRemainingExpenses`, trip and report modules now use them.
 - Service: new batched helpers `findAllByTripIdsAndStatusIn` (report, projected populate), `findAllIdsByTripIdsAndStatusIn` (`.lean()` + projection) and bulk `markMonthEndDone` (`updateMany` in session) for month end, and `applyDriverSalaryDone` (one lean query instead of per-trip lookups) for trip lists / month-end listing.

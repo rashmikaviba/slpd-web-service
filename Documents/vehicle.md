@@ -342,7 +342,7 @@ The cache (`src/util/cache.ts`) is an in-process `node-cache` instance (default 
 
 ## Changelog
 
-### 2026-10-25 — synced with uncommitted code changes
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
 
 - Model: added three non-unique indexes (`{registrationNumber,status}`, `{gpsTracker,status}`, `{status,availableSeats}`). Gotcha 7 reworded (still no unique constraint).
 - Service: `findAllAndStatusIn` now populates `createdBy`/`updatedBy` with `_id fullName` only; `getCache` is no longer awaited.

@@ -51,7 +51,7 @@ The DB connects only after the HTTP server is listening. Requests in that window
 | retention | `:36-47` | Lists `./backups` entries starting with `mongo-backup-` and sorts them by name (ISO dates sort chronologically). **Only when there are more than 7** does it delete all but the newest **3** (`rmSync recursive`). The comment says "keep only latest 3", so in practice the folder grows to 8 and is then trimmed to 3. |
 | `runDBBackup()` (default) | `:54-59` | Schedules `'0 2 * * *'`, daily at 02:00 server local time (UTC in the Docker image unless `TZ` is set). |
 
-Requirements: the `mongodump` binary on `PATH` (the Dockerfile installs it) and a writable `./backups` relative to CWD (`/app/backups` in Docker). The directory must exist, otherwise `readdirSync` throws (caught and logged). The repo tracks `backups/backup-test.ts` (empty), so the folder exists.
+Requirements: the `mongodump` binary on `PATH` (the Dockerfile installs it) and a writable `./backups` relative to CWD (`/app/backups` in Docker, created by `RUN mkdir -p backups` in the Dockerfile). The directory must exist, otherwise `readdirSync` throws (caught and logged). The repo tracks `backups/backup-test.ts` (empty), so the folder exists in a checkout.
 
 There is no restore helper. Restore manually with `mongorestore --uri=... <dir>`.
 
@@ -69,7 +69,7 @@ File: `src/config/soket.config.ts` (sic).
 | `:39-41` | On `disconnect`, `delete useSocketMap[userWithRoleId]` |
 | `:18-26` | `getActiveSocketIdsByRoles(roles: number[]): string[]` returns socket ids whose key **starts with** any of the role ids as a string, so the client must build a key that begins with the role id. |
 
-Exports: `app`, `io`, `server`, `getActiveSocketIdsByRoles`.
+Exports: `app`, `io`, `server`, `getActiveSocketIdsByRoles`. (Only the unused `Request`/`Response` type imports were dropped; behaviour is unchanged.)
 
 **Events emitted (server → client)**. The only emitter is `src/modules/expenseRequest/expenseRequest.controller.ts`, and every event targets roles SA, A, FO, TM:
 
@@ -196,7 +196,7 @@ Imports the 21 routers and mounts each at its `base` on a single `Router` (`:28-
 
 ### 6.1 `commonResponse.ts`
 
-`CommonResponse(res, isSuccessful: boolean, statusCode: any, message: string, data: any)` → `res.status(statusCode).json({ isSuccessful, timeStamp: new Date().toISOString(), message, data })` (`:3-14`). It returns the Express response. This is the single envelope for both success and error responses.
+`CommonResponse(res, isSuccessful: boolean, statusCode: any, message: string, data: any)` → `res.status(statusCode).json({ isSuccessful, timeStamp: new Date().toISOString(), message, data })` (`:3-14`). It returns the Express response. This is the single envelope for both success and error responses. (Only the unused `Request` import was dropped.)
 
 ### 6.2 `cache.ts` (node-cache)
 
@@ -305,7 +305,7 @@ All are numeric TS enums stored as numbers in MongoDB.
 | `WellKnownTripStatus` | `PENDING 1, CANCELED 2, START 3, FINISHED 4, REACHED 5` | Trip lifecycle (see [trip.md](trip.md)) |
 | `WellKnownLeaveStatus` | `PENDING 1, APPROVED 2, REJECTED 3, CANCELLED 4` | Leave status. Also reused for expense-request status (`expenseRequest.controller.ts`) |
 | `WellKnownGrnStatus` | `PENDING 1, APPROVED 2, REJECTED 3, CANCELLED 4` | GRN workflow |
-| `WellKnownGrnLogType` | `GRN_APPROVED 1, POS_TRANSACTION 2, POS_TRANSACTION_RETURN 3` | Product stock-movement audit entries (grn, pos, trip controllers) |
+| `WellKnownGrnLogType` | `GRN_APPROVED 1, POS_TRANSACTION 2, POS_TRANSACTION_RETURN 3` | Product stock-movement audit entries (grn, pos, trip controllers, via `inventory.util.ts`) |
 | `WellKnownAuditLogType` | `MothEndAuditTrail 1` (sic), `UserAuditTrail 2`, `LeaveAuditTrail 3` | `common/model/auditLog.model.ts` |
 | `WellKnownNotificationType` | `ExpenseExtensionRequest 1, VehicleInsuranceRenewal 2, VehicleLicenseRenewal 3, PendingTrip 4, PendingLeave 5` | Notification feed items (`notification.util.ts`) |
 | `WellKnownUploadType` | `ProfileImage 1 … MaintenanceInvoice 9` (table in §6.5) | Upload folder selection |
@@ -381,14 +381,14 @@ The SI bases are **gram** for mass and **millilitre** for volume. Mass and volum
 
 ### Security
 
-1. **The upload endpoints are unauthenticated.** `POST /api/v1/store/upload` and `/uploadMultiple` have no `authorize` (`src/modules/store/store.route.ts`). Multer has no size limit and no type filter (`src/util/multer.util.ts:27`), and files are then served publicly from `/uploads`. Anyone can fill the disk or host arbitrary files, including HTML/SVG (stored XSS on the API origin).
+1. **The upload endpoints are unauthenticated.** `POST /api/v1/store/upload` and `/uploadMultiple` have no `authorize` (`src/modules/store/store.route.ts`). Multer has no size limit and no type filter (`src/util/multer.util.ts:25`), and files are then served publicly from `/uploads`. Anyone can fill the disk or host arbitrary files, including HTML/SVG (stored XSS on the API origin).
 2. **Uploaded files are publicly readable** (`src/app.ts:35`). This includes NIC images, driving licences and police reports.
 3. **Leave approve/reject role check is a no-op.** `authorize(constants.USER.ROLES.SUPERADMIN)` passes a number, not an array (`src/modules/leave/leave.route.ts:51,57`). `(1).length` is `undefined`, so the role check is skipped and any authenticated user passes. Controllers may re-check; see [leave.md](leave.md).
 4. **Socket.IO has no authentication.** A client chooses its own `userWithRoleId` (`src/config/soket.config.ts:33`), so anyone can register with a key starting with `1` and receive admin expense-request notifications. Multiple tabs for the same key overwrite each other, and the first tab's disconnect deletes the mapping for the others.
 5. **Committed credential.** `dbscripts/note.txt` contains a plaintext MongoDB admin password in git history. Rotate it and remove the file from history.
 6. **The backup command logs credentials.** On failure `execShellCommand` logs the whole `mongodump --uri="<MONGO_URL>"` command (`src/config/dbBackups.config.ts:11`). `MONGO_URL` is also interpolated into a shell string inside double quotes only, so `$`, backticks or `"` in the URI would break or alter the command.
 7. **Raw error messages leak to clients** for 500s (`error.middleware.ts:16`).
-8. Original upload filenames are used without sanitisation (`multer.util.ts:23`). `DeleteFileFromName` accepts `../` (unused today).
+8. Original upload filenames are used without sanitisation (`multer.util.ts:21`).
 9. A JWT is valid for 2 days and is not revocable except by blocking the user. Blocking takes effect only if the `auth-` cache is cleared, and with multiple instances other replicas keep the old value for up to a week.
 10. The role in the JWT is trusted; DB role changes are ignored until a new token is issued.
 11. An empty or missing `JWT_SECRET` is not caught at startup. It only fails at the first login.
@@ -397,26 +397,41 @@ The SI bases are **gram** for mass and **millilitre** for volume. Mass and volum
 
 12. `connectDB()` is not awaited and rethrows inside `.catch` (`database.config.ts:14-16`, `app.ts:57`). A DB outage at boot becomes an unhandled rejection and the process exits. The server accepts traffic before the DB is ready.
 13. **Env file path breaks in the compiled build.** `path.resolve(__dirname, '../../.env.*')` points to `dist/` after `tsc` (`environment.config.ts:7-8`). The Docker image excludes env files anyway, so set real env vars.
-14. **Static uploads path depends on `NODE_ENV`.** If the Docker container does not set `NODE_ENV=production`, `/uploads` serves `dist/src/uploads` while multer writes to `src/uploads` (`app.ts:30-33` vs `multer.util.ts:11`), and uploaded files return 404.
-15. Multer does not create the upload sub-folders. On a fresh clone only `src/uploads/MaintenanceInvoice/` exists, so other types fail with `ENOENT` (500) until the folders are created.
-16. Backup retention trims only after there are more than 7 backups, then keeps 3 (`dbBackups.config.ts:40-41`), which does not match the comment. Backups are written inside the container unless a volume is mounted.
-17. `X-Correlation-ID` is never honoured because Node lower-cases header keys (`auditLog.middleware.ts:13`).
-18. `financeOfficerMenu` has an array hole that produces `null` in the login response (`menudata.ts:176`).
-19. Roles 6 and 7 are referenced in code but never seeded (`dbscripts/privilegeDataScript.js`).
-20. `masterDataDBScript.js` sets `workingDate` to the 1st of next month while `workingMonth` is the current month.
-21. The FO menu includes Dashboard (38), but `/dashboard/*` routes allow only SA and A.
-22. `isValueInEnum` accepts enum key names as well as values for numeric enums (`helper.util.ts:11`).
-23. Measure unit conversions between countable units are 1:1 (box → pc is not multiplied), and unknown unit ids silently return the input quantity.
-24. `MulterError` (too many files, unexpected field) surfaces as 500 instead of 400.
-25. node-cache is in-process with `useClones: true`. It does not scale horizontally, and cloning large Mongoose documents costs CPU.
+14. **Static uploads path depends on `NODE_ENV`.** If the Docker container does not set `NODE_ENV=production`, `/uploads` serves `dist/src/uploads` while multer writes to `src/uploads` (`app.ts:30-33` vs `multer.util.ts:9`), and uploaded files return 404.
+15. **Upload sub-folders are still missing on a clean checkout, including the Docker image.** Multer does not create them. The Dockerfile now does `COPY src/uploads ./src/uploads` (`Dockerfile:34`) and its comment implies this provides the folders, but git tracks only `src/uploads/uploadtest.ts` (the per-type folders are git-ignored), so a Jenkins build ships no sub-folders and every upload type fails with `ENOENT` (500) until the folders exist (or a volume with them is mounted). Locally only `MaintenanceInvoice/` exists.
+16. **Local Docker builds bake uploaded files into the image.** `.dockerignore` does not exclude `src/uploads/*`, so anything uploaded on the build machine (e.g. the `.jpg` currently in `src/uploads/MaintenanceInvoice/`) ends up in the image layer.
+17. Backup retention trims only after there are more than 7 backups, then keeps 3 (`dbBackups.config.ts:40-41`), which does not match the comment. The Docker image now creates `/app/backups` (`Dockerfile:35`), but backups are still written inside the container unless a volume is mounted.
+18. `X-Correlation-ID` is never honoured because Node lower-cases header keys (`auditLog.middleware.ts:13`).
+19. `financeOfficerMenu` has an array hole that produces `null` in the login response (`menudata.ts:176`).
+20. Roles 6 and 7 are referenced in code but never seeded (`dbscripts/privilegeDataScript.js`).
+21. `masterDataDBScript.js` sets `workingDate` to the 1st of next month while `workingMonth` is the current month.
+22. The FO menu includes Dashboard (38), but `/dashboard/*` routes allow only SA and A.
+23. `isValueInEnum` accepts enum key names as well as values for numeric enums (`helper.util.ts:11`).
+24. Measure unit conversions between countable units are 1:1 (box → pc is not multiplied). Unknown unit ids are handled inconsistently: `fromMeasureUnitToSiMeasureUnit` returns the input quantity, `fromSiToMeasureUnit` returns `0` (`helper.util.ts:79-94`), and `getSiUnitCode` throws a `TypeError` → 500 (`helper.util.ts:99-101`, no null guard).
+25. `MulterError` (too many files, unexpected field) surfaces as 500 instead of 400.
+26. **Cached values are shared mutable objects.** `cache.ts:8` now uses `useClones: false`, so `getCache` returns the stored reference. Any caller that mutates a cached Mongoose document or array (assigning a field, `push`, `sort` in place, or calling `.save()` on it) silently changes what every later request reads, and a `.save()` on a shared doc can persist another request's in-flight edits. Only auth (`findByIdFresh`) and company working info (`getCompanyWorkingInfoFresh`) have uncached loaders; other services that cache documents rely on callers being read-only, and nothing enforces it (no `Object.freeze`, no `.lean()`). The cache is still in-process and does not scale horizontally.
 
 ### Build / tooling
 
-26. **`npm start` depends on an empty file.** `dist/src/app.js` exists only because `backups/backup-test.ts` widens tsc's inferred rootDir to the project root. Delete that file and the output moves to `dist/app.js`, breaking `npm start` and the Docker `CMD`. Set `rootDir`/`include` explicitly.
-27. **`npm run lint` is broken.** ESLint 8.57 loads `eslint.config.mjs` as flat config, which rejects the legacy `env`, `extends` and `parser` keys and the `--ext` flag. `eslint-plugin-prettier`, `eslint-config-prettier` and `prettier` are not installed.
-28. `npm run dev` uses `cross-env NODE_ENV=development&& nodemon …`, so `cross-env` never wraps nodemon. It is harmless only because `.env.dev` is the default.
-29. These dependencies are unused: `class-validator`, `class-transformer`, `morgan`, `winston`, `@types/morgan`, and `@types/mongoose` (an obsolete stub for Mongoose 5). `ConflictError`, `generateUniqueId`, `DeleteFileFromName`, `banks` and `cronJob` (outside backups) are unused code.
-30. `.env.exmple` (sic) is missing `CLIENT_URL`. Without it, HTTP CORS allows `*` but Socket.IO CORS rejects browsers.
-31. The Dockerfile uses `npm install` (not `npm ci`), keeps dev dependencies in the image, uses the deprecated `apt-key`, and copies `backups/`, `Documents/` and existing `src/uploads` into the image (none of them are in `.dockerignore`).
-32. The Jenkins pipeline has no lint, test or deploy stage. Its defaults are pinned to `release-1.0.0.9` / `1.0.0.9`, so bump them each release.
-33. Misspelled names baked into identifiers and paths: `soket.config.ts`, `ExpensesRecept`, `MothEndAuditTrail`, `clearCacheByPrefixs`, `vehicleMonthlyPaymentMaintance`, `getDashboardstats`, `.env.exmple`. Renaming any of them is a breaking change for the API or for stored data (upload folder names are part of stored URLs).
+27. **`npm run lint` runs but fails.** The flat config loads now, but `eslint .` reports 373 errors and 16 warnings (353 `prefer-const`, plus `ban-types`, `no-case-declarations`, `no-unused-vars`, `no-namespace`, `no-useless-escape`, `no-sparse-arrays` (the `menudata.ts` hole), `no-constant-binary-expression`) and exits non-zero. 358 are auto-fixable with `--fix`. No script or pipeline runs it. Prettier rules from `.prettierrc` are not enforced (Prettier is not installed).
+28. Unused code: `ConflictError`, `banks` (`bankdata.ts`) and the exported `cronJob` (outside backups). Every runtime dependency in `package.json` is now used.
+29. `.env.exmple` (sic) is missing `CLIENT_URL`. Without it, HTTP CORS allows `*` but Socket.IO CORS rejects browsers.
+30. The Dockerfile now uses a multi-stage `npm ci` build with production-only deps, but the runtime stage still uses the deprecated `apt-key` and installs MongoDB tools from the Debian **bullseye** repo with a hard-coded `arch=amd64`, on a `node:20.19.4-slim` (bookworm) base (`Dockerfile:17-23`). An arm64 build or a base image without `apt-key` breaks this step. The rewritten Dockerfile has not been verified here by an actual `docker build`.
+31. The Jenkins pipeline has no lint, test, typecheck or deploy stage. Its defaults are pinned to `release-1.0.0.9` / `1.0.0.9`, so bump them each release.
+32. Misspelled names baked into identifiers and paths: `soket.config.ts`, `ExpensesRecept`, `MothEndAuditTrail`, `clearCacheByPrefixs`, `vehicleMonthlyPaymentMaintance`, `getDashboardstats`, `.env.exmple`. Renaming any of them is a breaking change for the API or for stored data (upload folder names are part of stored URLs).
+
+---
+
+## Changelog
+
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
+
+- §3.1 Auth middleware: line numbers updated after removal of the commented-out blocked/role code and the unused `roleService` import; documented the shared cached auth doc and `authService.findByIdFresh`.
+- §6.2 Cache: `useClones: false`, read-only contract for cached values, the two "fresh" loaders, single-pass `clearCacheByPrefixs`; line numbers updated.
+- §6.5 Multer: `DeleteFileFromName` and `fs-extra` removed; line numbers updated; noted that only `uploadtest.ts` is tracked under `src/uploads`.
+- §6.6 Helper: added `fromSiToMeasureUnit` and `getSiUnitCode`; `consoleLogMessage` line numbers moved.
+- §6.7: `common.util.ts` (`generateUniqueId`) deleted; new `inventory.util.ts` (`buildInventoryLog`) documented with its callers.
+- §2.3, §4, §5.2, §9: Docker-created `backups/` folder, `tsconfig.json` (target `es2022`, `useDefineForClassFields: false`, `rootDir`/`include`/`exclude`), flat ESLint config, `applicationRoutes.ts` line numbers (unused `constant` import removed). `app.ts`, `soket.config.ts` and `commonResponse.ts` only lost unused imports; their line references are unchanged.
+- Gotchas resolved and removed: `npm start` depending on `backups/backup-test.ts` (old #26), broken `npm run dev` `cross-env` (old #28), unused dependencies (part of old #29), `DeleteFileFromName` path traversal (part of old #8), Dockerfile `npm install`/dev deps/`COPY . .` (part of old #31), useless deep cloning in the cache (old #25, replaced by the new shared-object gotcha).
+- Gotchas adjusted: lint now runs but fails (#27), Dockerfile (#30), upload folders in Docker (#15), backups folder (#17), unused code list (#28), unit conversion edge cases (#24).
+- Gotchas added: shared mutable cache values (#26), uploaded files baked into local Docker images (#16), `getSiUnitCode` throws on unknown unit / `fromSiToMeasureUnit` returns 0 (#24).

@@ -23,8 +23,8 @@ The module has **no collections of its own**. It aggregates data from Trip, Expe
 | File | Role |
 |---|---|
 | `dashboard.route.ts` | Express router for `/dashboard`. |
-| `dashboard.controller.ts` | All handlers plus the private aggregation helpers (`getFinishedTripsCount`, `getIncomeForDateRange`, `getExpensesForDateRange`, unused `getAvailableDriversAndVehiclesCount`). |
-| `dashboard.util.ts` | Product → `InventorySummaryResponseDto` mappers and SI → product-unit conversion. |
+| `dashboard.controller.ts` | All handlers plus the private aggregation helpers (`getFinishedTripsCount`, `getIncomeForDateRange`, `getExpensesForDateRange`). |
+| `dashboard.util.ts` | Product → `InventorySummaryResponseDto` mappers (SI → product-unit conversion via `helperUtil.fromSiToMeasureUnit`). |
 | `dashboard.service.ts` | **Empty file** (0 lines). |
 | `dto/inventorySummaryResponseDto.ts` | `InventorySummaryResponseDto` interface. |
 
@@ -36,8 +36,8 @@ None. The module defines no Mongoose schema. The fields it reads from other coll
 
 | Collection (model) | Fields used |
 |---|---|
-| `Trip` | `status`, `endDate`, `totalCostLocalCurrency`, `drivers[].driver`, `drivers[].isActive`, `vehicles[].vehicle`, `vehicles[].isActive` |
-| `Expenses` | `tripId`, `status`, `expenses[].amount`, `expenses[].status`, `driverSalaries[].driver`, `driverSalaries[].totalSalary` |
+| `Trip` | `_id`, `status`, `endDate`, `totalCostLocalCurrency` |
+| `Expenses` | `tripId`, `status`, `expenses[].amount`, `expenses[].status`, `driverSalaries[].totalSalary` |
 | `MonthlyExpenses` | `month` (Date), `expenses[].date`, `expenses[].amount`, `expenses[].status` |
 | `VehicleMaintenance` | `status`, `maintenanceDate`, `cost`, `vehicle` → `Vehicle.isFreelanceVehicle`, `Vehicle.isRentalVehicle` |
 | `InventoryProduct` | `_id`, `productName`, `productShortCode`, `measureUnit`, `inventory`, `status` |
@@ -57,12 +57,12 @@ Base path `/dashboard` (`src/applicationRoutes.ts:204-209`, mounted `src/mapping
 
 Response envelope: `{isSuccessful, timeStamp, message, data}`.
 
-### 4.1 GET `/dashboard/inventorySummary` — `getDashboardInventorySummary` (`dashboard.controller.ts:20`)
+### 4.1 GET `/dashboard/inventorySummary` — `getDashboardInventorySummary` (`dashboard.controller.ts:17`)
 
 **Params/query/body:** none.
 
 **Logic:**
-1. `productService.findAllAndByStatusIn([ACTIVE])`: cached under key `product-[1]` for one week (cleared on any product save). The query returns ACTIVE products without `inventoryLogs`, with `createdBy`/`updatedBy` populated (`userName`). `|| []` guards a null result.
+1. `productService.findAllAndByStatusIn([ACTIVE])`: cached under key `product-[1]` for one week (cleared on any product save). The query returns ACTIVE products without `inventoryLogs`, with `createdBy`/`updatedBy` populated (`userName`); it is served by the new `{status: 1}` product index. A cache hit returns the shared cached documents (`useClones: false`), which this handler only reads. `|| []` guards a null result.
 2. If there are products, map with `dashboardUtil.modelsToInventorySummeryResponseDtos` and sort **ascending by converted `inventory`** (`a.inventory - b.inventory`).
 
 **Response:** `200 ''`, `data: InventorySummaryResponseDto[]`:
@@ -75,17 +75,16 @@ Response envelope: `{isSuccessful, timeStamp, message, data}`.
 
 **Errors:** none specific. Unexpected errors propagate to the global error middleware (500).
 
-### 4.2 GET `/dashboard/getDashboardstats` — `getDashboardData` (`dashboard.controller.ts:33`)
+### 4.2 GET `/dashboard/getDashboardstats` — `getDashboardData` (`dashboard.controller.ts:30`)
 
 **Query:** `startDate`, `endDate`: date strings (e.g. `2025-01-01`). **Not validated**: no Joi schema, no required check.
 
 **Logic:**
-1. `trips = tripService.findAllByStatusInAndOnlyFromEndDate([FINISHED], startDate, endDate)` (`trip.service.ts:166`): `Trip.find({status: {$in:[4]}, $or: [{endDate: {$gte: sDate, $lte: eDate}}]})`, where `sDate` is `startDate` at 00:00:00.000 local time and `eDate` is `endDate` at 23:59:59.999 local time. It populates `createdBy updatedBy startedBy endedBy`, `drivers.driver` (with `match: {'drivers.isActive': true}`) and `vehicles.vehicle`, sorted by `startDate` asc. Not cached. **A trip counts in the period in which it ended.**
+1. `trips = tripService.findAllByStatusInAndOnlyFromEndDate([FINISHED], startDate, endDate)` (`trip.service.ts:162`): `Trip.find({status: {$in:[4]}, $or: [{endDate: {$gte: sDate, $lte: eDate}}]})`, where `sDate` is `startDate` at 00:00:00.000 local time and `eDate` is `endDate` at 23:59:59.999 local time. It populates `createdBy updatedBy startedBy endedBy` (`_id fullName`), `drivers.driver` (`_id fullName userName`, with `match: {'drivers.isActive': true}`) and `vehicles.vehicle` (`_id registrationNumber licenseRenewalDate insuranceRenewalDate`), sorts by `startDate` asc and now returns **`.lean()`** plain objects. Not cached. **A trip counts in the period in which it ended.**
 2. In parallel (`Promise.all`):
-   - `getFinishedTripsCount(startDate, endDate, trips)` → `trips.length` (see §6.2 for the wasted work it does).
+   - `getFinishedTripsCount(startDate, endDate, trips)` → `trips.length` (no DB access any more).
    - `getIncomeForDateRange(...)` → `Σ trip.totalCostLocalCurrency || 0`.
-   - `getExpensesForDateRange(...)` → total expenses (§5.2).
-3. The local `todayDateString` is computed and never used.
+   - `getExpensesForDateRange(...)` → total expenses (§5.2), whose three lookups also run in parallel.
 
 **Response:** `200 ''`, `data`:
 ```json
@@ -95,7 +94,7 @@ Response envelope: `{isSuccessful, timeStamp, message, data}`.
 
 **Errors:** the whole handler is wrapped in `try/catch`. Any error (e.g. invalid dates causing `RangeError`) returns `500 "Error fetching dashboard data"` with `data: null`, `isSuccessful: false`. With missing/invalid dates, `new Date(undefined)` is an Invalid Date. Mongo comparisons against it match nothing, and `getExpensesForDateRange` builds Invalid Dates too, so the call usually returns zeros rather than throwing.
 
-### 4.3 GET `/dashboard/monthlyIncomeExpense` — `getMonthlyIncomeExpense` (`dashboard.controller.ts:226`)
+### 4.3 GET `/dashboard/monthlyIncomeExpense` — `getMonthlyIncomeExpense` (`dashboard.controller.ts:149`)
 
 **Query:** `year` (string, e.g. `2025`). Not validated.
 
@@ -103,12 +102,11 @@ Response envelope: `{isSuccessful, timeStamp, message, data}`.
 1. `currentYear = now.getFullYear()`, `currentMonth = now.getMonth() + 1`.
 2. If `Number(year) != currentYear` then `currentMonth = 12` (all months), `currentYear = Number(year)`; else `currentYear = Number(year)` (months up to the current month).
 3. Initialise 12 buckets `{monthIndex, month (English name), income: 0, expenses: 0}`.
-4. For `i = 1..12`:
+4. `loadMonth(i)` for `i = 1..min(12, currentMonth)` (future months are never started and stay 0):
    - `startDate = YYYY-MM-01` and `endDate` = last day of month, both built with `Date.UTC` and formatted `YYYY-MM-DD`.
-   - If `i > currentMonth` → `break` (future months stay 0).
    - Cache key `monthlyIncomeExpense_<year>_<i>`. On a hit, copy `income`/`expenses` from the cache.
-   - On a miss: fetch FINISHED trips by end date (as in 4.2), `income = getIncomeForDateRange`, `expenses = getExpensesForDateRange`, store them in the bucket. Then load `companyWorkingInfoService.getCompanyWorkingInfo()` (latest ACTIVE `CompanyWorkingInfo`, cached one month under `companyWorkingInfo`). **If `new Date(startDate) < workingInfo.workingDate`**, cache `{income, expenses}` for **ONE_YEAR**. Only months that started before the company's current working date (i.e. closed/audited months) are cached; the current open month is always recomputed.
-5. Months are processed **sequentially** (one `await` per month).
+   - On a miss: fetch FINISHED trips by end date (as in 4.2), then `income = getIncomeForDateRange` and `expenses = getExpensesForDateRange` (sequential within the month), store them in the bucket. Then `await getWorkingInfo()`: a lazily created, memoised promise of `companyWorkingInfoService.getCompanyWorkingInfo()` (latest ACTIVE `CompanyWorkingInfo`, cached one month under `companyWorkingInfo`), so it is read **at most once per request** and only if some month missed the cache. **If `new Date(startDate) < workingInfo.workingDate`**, cache `{income, expenses}` for **ONE_YEAR**. Only months that started before the company's current working date (i.e. closed/audited months) are cached; the current open month is always recomputed.
+5. All months run **in parallel** (`Promise.all` over the `loadMonth` promises). Each writes only its own bucket, so the result order is unchanged. If any month throws, the whole request returns the 500 below.
 
 **Response:** `200 ''`, `data`: array of 12 `{monthIndex, month, income, expenses}`.
 
@@ -123,20 +121,22 @@ Response envelope: `{isSuccessful, timeStamp, message, data}`.
 income = Σ over FINISHED trips with endDate in [startDate 00:00, endDate 23:59:59.999] of (trip.totalCostLocalCurrency || 0)
 ```
 
-### 5.2 Expenses (`getExpensesForDateRange`, `dashboard.controller.ts:157`)
+### 5.2 Expenses (`getExpensesForDateRange`, `dashboard.controller.ts:77`)
 
 ```
 total = tripExpenses + monthlyExpenses + vehicleMaintenance
 ```
+
+The three lookups below are independent and are issued together with `Promise.all` (the trip-expense lookup is skipped, resolving `undefined`, when there are no trips). The monthly range (`startFirstDate`/`endLastDate`) is computed before the `Promise.all`.
 
 1. **Trip expenses** (only if there is at least one trip): `expensesService.findByTripIdsInAndStatusIn(tripIds, [ACTIVE])`, which finds `Expenses` headers for those trips with status ACTIVE (cached one week under `expenses-<ids><statuses>`). For each header:
    - `+ expense.amount` for each `expenses[]` item with `status === ACTIVE`;
    - `+ salary.totalSalary` for **every** `driverSalaries[]` item (no status filter).
 2. **Monthly (company overhead) expenses**:
    - `startFirstDate` = first day of `startDate`'s month 00:00 local; `endLastDate` = last day of `endDate`'s month 23:59:59.999 local.
-   - `monthlyExpensesService.advanceSearch(startFirstDate, endLastDate)`: `MonthlyExpenses.find({month: {$gte, $lte}})` (no header status filter), cached one week.
+   - `monthlyExpensesService.advanceSearch(startFirstDate, endLastDate)`: `MonthlyExpenses.find({month: {$gte, $lte}})` (no header status filter), `createdBy updatedBy` populated with `_id userName` only, cached one week.
    - Sum `expense.amount` for each sub-expense where `expense.date >= new Date(startDate)` **and** `expense.date <= new Date(endDate)` **and** `status === ACTIVE`. Note `new Date('YYYY-MM-DD')` is UTC midnight, so the end bound excludes expenses later on the end day (see Gotchas).
-3. **Vehicle maintenance**: `vehicleMaintenanceService.findAllByMaintenanceDateAndStatusIn([ACTIVE], startDate, endDate)`, where `maintenanceDate` is in `[startDate 00:00, endDate 23:59:59.999]` local time, populated with `vehicle garage createdBy updatedBy` and cached one week. For each record:
+3. **Vehicle maintenance**: `vehicleMaintenanceService.findAllByMaintenanceDateAndStatusIn([ACTIVE], startDate, endDate)`, where `maintenanceDate` is in `[startDate 00:00, endDate 23:59:59.999]` local time, populated with `vehicle` (`_id registrationNumber isRentalVehicle isFreelanceVehicle`), `garage` (`_id name`), `createdBy updatedBy` (`_id userName fullName`), sorted by `maintenanceDate`, and cached one week. For each record:
    - skip if `vehicle == null`;
    - skip if `vehicle.isFreelanceVehicle`;
    - skip if `vehicle.isRentalVehicle && cost > 5000`;
@@ -159,13 +159,13 @@ Month `i` of year `Y` is cached for one year only if `Date(Y-i-01) < companyWork
 ### 6.1 `dashboard.util.ts`
 - `modelToInventorySummeryResponse(product)` → `{_id, productName, productShortCode, measureUnitDetails, inventory}`.
 - `modelsToInventorySummeryResponseDtos(products)` → maps the array.
-- `fromSiMeasureUnitToOtherMeasureUnit(toUnitId, siQuantity)` (private): unit not found → `0`; `isSiUnit` → `siQuantity`; else `siQuantity / conversionToSi`. (Same as `product.util.ts`.)
+- `inventory` is computed with the shared `helperUtil.fromSiToMeasureUnit(product.measureUnit, product.inventory)` (`src/util/helper.util.ts:79`): unit not found → `0`; `isSiUnit` → `siQuantity`; else `siQuantity / conversionToSi`. The file's private copy was removed (same helper as `product.util.ts`).
 
 ### 6.2 Private helpers in `dashboard.controller.ts`
-- `getFinishedTripsCount(startDate, endDate, trips)`: for each FINISHED trip it loads the trip's ACTIVE `Expenses` header and sets `trip.isDriverSalaryDone = every trip driver's id is in driverSalaries[].driver`. **This flag is never used.** The function returns `trips.length`, so it makes one extra DB query per trip for nothing.
-- `getIncomeForDateRange(...)`: §5.1.
-- `getExpensesForDateRange(...)`: §5.2.
-- `getAvailableDriversAndVehiclesCount(startDate, endDate)`: **dead code (not called)**. It would count ACTIVE vehicles and DRIVER-role users minus those assigned (active assignment) to PENDING/START trips overlapping the range.
+- `getFinishedTripsCount(startDate, endDate, trips)` (`:59`): returns `trips.length`. The old per-trip `Expenses` lookup that computed an unused `isDriverSalaryDone` flag was removed.
+- `getIncomeForDateRange(...)` (`:66`): §5.1.
+- `getExpensesForDateRange(...)` (`:77`): §5.2.
+- (`getAvailableDriversAndVehiclesCount` was deleted.)
 
 ### 6.3 DTO
 `dto/inventorySummaryResponseDto.ts`: `InventorySummaryResponseDto {_id, productName, productShortCode, measureUnitDetails, inventory}`.
@@ -179,14 +179,15 @@ Reads only (no writes):
 | Service | Function | Used for |
 |---|---|---|
 | `inventory/product/product.service` | `findAllAndByStatusIn` | inventory summary |
-| `trip/trip.service` | `findAllByStatusInAndOnlyFromEndDate` | finished trips per range |
-| `trip/trip.service` | `findAllByStatusIn` | (dead code only) |
-| `expenses/expenses.service` | `findByTripIdAndStatusIn`, `findByTripIdsInAndStatusIn` | salary-done flag, trip expenses |
+| `trip/trip.service` | `findAllByStatusInAndOnlyFromEndDate` | finished trips per range (lean) |
+| `expenses/expenses.service` | `findByTripIdsInAndStatusIn` | trip expenses + driver salaries |
 | `monthlyExpenses/monthlyExpenses.service` | `advanceSearch` | monthly overheads |
 | `vehicleMaintain/vehicleMaintenance.service` | `findAllByMaintenanceDateAndStatusIn` | maintenance cost |
 | `common/service/companyWorkingInfo.service` | `getCompanyWorkingInfo` | month cache rule |
-| `vehicle/vehicle.service`, `user/user.service`, `common/service/role.service` | various | (dead code only) |
-| `src/util/cache.ts` | `getCache`, `setCache` | monthly cache |
+| `src/util/helper.util.ts` | `fromSiToMeasureUnit` | inventory summary conversion |
+| `src/util/cache.ts` | `getCache` (now synchronous, no `await`), `setCache` | monthly cache |
+
+`src/util/cache.ts` now uses `useClones: false`: cached product lists, expenses, monthly expenses, maintenance records and working info are returned as shared instances. The dashboard only reads them (the old code that wrote `isDriverSalaryDone` onto trips is gone).
 
 No other module depends on the dashboard module.
 
@@ -200,9 +201,22 @@ No other module depends on the dashboard module.
 4. **Driver salaries counted without status filter** and regardless of whether the expense header's trip is still FINISHED. Only headers with status ACTIVE are included.
 5. **Monthly expenses header status is not filtered** (`advanceSearch` has no `status` condition); only sub-expense status is.
 6. **No input validation**: missing `startDate`/`endDate` silently yields zeros; a missing `year` yields a generic 500.
-7. **Wasted queries**: `getFinishedTripsCount` makes N `Expenses` queries to compute an unused `isDriverSalaryDone`.
-8. **Dead code**: `getAvailableDriversAndVehiclesCount`, the unused `todayDateString`, and the empty `dashboard.service.ts`. If revived, note that `userService.findAllByRoleId` does `cached.length` on a possibly-undefined cache value (`user.service.ts:159`), which would throw.
+7. ~~Wasted queries in `getFinishedTripsCount`~~: fixed (it no longer queries).
+8. **Dead code** (mostly removed): `getAvailableDriversAndVehiclesCount` and `todayDateString` were deleted. `dashboard.service.ts` is still an empty file, and `getFinishedTripsCount`/`getIncomeForDateRange` are still `async` and take unused `startDate`/`endDate` parameters.
 9. **Errors are swallowed**: `getDashboardData` and `getMonthlyIncomeExpense` catch all errors and return a generic 500 without logging, which hides the root cause.
 10. **Stale inputs from service caches**: trip expenses, monthly expenses and maintenance lookups are cached for one week per exact key (each is cleared when its own module saves).
 11. **Inventory summary sorts across different units** (pieces vs kg vs l), so "lowest stock first" is only meaningful within the same unit.
-12. **Sequential month loop**: up to 12 × (trip query + expense queries + maintenance query) run one after another on a cold cache.
+12. **Parallel month burst** (replaces the old "sequential month loop" gotcha): on a cold cache, up to 12 months now start at once, each issuing a trip query and then three parallel expense/maintenance lookups, so up to about 48 concurrent DB queries per request. Latency is better, but load spikes. One failing month fails the whole response, and the other months keep running in the background.
+
+---
+
+## Changelog
+
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
+- `getFinishedTripsCount` no longer does a per-trip `Expenses` query; it just returns `trips.length`.
+- Deleted the dead `getAvailableDriversAndVehiclesCount`, `todayDateString` and the unused vehicle/user/role service imports.
+- `getExpensesForDateRange` runs the trip-expense, monthly-expense and maintenance lookups in parallel with `Promise.all`.
+- `getMonthlyIncomeExpense` computes the months in parallel (`Promise.all` over `1..min(12, currentMonth)`) and reads `CompanyWorkingInfo` lazily, at most once per request.
+- `dashboard.util.ts` uses the shared `helperUtil.fromSiToMeasureUnit`; its private copy was removed.
+- Dependency queries changed: the trip lookup is now `.lean()` with narrowed populates, the maintenance/monthly-expense populates are narrowed, and the cache returns shared objects (`useClones: false`).
+- Gotchas: #7 resolved, #8 mostly resolved, #12 replaced by a new "parallel month burst" note.

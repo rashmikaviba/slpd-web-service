@@ -232,7 +232,7 @@ There are no DTO files. The login response is built inline.
 
 ## Changelog
 
-### 2026-10-25 — synced with uncommitted code changes
+### 2026-10-25 — synced with code changes in commit `50632dc` ("Code Ai Optimization revamp")
 
 - `Auth` schema gained three non-unique indexes: `{userName, status}`, `{user, status}`, `{role, status, isBlocked}`.
 - `authService.findById` now returns a `.lean()` object; new `authService.findByIdFresh` (uncached, saveable) is used by `changePassword`.
