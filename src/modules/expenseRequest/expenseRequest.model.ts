@@ -54,6 +54,10 @@ const expenseRequestSchema = new mongoose.Schema(
     }
 );
 
+// Indexes for the filters used by the services (non-unique, no behaviour change)
+expenseRequestSchema.index({ tripId: 1, status: 1 });
+expenseRequestSchema.index({ status: 1 });
+
 export const ExpenseRequest = mongoose.model(
     'ExpenseRequest',
     expenseRequestSchema

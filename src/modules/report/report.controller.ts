@@ -14,114 +14,86 @@ import MonthlyIncomeReportResponseDto from './dto/monthlyIncomeReportResponseDto
 import reportValidation from './report.validation';
 import BadRequestError from '../../error/BadRequestError';
 import vehicleService from '../vehicle/vehicle.service';
-import { date } from 'joi';
 
 // Monthly Trip report - Full trip report
 const monthlyTripReport = async (req: Request, res: Response) => {
     const date = req.query.date as string;
 
-    try {
-        let selectedDate = date ? new Date(date) : new Date();
-        let trips: any[] = await reportService.findAllTripsByDateAndStatusIn(
-            selectedDate,
-            [
-                WellKnownTripStatus.PENDING,
-                WellKnownTripStatus.START,
-                WellKnownTripStatus.FINISHED,
-            ]
+    let selectedDate = date ? new Date(date) : new Date();
+    let trips: any[] = await reportService.findAllTripsByDateAndStatusIn(
+        selectedDate,
+        [
+            WellKnownTripStatus.PENDING,
+            WellKnownTripStatus.START,
+            WellKnownTripStatus.FINISHED,
+        ]
+    );
+
+    if (trips.length > 0) {
+        // expenses of all trips with status active, loaded once
+        const expensesByTrip = await expensesService.findAllByTripIdsAndStatusIn(
+            trips.map((trip: any) => trip._id.toString()),
+            [WellKnownStatus.ACTIVE]
         );
 
-        if (trips.length > 0) {
-            for (let trip of trips) {
-                //  get expense by trip id and status active
-                let expense: any =
-                    await expensesService.findByTripIdAndStatusIn(
-                        trip._id.toString(),
-                        [WellKnownStatus.ACTIVE]
-                    );
+        for (let trip of trips) {
+            let expense: any = expensesByTrip.get(trip._id.toString());
 
-                let response: TripExpensesResponseDto | null = null;
+            let response: TripExpensesResponseDto | null = null;
 
-                if (expense) {
-                    // get only active expenses
-                    let activeExpenses = expense.expenses.filter(
-                        (exp: any) => exp.status === WellKnownStatus.ACTIVE
-                    );
-
-                    let totalExpensesAmount = activeExpenses.reduce(
-                        (total: number, exp: any) => total + exp.amount,
-                        0
-                    );
-
-                    expense.expenses = activeExpenses;
-                    expense.tripExpensesAmount =
-                        expense?.tripId?.estimatedExpense;
-                    expense.totalTripExpensesAmount = totalExpensesAmount;
-                    expense.remainingTripExpensesAmount =
-                        expense?.tripExpensesAmount - totalExpensesAmount;
-
-                    response =
-                        expensesUtil.ExpensesModelToTripExpensesResponseDto(
-                            expense
-                        );
-                }
-
-                trip.expenses = response;
+            if (expense) {
+                response = expensesUtil.expenseWithTotalsToResponseDto(expense);
             }
-        }
 
-        CommonResponse(res, true, StatusCodes.OK, '', trips);
-    } catch (error) {
-        throw error;
+            trip.expenses = response;
+        }
     }
+
+    CommonResponse(res, true, StatusCodes.OK, '', trips);
 };
 
 // Monthly expenses report
 const monthlyExpensesReport = async (req: Request, res: Response) => {
     const date = req.query.date as string;
 
-    try {
-        let selectedDate = date ? new Date(date) : new Date();
-        let trips: any[] = await reportService.findAllTripsByDateAndStatusIn(
-            selectedDate,
-            [
-                WellKnownTripStatus.PENDING,
-                WellKnownTripStatus.START,
-                WellKnownTripStatus.FINISHED,
-            ]
-        );
+    let selectedDate = date ? new Date(date) : new Date();
+    let trips: any[] = await reportService.findAllTripsByDateAndStatusIn(
+        selectedDate,
+        [
+            WellKnownTripStatus.PENDING,
+            WellKnownTripStatus.START,
+            WellKnownTripStatus.FINISHED,
+        ]
+    );
 
-        let monthlyExpenses: any[] = await reportService.findMonthlyExpensesByMonth(
-            selectedDate,
-        ) || [];
+    let monthlyExpenses: any[] = await reportService.findMonthlyExpensesByMonth(
+        selectedDate,
+    ) || [];
 
-        let response: ExpensesReportResponseDto[] = [];
-        if (trips.length > 0) {
-            let tripIds = trips.map((trip: any) => trip._id.toString());
+    let response: ExpensesReportResponseDto[] = [];
+    if (trips.length > 0) {
+        let tripIds = trips.map((trip: any) => trip._id.toString());
 
-            const expensesData: any =
-                await reportService.findAllExpensesByTripIds(tripIds);
+        const expensesData: any =
+            await reportService.findAllExpensesByTripIds(tripIds);
 
-            response =
-                reportUtil.expensesModelsToExpensesReportResponseDtos(
-                    expensesData
-                );
-        }
-
-        if (monthlyExpenses.length > 0) {
-            response = response.concat(
-                reportUtil.monthlyExpenseModelsToExpensesReportResponseDto(
-                    monthlyExpenses
-                )
+        response =
+            reportUtil.expensesModelsToExpensesReportResponseDtos(
+                expensesData
             );
-        }
-
-        response = response.concat(await vehicleMaintenanceForMonthlyExpense(selectedDate));
-
-        CommonResponse(res, true, StatusCodes.OK, '', response);
-    } catch (error) {
-        throw error;
     }
+
+    if (monthlyExpenses.length > 0) {
+        response = response.concat(
+            reportUtil.monthlyExpenseModelsToExpensesReportResponseDto(
+                monthlyExpenses
+            )
+        );
+    }
+
+    response = response.concat(await vehicleMaintenanceForMonthlyExpense(selectedDate));
+
+    CommonResponse(res, true, StatusCodes.OK, '', response);
 };
 
 const vehicleMaintenanceForMonthlyExpense = async (selectedDate: Date): Promise<ExpensesReportResponseDto[]> => {
@@ -144,10 +116,6 @@ const vehicleMaintenanceForMonthlyExpense = async (selectedDate: Date): Promise<
             }
 
             description = `Vehicle : ${vehicleMaintenance?.vehicle?.registrationNumber}, Garage Name : ${vehicleMaintenance.garage.name}, Maintenance Part : ${vehicleMaintenance?.maintenancePart}`;
-
-            // if (vehicleMaintenance.note) {
-            //     description += `, Note : ${vehicleMaintenance?.note}`;
-            // }
 
             const expenseObj: ExpensesReportResponseDto = {
                 tripId: "",
@@ -177,90 +145,82 @@ const vehicleMaintenanceForMonthlyExpense = async (selectedDate: Date): Promise<
 const monthlyDriverSalary = async (req: Request, res: Response) => {
     const date = req.query.date as string;
 
-    try {
-        let selectedDate = date ? new Date(date) : new Date();
-        let trips: any[] = await reportService.findAllTripsByDateAndStatusIn(
-            selectedDate,
-            [WellKnownTripStatus.FINISHED]
-        );
-        let response: DriverSalaryReportResponseDto[] = [];
-        if (trips.length > 0) {
-            let tripIds = trips.map((trip: any) => trip._id.toString());
+    let selectedDate = date ? new Date(date) : new Date();
+    let trips: any[] = await reportService.findAllTripsByDateAndStatusIn(
+        selectedDate,
+        [WellKnownTripStatus.FINISHED]
+    );
+    let response: DriverSalaryReportResponseDto[] = [];
+    if (trips.length > 0) {
+        let tripIds = trips.map((trip: any) => trip._id.toString());
 
-            const driverSalaries: any =
-                await reportService.findAllDriverSalaryByTripIds(tripIds);
+        const driverSalaries: any =
+            await reportService.findAllDriverSalaryByTripIds(tripIds);
 
-            response =
-                reportUtil.driverModelsToDriverSalaryReportResponseDtos(
-                    driverSalaries
-                );
-        }
-
-        CommonResponse(res, true, StatusCodes.OK, '', response);
-    } catch (error) {
-        throw error;
+        response =
+            reportUtil.driverModelsToDriverSalaryReportResponseDtos(
+                driverSalaries
+            );
     }
+
+    CommonResponse(res, true, StatusCodes.OK, '', response);
 };
 
 // Monthly Income report
 const monthlyIncomeReport = async (req: Request, res: Response) => {
     const date = req.query.date as string;
 
-    try {
-        let selectedDate = date ? new Date(date) : new Date();
-        let trips: any[] = await reportService.findAllTripsByDateAndStatusIn(
-            selectedDate,
-            [WellKnownTripStatus.FINISHED, WellKnownTripStatus.START]
+    let selectedDate = date ? new Date(date) : new Date();
+    let trips: any[] = await reportService.findAllTripsByDateAndStatusIn(
+        selectedDate,
+        [WellKnownTripStatus.FINISHED, WellKnownTripStatus.START]
+    );
+    let response: MonthlyIncomeReportResponseDto[] = [];
+    if (trips.length > 0) {
+        let tripIds = trips.map((trip: any) => trip._id.toString());
+
+        const expenses: any = await reportService.findAllExpensesByTripIds(
+            tripIds
         );
-        let response: MonthlyIncomeReportResponseDto[] = [];
-        if (trips.length > 0) {
-            let tripIds = trips.map((trip: any) => trip._id.toString());
 
-            const expenses: any = await reportService.findAllExpensesByTripIds(
-                tripIds
-            );
+        if (expenses.length > 0) {
+            for (let expense of expenses) {
+                let calcTotals: any = await calculateIncome(expense);
 
-            if (expenses.length > 0) {
-                for (let expense of expenses) {
-                    let calcTotals: any = await calculateIncome(expense);
+                let data: any = {
+                    tripId: expense?.tripId?._id,
+                    confirmationNumber:
+                        expense?.tripId?.tripConfirmedNumber,
+                    startDate: expense?.tripId?.startDate,
+                    endDate: expense?.tripId?.endDate,
+                    expenseId: expense?._id,
+                    totalCost: expense?.tripId?.totalCost || 0,
+                    totalCostLocalCurrency:
+                        expense?.tripId?.totalCostLocalCurrency || 0,
+                    totalIncomeLocalCurrency:
+                        calcTotals.totalIncomeLocalCurrency,
+                    estimatedExpense: expense?.tripId?.estimatedExpense,
+                    remainingExpenses: calcTotals?.remainingExpenses,
+                    totalExpense: calcTotals?.totalExpensesAmount,
+                    totalDriverSalary: calcTotals?.totalDriverSalary,
+                    isRemainingToDriver: expense?.driverSalaries.find(
+                        (driver: any) =>
+                            driver?.isRemainingToDriver === true
+                    )
+                        ? true
+                        : false,
+                    // expense?.driverSalary?.isRemainingToDriver === true
+                    //     ? true
+                    //     : false,
+                    tripIncome: calcTotals?.totalIncome,
+                };
 
-                    let data: any = {
-                        tripId: expense?.tripId?._id,
-                        confirmationNumber:
-                            expense?.tripId?.tripConfirmedNumber,
-                        startDate: expense?.tripId?.startDate,
-                        endDate: expense?.tripId?.endDate,
-                        expenseId: expense?._id,
-                        totalCost: expense?.tripId?.totalCost || 0,
-                        totalCostLocalCurrency:
-                            expense?.tripId?.totalCostLocalCurrency || 0,
-                        totalIncomeLocalCurrency:
-                            calcTotals.totalIncomeLocalCurrency,
-                        estimatedExpense: expense?.tripId?.estimatedExpense,
-                        remainingExpenses: calcTotals?.remainingExpenses,
-                        totalExpense: calcTotals?.totalExpensesAmount,
-                        totalDriverSalary: calcTotals?.totalDriverSalary,
-                        isRemainingToDriver: expense?.driverSalaries.find(
-                            (driver: any) =>
-                                driver?.isRemainingToDriver === true
-                        )
-                            ? true
-                            : false,
-                        // expense?.driverSalary?.isRemainingToDriver === true
-                        //     ? true
-                        //     : false,
-                        tripIncome: calcTotals?.totalIncome,
-                    };
-
-                    response.push(data);
-                }
+                response.push(data);
             }
         }
-
-        CommonResponse(res, true, StatusCodes.OK, '', response);
-    } catch (error) {
-        throw error;
     }
+
+    CommonResponse(res, true, StatusCodes.OK, '', response);
 };
 
 const calculateIncome = async (expense: any) => {
@@ -271,14 +231,7 @@ const calculateIncome = async (expense: any) => {
         remainingExpenses: 0,
     };
     // calculate expense amount
-    let activeExpenses = expense.expenses.filter(
-        (exp: any) => exp.status === WellKnownStatus.ACTIVE
-    );
-
-    let totalExpensesAmount = activeExpenses.reduce(
-        (total: number, exp: any) => total + exp.amount,
-        0
-    );
+    let totalExpensesAmount = expensesUtil.sumActiveExpenses(expense.expenses);
 
     let remainingExpenses =
         expense?.tripId?.estimatedExpense - totalExpensesAmount;
@@ -305,38 +258,33 @@ const calculateIncome = async (expense: any) => {
 };
 
 const vehicleMonthlyPaymentMaintance = async (req: Request, res: Response) => {
-    try {
-        const {
-            month,
-            vehicle,
-            rentalFor30Days,
-            workedDaysCount,
-        } = req.body;
-        const auth = req.auth;
+    const {
+        month,
+        vehicle,
+        rentalFor30Days,
+        workedDaysCount,
+    } = req.body;
 
-        // Validate request body
-        const { error } = reportValidation.vehicleMonthlyPaymentMaintanceSchema.validate(req.body);
-        if (error) {
-            throw new BadRequestError(error.message);
-        }
-
-        let vehicleData = await vehicleService.findByIdAndStatusIn(vehicle, [WellKnownStatus.ACTIVE, WellKnownStatus.INACTIVE]);
-
-        if (!vehicleData) {
-            throw new BadRequestError('Invalid vehicle!');
-        }
-
-        if (!vehicleData.isFreelanceVehicle && !vehicleData.isRentalVehicle) {
-            throw new BadRequestError('This vehicle is not freelance or rental vehicle!');
-        }
-        let selectedDate = month ? new Date(month) : new Date();
-
-        let vehicleMaintenanceData = await reportService.findVehicleMaintenanceByDateAndStatusInAndVehicle(selectedDate, [WellKnownStatus.ACTIVE], vehicle);
-
-        CommonResponse(res, true, StatusCodes.OK, '', vehiclePaymentReportResponse(vehicleMaintenanceData, vehicleData, rentalFor30Days, workedDaysCount, selectedDate));
-    } catch (error) {
-        throw error;
+    // Validate request body
+    const { error } = reportValidation.vehicleMonthlyPaymentMaintanceSchema.validate(req.body);
+    if (error) {
+        throw new BadRequestError(error.message);
     }
+
+    let vehicleData = await vehicleService.findByIdAndStatusIn(vehicle, [WellKnownStatus.ACTIVE, WellKnownStatus.INACTIVE]);
+
+    if (!vehicleData) {
+        throw new BadRequestError('Invalid vehicle!');
+    }
+
+    if (!vehicleData.isFreelanceVehicle && !vehicleData.isRentalVehicle) {
+        throw new BadRequestError('This vehicle is not freelance or rental vehicle!');
+    }
+    let selectedDate = month ? new Date(month) : new Date();
+
+    let vehicleMaintenanceData = await reportService.findVehicleMaintenanceByDateAndStatusInAndVehicle(selectedDate, [WellKnownStatus.ACTIVE], vehicle);
+
+    CommonResponse(res, true, StatusCodes.OK, '', vehiclePaymentReportResponse(vehicleMaintenanceData, vehicleData, rentalFor30Days, workedDaysCount, selectedDate));
 };
 
 const vehiclePaymentReportResponse = (vehicleMaintenanceData: any, vehicleData: any, rentalFor30Days: number, workedDaysCount: number, selectedDate: Date) => {

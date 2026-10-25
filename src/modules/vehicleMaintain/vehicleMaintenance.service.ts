@@ -38,7 +38,9 @@ const findAllByMaintenanceDateAndStatusIn = async (
         status: { $in: statuses },
         maintenanceDate: { $gte: sDate, $lte: eDate },
     })
-        .populate('vehicle garage createdBy updatedBy')
+        .populate({ path: 'vehicle', select: '_id registrationNumber isRentalVehicle isFreelanceVehicle' })
+        .populate({ path: 'garage', select: '_id name' })
+        .populate({ path: 'createdBy updatedBy', select: '_id userName fullName' })
         .sort({ maintenanceDate: 1 });
 
     if (data) {
@@ -48,6 +50,7 @@ const findAllByMaintenanceDateAndStatusIn = async (
     return data;
 };
 
+// Month end only: only the ids are needed to flag the maintenance records and log them.
 const findAllByEndMonthAndStatusIn = async (
     endMonth: number,
     currYear: number,
@@ -64,7 +67,14 @@ const findAllByEndMonthAndStatusIn = async (
         maintenanceDate: { $lt: endDate },
         status: { $in: status },
         isMonthEndDone: false,
-    }).sort({ startDate: 1 });
+    }).select('_id').sort({ startDate: 1 }).lean();
+};
+
+// Month end: flag many maintenance records in one write (same fields the per-document save set).
+const markMonthEndDone = async (ids: any[], userId: string, batchId: number, session: any) => {
+    if (ids.length === 0) return;
+    cacheUtil.clearCacheByPrefixs(constants.CACHE.PREFIX.VEHICLE_MAINTENANCE);
+    await vehiclemaintenanceModel.updateMany({ _id: { $in: ids } }, { $set: { isMonthEndDone: true, batchId, updatedBy: userId } }, { session });
 };
 
 
@@ -73,5 +83,6 @@ export default {
     findByIdAndStatusIn,
     findAllByMaintenanceDateAndStatusIn,
     findByIdAndStatusInWithData,
-    findAllByEndMonthAndStatusIn
+    findAllByEndMonthAndStatusIn,
+    markMonthEndDone
 }

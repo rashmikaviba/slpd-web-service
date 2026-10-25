@@ -23,54 +23,50 @@ const saveTripSummary = async (req: Request, res: Response) => {
         throw new BadRequestError(error.message);
     }
 
-    try {
-        const trip = await tripService.findByIdAndStatusIn(body.tripId, [
-            WellKnownTripStatus.START,
-            WellKnownTripStatus.FINISHED,
-        ]);
+    const trip = await tripService.findByIdAndStatusIn(body.tripId, [
+        WellKnownTripStatus.START,
+        WellKnownTripStatus.FINISHED,
+    ]);
 
-        if (!trip) {
-            throw new BadRequestError('No trip found!');
-        }
-
-        if (
-            auth.role === constants.USER.ROLES.DRIVER &&
-            trip.status != WellKnownTripStatus.START
-        ) {
-            throw new BadRequestError(
-                'You can not save trip summary, because trip is already finished!'
-            );
-        } else if (trip.isMonthEndDone) {
-            throw new BadRequestError(
-                'You can not save trip summary, because month end is already done!'
-            );
-        }
-
-        let tripSummary = new TripSummary();
-        tripSummary.tripId = body.tripId;
-        tripSummary.date = body.date;
-        tripSummary.startingTime = body.startTime;
-        tripSummary.endingTime = body.endTime;
-        tripSummary.startingKm = body.startingKm;
-        tripSummary.endingKm = body.endingKm;
-        tripSummary.totalKm = body.totalKm;
-        tripSummary.fuel = body.fuel;
-        tripSummary.description = body.description;
-        tripSummary.createdBy = auth.id;
-        tripSummary.updatedBy = auth.id;
-
-        tripSummary = await tripSummaryService.save(tripSummary, null);
-
-        CommonResponse(
-            res,
-            true,
-            StatusCodes.OK,
-            'Trip summary saved successfully!',
-            tripSummary
-        );
-    } catch (error) {
-        throw error;
+    if (!trip) {
+        throw new BadRequestError('No trip found!');
     }
+
+    if (
+        auth.role === constants.USER.ROLES.DRIVER &&
+        trip.status != WellKnownTripStatus.START
+    ) {
+        throw new BadRequestError(
+            'You can not save trip summary, because trip is already finished!'
+        );
+    } else if (trip.isMonthEndDone) {
+        throw new BadRequestError(
+            'You can not save trip summary, because month end is already done!'
+        );
+    }
+
+    let tripSummary = new TripSummary();
+    tripSummary.tripId = body.tripId;
+    tripSummary.date = body.date;
+    tripSummary.startingTime = body.startTime;
+    tripSummary.endingTime = body.endTime;
+    tripSummary.startingKm = body.startingKm;
+    tripSummary.endingKm = body.endingKm;
+    tripSummary.totalKm = body.totalKm;
+    tripSummary.fuel = body.fuel;
+    tripSummary.description = body.description;
+    tripSummary.createdBy = auth.id;
+    tripSummary.updatedBy = auth.id;
+
+    tripSummary = await tripSummaryService.save(tripSummary, null);
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        'Trip summary saved successfully!',
+        tripSummary
+    );
 };
 const updateTripSummary = async (req: Request, res: Response) => {
     const TripSummaryId = req.params.id;
@@ -82,160 +78,144 @@ const updateTripSummary = async (req: Request, res: Response) => {
         throw new BadRequestError(error.message);
     }
 
-    try {
-        let tripSummary: any =
-            await tripSummaryService.getTripSummaryByIdAndStatusIn(
-                TripSummaryId,
-                [WellKnownStatus.ACTIVE]
-            );
-
-        if (!tripSummary) {
-            throw new BadRequestError('No trip summary found!');
-        }
-
-        let trip: any = tripSummary.tripId;
-        if (
-            auth.role === constants.USER.ROLES.DRIVER &&
-            trip.status != WellKnownTripStatus.START
-        ) {
-            throw new BadRequestError(
-                'You can not update trip summary, because trip is already finished!'
-            );
-        } else if (trip.isMonthEndDone) {
-            throw new BadRequestError(
-                'You can not update trip summary, because month end is already done!'
-            );
-        }
-
-        tripSummary.date = body.date;
-        tripSummary.startingTime = body.startTime;
-        tripSummary.endingTime = body.endTime;
-        tripSummary.startingKm = body.startingKm;
-        tripSummary.endingKm = body.endingKm;
-        tripSummary.totalKm = body.totalKm;
-        tripSummary.fuel = body.fuel;
-        tripSummary.description = body.description;
-        tripSummary.updatedBy = auth.id;
-
-        tripSummary = await tripSummaryService.save(tripSummary, null);
-
-        CommonResponse(
-            res,
-            true,
-            StatusCodes.OK,
-            'Trip summary updated successfully!',
-            tripSummary
+    let tripSummary: any =
+        await tripSummaryService.getTripSummaryByIdAndStatusIn(
+            TripSummaryId,
+            [WellKnownStatus.ACTIVE]
         );
-    } catch (error) {
-        throw error;
+
+    if (!tripSummary) {
+        throw new BadRequestError('No trip summary found!');
     }
+
+    let trip: any = tripSummary.tripId;
+    if (
+        auth.role === constants.USER.ROLES.DRIVER &&
+        trip.status != WellKnownTripStatus.START
+    ) {
+        throw new BadRequestError(
+            'You can not update trip summary, because trip is already finished!'
+        );
+    } else if (trip.isMonthEndDone) {
+        throw new BadRequestError(
+            'You can not update trip summary, because month end is already done!'
+        );
+    }
+
+    tripSummary.date = body.date;
+    tripSummary.startingTime = body.startTime;
+    tripSummary.endingTime = body.endTime;
+    tripSummary.startingKm = body.startingKm;
+    tripSummary.endingKm = body.endingKm;
+    tripSummary.totalKm = body.totalKm;
+    tripSummary.fuel = body.fuel;
+    tripSummary.description = body.description;
+    tripSummary.updatedBy = auth.id;
+
+    tripSummary = await tripSummaryService.save(tripSummary, null);
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        'Trip summary updated successfully!',
+        tripSummary
+    );
 };
 
 const getAllSummaryByTrip = async (req: Request, res: Response) => {
     const tripId = req.params.tripId;
 
-    try {
-        let trip = await tripSummaryService.findTripByIdAndStatusIn(tripId, [
-            WellKnownTripStatus.START,
-            WellKnownTripStatus.FINISHED,
-        ]);
+    let trip = await tripSummaryService.findTripByIdAndStatusIn(tripId, [
+        WellKnownTripStatus.START,
+        WellKnownTripStatus.FINISHED,
+    ]);
 
-        if (!trip) {
-            throw new BadRequestError('No trip found!');
-        }
-
-        let tripResponse: TripResponseDtoGetAll =
-            tripUtil.tripModelToTripResponseDtoGetAll(trip);
-
-        let tripSummaries: any =
-            await tripSummaryService.findAllTripSummaryByTripIdAndStatusIn(
-                tripId,
-                [WellKnownStatus.ACTIVE]
-            );
-
-        let tripSummaryResponseDtos: TripSummaryResponseDto[] = [];
-        if (tripSummaries.length > 0) {
-            tripSummaryResponseDtos =
-                tripSummaryUtil.modelsToTripSummaryResponseDtos(tripSummaries);
-        }
-
-        let response = {
-            trip: tripResponse,
-            tripSummaries: tripSummaryResponseDtos,
-        };
-
-        CommonResponse(res, true, StatusCodes.OK, '', response);
-    } catch (error) {
-        throw error;
+    if (!trip) {
+        throw new BadRequestError('No trip found!');
     }
+
+    let tripResponse: TripResponseDtoGetAll =
+        tripUtil.tripModelToTripResponseDtoGetAll(trip);
+
+    let tripSummaries: any =
+        await tripSummaryService.findAllTripSummaryByTripIdAndStatusIn(
+            tripId,
+            [WellKnownStatus.ACTIVE]
+        );
+
+    let tripSummaryResponseDtos: TripSummaryResponseDto[] = [];
+    if (tripSummaries.length > 0) {
+        tripSummaryResponseDtos =
+            tripSummaryUtil.modelsToTripSummaryResponseDtos(tripSummaries);
+    }
+
+    let response = {
+        trip: tripResponse,
+        tripSummaries: tripSummaryResponseDtos,
+    };
+
+    CommonResponse(res, true, StatusCodes.OK, '', response);
 };
 
 const getTrpSummaryById = async (req: Request, res: Response) => {
     const TripSummaryId = req.params.id;
 
-    try {
-        let tripSummary: any =
-            await tripSummaryService.getTripSummaryByIdAndStatusIn(
-                TripSummaryId,
-                [WellKnownStatus.ACTIVE]
-            );
+    let tripSummary: any =
+        await tripSummaryService.getTripSummaryByIdAndStatusIn(
+            TripSummaryId,
+            [WellKnownStatus.ACTIVE]
+        );
 
-        if (tripSummary) {
-            let trip: any = tripSummary.tripId;
+    if (tripSummary) {
+        let trip: any = tripSummary.tripId;
 
-            delete tripSummary.tripId;
-            tripSummary.tripId = trip._id;
-        }
-
-        CommonResponse(res, true, StatusCodes.OK, '', tripSummary);
-    } catch (error) {
-        throw error;
+        delete tripSummary.tripId;
+        tripSummary.tripId = trip._id;
     }
+
+    CommonResponse(res, true, StatusCodes.OK, '', tripSummary);
 };
 
 const deleteTripSummary = async (req: Request, res: Response) => {
     const TripSummaryId = req.params.id;
     const auth = req.auth;
 
-    try {
-        let tripSummary: any =
-            await tripSummaryService.getTripSummaryByIdAndStatusIn(
-                TripSummaryId,
-                [WellKnownStatus.ACTIVE]
-            );
-
-        if (!tripSummary) {
-            throw new BadRequestError('No trip summary found!');
-        }
-
-        let trip: any = tripSummary.tripId;
-        if (
-            trip.status != WellKnownTripStatus.START &&
-            auth.role === constants.USER.ROLES.DRIVER
-        ) {
-            throw new BadRequestError(
-                'You can not delete trip summary, because trip is already finished!'
-            );
-        } else if (trip.isMonthEndDone) {
-            throw new BadRequestError(
-                'You can not delete trip summary, because month end is already done!'
-            );
-        }
-
-        tripSummary.status = WellKnownStatus.DELETED;
-
-        tripSummary = await tripSummaryService.save(tripSummary, null);
-
-        CommonResponse(
-            res,
-            true,
-            StatusCodes.OK,
-            'Trip summary deleted successfully!',
-            tripSummary
+    let tripSummary: any =
+        await tripSummaryService.getTripSummaryByIdAndStatusIn(
+            TripSummaryId,
+            [WellKnownStatus.ACTIVE]
         );
-    } catch (error) {
-        throw error;
+
+    if (!tripSummary) {
+        throw new BadRequestError('No trip summary found!');
     }
+
+    let trip: any = tripSummary.tripId;
+    if (
+        trip.status != WellKnownTripStatus.START &&
+        auth.role === constants.USER.ROLES.DRIVER
+    ) {
+        throw new BadRequestError(
+            'You can not delete trip summary, because trip is already finished!'
+        );
+    } else if (trip.isMonthEndDone) {
+        throw new BadRequestError(
+            'You can not delete trip summary, because month end is already done!'
+        );
+    }
+
+    tripSummary.status = WellKnownStatus.DELETED;
+
+    tripSummary = await tripSummaryService.save(tripSummary, null);
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        'Trip summary deleted successfully!',
+        tripSummary
+    );
 };
 
 export {

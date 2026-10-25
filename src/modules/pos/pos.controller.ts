@@ -5,7 +5,6 @@ import { startSession } from "mongoose";
 import { WellKnownStatus } from "../../util/enums/well-known-status.enum";
 
 import BadRequestError from "../../error/BadRequestError";
-import NotFoundError from "../../error/NotFoundError";
 import CommonResponse from "../../util/commonResponse";
 import tripService from "../trip/trip.service";
 import { WellKnownTripStatus } from "../../util/enums/well-known-trip-status.enum";
@@ -13,11 +12,12 @@ import posService from "./pos.service";
 import posValidation from "./pos.validation";
 import Pos from "./pos.model";
 import productService from "../inventory/product/product.service";
-import { measureUnit } from "../../util/data/measureUnitData";
 import { WellKnownGrnLogType } from "../../util/enums/well-known-grn-log-type.enum";
 import { PosGetByIdReponseDto } from "./dto/posGetByIdReponseDto";
 import posUtils from "./pos.utils";
 import InternalServerError from "../../error/InternalServerError";
+import helperUtil from "../../util/helper.util";
+import inventoryUtil from "../../util/inventory.util";
 
 
 const saveProductForPos = async (req: Request, res: Response) => {
@@ -41,7 +41,7 @@ const saveProductForPos = async (req: Request, res: Response) => {
         throw new BadRequestError("Pending or Started Trip not found!");
     }
 
-    let posTransactionQtyWithSiUnit = fromMeasureUnitToSiMeasureUnit(unitOfMeasure, quantity);
+    let posTransactionQtyWithSiUnit = helperUtil.fromMeasureUnitToSiMeasureUnit(unitOfMeasure, quantity);
 
     let product: any = await productService.findByIdAndStatusIn(productId, [
         WellKnownStatus.ACTIVE
@@ -91,7 +91,7 @@ const saveProductForPos = async (req: Request, res: Response) => {
             }
 
             newPosModel.products.push(newProduct);
-            newPosModel.totalAmount += fromMeasureUnitToOtherMeasureUnit(unitOfMeasure, product.measureUnit, quantity) * product.unitPrice;
+            newPosModel.totalAmount += helperUtil.fromMeasureUnitToOtherMeasureUnit(unitOfMeasure, product.measureUnit, quantity) * product.unitPrice;
 
             tripPosData = await posService.save(newPosModel, session);
 
@@ -114,35 +114,27 @@ const saveProductForPos = async (req: Request, res: Response) => {
             tripPosData.totalAmount = 0;
             tripPosData.products.forEach((product: any) => {
                 if (product.status == WellKnownStatus.ACTIVE) {
-                    tripPosData.totalAmount += fromMeasureUnitToOtherMeasureUnit(product.enteredUnitOfMeasure, product.productUnitOfMeasure, product.enteredQuantity) * product.unitPrice;
+                    tripPosData.totalAmount += helperUtil.fromMeasureUnitToOtherMeasureUnit(product.enteredUnitOfMeasure, product.productUnitOfMeasure, product.enteredQuantity) * product.unitPrice;
                 }
             })
 
             tripPosData = await posService.save(tripPosData, session);
         }
 
-        let productMeasureUnit: any = measureUnit.find((item: any) => item.unitId === product.measureUnit);
-        let siUnitCode = "";
-        if (productMeasureUnit.isSaveWithSiUnit) {
-            const siUnit = measureUnit.find((item: any) => item.isSiUnit && item.categoryId === productMeasureUnit.categoryId);
-            siUnitCode = siUnit != null ? siUnit?.code : "";
-        } else {
-            siUnitCode = productMeasureUnit.code || ""
-        }
+        let siUnitCode = helperUtil.getSiUnitCode(product.measureUnit);
 
         // remove product from inventory
         let beforeTransactionInventory = product.inventory;
         product.inventory -= posTransactionQtyWithSiUnit;
-        let inventoryLogMsg = {
-            inventoryLogType: WellKnownGrnLogType.POS_TRANSACTION,
-            inventoryLogDate: new Date(),
-            inventoryLogQuantity: posTransactionQtyWithSiUnit,
-            beforeTransactionInventory: beforeTransactionInventory,
-            afterTransactionInventory: product.inventory,
-            inventoryLogProductId: product._id,
-            inventoryLogCreatedBy: auth.id,
+        let inventoryLogMsg = inventoryUtil.buildInventoryLog({
+            type: WellKnownGrnLogType.POS_TRANSACTION,
+            quantity: posTransactionQtyWithSiUnit,
+            before: beforeTransactionInventory,
+            after: product.inventory,
+            productId: product._id,
+            userId: auth.id,
             message: `Inventory updated: ${posTransactionQtyWithSiUnit}${siUnitCode} removed from product "${product.productName}" via POS transaction to trip "${trip.tripConfirmedNumber}".`
-        }
+        })
 
         product.inventoryLogs.push(inventoryLogMsg)
         product = await productService.save(product, session);
@@ -206,7 +198,7 @@ const voidProductInPos = async (req: Request, res: Response) => {
         tripPosData.totalAmount = 0;
         tripPosData.products.forEach((product: any) => {
             if (product.status == WellKnownStatus.ACTIVE) {
-                tripPosData.totalAmount += fromMeasureUnitToOtherMeasureUnit(product.enteredUnitOfMeasure, product.productUnitOfMeasure, product.enteredQuantity) * product.unitPrice;
+                tripPosData.totalAmount += helperUtil.fromMeasureUnitToOtherMeasureUnit(product.enteredUnitOfMeasure, product.productUnitOfMeasure, product.enteredQuantity) * product.unitPrice;
             }
         })
 
@@ -221,28 +213,20 @@ const voidProductInPos = async (req: Request, res: Response) => {
             throw new BadRequestError('Product not found!');
         }
 
-        let productMeasureUnit: any = measureUnit.find((item: any) => item.unitId === product?.measureUnit);
-        let siUnitCode = "";
-        if (productMeasureUnit.isSaveWithSiUnit) {
-            const siUnit = measureUnit.find((item: any) => item.isSiUnit && item.categoryId === productMeasureUnit.categoryId);
-            siUnitCode = siUnit != null ? siUnit?.code : "";
-        } else {
-            siUnitCode = productMeasureUnit.code || ""
-        }
+        let siUnitCode = helperUtil.getSiUnitCode(product?.measureUnit);
 
 
         let beforeTransactionInventory = product.inventory;
         product.inventory += selectedPosData.quantityWithSiUnitOfMeasure;
-        let inventoryLogMsg = {
-            inventoryLogType: WellKnownGrnLogType.POS_TRANSACTION,
-            inventoryLogDate: new Date(),
-            inventoryLogQuantity: selectedPosData.quantityWithSiUnitOfMeasure,
-            beforeTransactionInventory: beforeTransactionInventory,
-            afterTransactionInventory: product.inventory,
-            inventoryLogProductId: product._id,
-            inventoryLogCreatedBy: auth.id,
+        let inventoryLogMsg = inventoryUtil.buildInventoryLog({
+            type: WellKnownGrnLogType.POS_TRANSACTION,
+            quantity: selectedPosData.quantityWithSiUnitOfMeasure,
+            before: beforeTransactionInventory,
+            after: product.inventory,
+            productId: product._id,
+            userId: auth.id,
             message: `Inventory updated: ${selectedPosData.quantityWithSiUnitOfMeasure}${siUnitCode} added to product "${product.productName}" via voiding POS transaction in trip "${tripPosData?.tripId?.tripConfirmedNumber}".`
-        }
+        })
 
         product.inventoryLogs.push(inventoryLogMsg)
         product = await productService.save(product, session);
@@ -289,7 +273,14 @@ const tripEndPosAudit = async (req: Request, res: Response) => {
 
         let products: any[] = tripPosData?.products;
         let endAuditProducts: any[] = [];
-        let gettedProductsFromDb: any[] = [];
+
+        // products of all audit records in one query (a product is shared across its records)
+        const productsById = await productService.findAllByIdsAndStatusIn(
+            auditRecords.map((auditRecord: any) =>
+                products.find((item: any) => item._id.toString() == auditRecord.id)?.product?._id
+            ),
+            [WellKnownStatus.ACTIVE]
+        );
 
         for (let auditRecord of auditRecords) {
 
@@ -301,165 +292,65 @@ const tripEndPosAudit = async (req: Request, res: Response) => {
 
             let isReturnableProduct = selectedPosTransaction.isReturnableProduct;
 
-            let product: any = null;
-
-            if (gettedProductsFromDb.find((item: any) => item._id.toString() == selectedPosTransaction?.product?._id.toString())) {
-                product = gettedProductsFromDb.find((item: any) => item._id.toString() == selectedPosTransaction.product?._id.toString());
-            } else {
-                product = await productService.findByIdAndStatusIn(selectedPosTransaction.product, [
-                    WellKnownStatus.ACTIVE
-                ])
-            }
+            let product: any = productsById.get(String(selectedPosTransaction?.product?._id)) ?? null;
 
             if (!product) {
                 throw new BadRequestError('Product not found!');
             }
 
-            let returnedQuantityWithSiUnitOfMeasure = fromMeasureUnitToSiMeasureUnit(auditRecord.returnUnitOfMeasure, auditRecord.returnQuantity);
+            let returnedQuantityWithSiUnitOfMeasure = helperUtil.fromMeasureUnitToSiMeasureUnit(auditRecord.returnUnitOfMeasure, auditRecord.returnQuantity);
 
-            let productMeasureUnit: any = measureUnit.find((item: any) => item.unitId === product?.measureUnit);
-            let siUnitCode = "";
-            if (productMeasureUnit.isSaveWithSiUnit) {
-                const siUnit = measureUnit.find((item: any) => item.isSiUnit && item.categoryId === productMeasureUnit.categoryId);
-                siUnitCode = siUnit != null ? siUnit?.code : "";
-            } else {
-                siUnitCode = productMeasureUnit.code || ""
-            }
+            let siUnitCode = helperUtil.getSiUnitCode(product?.measureUnit);
 
             if (selectedPosTransaction.quantityWithSiUnitOfMeasure < returnedQuantityWithSiUnitOfMeasure) {
                 throw new BadRequestError(`Return quantity is more than available quantity for product "${product.productName}"!`);
             }
 
-            if (isReturnableProduct) {
-                if (selectedPosTransaction.quantityWithSiUnitOfMeasure == returnedQuantityWithSiUnitOfMeasure) {
-
-                    let obj = {
-                        product: selectedPosTransaction.product._id,
-                        transactionId: selectedPosTransaction._id,
-                        isReturnableProduct: selectedPosTransaction.isReturnableProduct,
-                        isReturned: auditRecord.isReturned,
-                        notReturnedReson: auditRecord.notReturnedReason,
-                        returnedquantity: auditRecord.returnQuantity,
-                        returnedUnitOfMeasure: auditRecord.returnUnitOfMeasure,
-                        returnedQuantityWithSiUnitOfMeasure: returnedQuantityWithSiUnitOfMeasure,
-                        createdBy: auth.id,
-                        createdAt: new Date()
-                    }
-
-                    endAuditProducts.push(obj);
-
-                    // Genarate Log Message to increase inventory
-                    let beforeTransactionInventory = product.inventory;
-                    product.inventory += returnedQuantityWithSiUnitOfMeasure;
-
-                    let inventoryLogMsg = {
-                        inventoryLogType: WellKnownGrnLogType.POS_TRANSACTION_RETURN,
-                        inventoryLogDate: new Date(),
-                        inventoryLogQuantity: returnedQuantityWithSiUnitOfMeasure,
-                        beforeTransactionInventory: beforeTransactionInventory,
-                        afterTransactionInventory: product.inventory,
-                        inventoryLogProductId: product._id,
-                        inventoryLogCreatedBy: auth.id,
-                        message: `Inventory Updated : ${returnedQuantityWithSiUnitOfMeasure}${siUnitCode} added to product "${product.productName}" via return of POS transaction in trip "${tripPosData?.tripId?.tripConfirmedNumber}".`
-                    }
-
-                    product.inventoryLogs.push(inventoryLogMsg)
-                    product = await productService.save(product, session);
-
-                } else {
-
-                    let obj = {
-                        product: selectedPosTransaction.product._id,
-                        transactionId: selectedPosTransaction._id,
-                        isReturnableProduct: selectedPosTransaction.isReturnableProduct,
-                        isReturned: auditRecord.isReturned,
-                        notReturnedReson: auditRecord.notReturnedReason,
-                        returnedquantity: auditRecord.returnQuantity,
-                        returnedUnitOfMeasure: auditRecord.returnUnitOfMeasure,
-                        returnedQuantityWithSiUnitOfMeasure: returnedQuantityWithSiUnitOfMeasure,
-                        createdBy: auth.id,
-                        createdAt: new Date()
-                    }
-
-                    endAuditProducts.push(obj);
-
-                    // Genarate Log Message to increase inventory
-                    let beforeTransactionInventory = product.inventory;
-                    product.inventory += returnedQuantityWithSiUnitOfMeasure;
-
-                    let inventoryLogMsg = {
-                        inventoryLogType: WellKnownGrnLogType.POS_TRANSACTION_RETURN,
-                        inventoryLogDate: new Date(),
-                        inventoryLogQuantity: returnedQuantityWithSiUnitOfMeasure,
-                        beforeTransactionInventory: beforeTransactionInventory,
-                        afterTransactionInventory: product.inventory,
-                        inventoryLogProductId: product._id,
-                        inventoryLogCreatedBy: auth.id,
-                        message: `Inventory Updated : ${returnedQuantityWithSiUnitOfMeasure}${siUnitCode} added to product and ${selectedPosTransaction.quantityWithSiUnitOfMeasure - returnedQuantityWithSiUnitOfMeasure}${siUnitCode} left in product  "${product.productName}" via return of POS transaction in trip "${tripPosData?.tripId?.tripConfirmedNumber}". Reason for not return: ${auditRecord?.notReturnedReason || "N/A"}`
-                    }
-
-                    product.inventoryLogs.push(inventoryLogMsg)
-                    product = await productService.save(product, session);
-                }
-            } else {
-                if (returnedQuantityWithSiUnitOfMeasure > 0) {
-
-                    let obj = {
-                        product: selectedPosTransaction.product._id,
-                        transactionId: selectedPosTransaction._id,
-                        isReturnableProduct: selectedPosTransaction.isReturnableProduct,
-                        isReturned: auditRecord.isReturned,
-                        notReturnedReson: auditRecord.notReturnedReson,
-                        returnedquantity: auditRecord.returnQuantity,
-                        returnedUnitOfMeasure: auditRecord.returnUnitOfMeasure,
-                        returnedQuantityWithSiUnitOfMeasure: returnedQuantityWithSiUnitOfMeasure,
-                        createdBy: auth.id,
-                        createdAt: new Date()
-                    }
-
-                    endAuditProducts.push(obj);
-
-                    // Genarate Log Message to increase inventory
-                    let beforeTransactionInventory = product.inventory;
-                    product.inventory += returnedQuantityWithSiUnitOfMeasure;
-
-                    let inventoryLogMsg = {
-                        inventoryLogType: WellKnownGrnLogType.POS_TRANSACTION_RETURN,
-                        inventoryLogDate: new Date(),
-                        inventoryLogQuantity: returnedQuantityWithSiUnitOfMeasure,
-                        beforeTransactionInventory: beforeTransactionInventory,
-                        afterTransactionInventory: product.inventory,
-                        inventoryLogProductId: product._id,
-                        inventoryLogCreatedBy: auth.id,
-                        message: `Inventory Updated : ${returnedQuantityWithSiUnitOfMeasure}${siUnitCode} added to product "${product.productName}" via return product of POS transaction in trip "${tripPosData?.tripId?.tripConfirmedNumber}".`
-                    }
-
-                    product.inventoryLogs.push(inventoryLogMsg)
-
-                    product = await productService.save(product, session);
-                } else {
-                    let obj = {
-                        product: selectedPosTransaction.product._id,
-                        transactionId: selectedPosTransaction._id,
-                        isReturnableProduct: selectedPosTransaction.isReturnableProduct,
-                        isReturned: auditRecord.isReturned,
-                        notReturnedReson: auditRecord.notReturnedReson,
-                        returnedquantity: auditRecord.returnQuantity,
-                        returnedUnitOfMeasure: auditRecord.returnUnitOfMeasure,
-                        returnedQuantityWithSiUnitOfMeasure: returnedQuantityWithSiUnitOfMeasure,
-                        createdBy: auth.id,
-                        createdAt: new Date()
-                    }
-
-                    endAuditProducts.push(obj);
-                }
+            let obj = {
+                product: selectedPosTransaction.product._id,
+                transactionId: selectedPosTransaction._id,
+                isReturnableProduct: selectedPosTransaction.isReturnableProduct,
+                isReturned: auditRecord.isReturned,
+                // returnable products read `notReturnedReason`, the others the (misspelled) `notReturnedReson`
+                notReturnedReson: isReturnableProduct ? auditRecord.notReturnedReason : auditRecord.notReturnedReson,
+                returnedquantity: auditRecord.returnQuantity,
+                returnedUnitOfMeasure: auditRecord.returnUnitOfMeasure,
+                returnedQuantityWithSiUnitOfMeasure: returnedQuantityWithSiUnitOfMeasure,
+                createdBy: auth.id,
+                createdAt: new Date()
             }
 
-            if (gettedProductsFromDb.find((item: any) => item._id.toString() === selectedPosTransaction.product.toString())) {
-                gettedProductsFromDb.splice(gettedProductsFromDb.findIndex((item: any) => item._id.toString() === selectedPosTransaction.product.toString()), 1);
-                gettedProductsFromDb.push(product);
-            } else {
-                gettedProductsFromDb.push(product);
+            endAuditProducts.push(obj);
+
+            // Only the log message differs; null means nothing goes back into stock
+            let inventoryLogMessage: string | null = null;
+            if (isReturnableProduct) {
+                if (selectedPosTransaction.quantityWithSiUnitOfMeasure == returnedQuantityWithSiUnitOfMeasure) {
+                    inventoryLogMessage = `Inventory Updated : ${returnedQuantityWithSiUnitOfMeasure}${siUnitCode} added to product "${product.productName}" via return of POS transaction in trip "${tripPosData?.tripId?.tripConfirmedNumber}".`;
+                } else {
+                    inventoryLogMessage = `Inventory Updated : ${returnedQuantityWithSiUnitOfMeasure}${siUnitCode} added to product and ${selectedPosTransaction.quantityWithSiUnitOfMeasure - returnedQuantityWithSiUnitOfMeasure}${siUnitCode} left in product  "${product.productName}" via return of POS transaction in trip "${tripPosData?.tripId?.tripConfirmedNumber}". Reason for not return: ${auditRecord?.notReturnedReason || "N/A"}`;
+                }
+            } else if (returnedQuantityWithSiUnitOfMeasure > 0) {
+                inventoryLogMessage = `Inventory Updated : ${returnedQuantityWithSiUnitOfMeasure}${siUnitCode} added to product "${product.productName}" via return product of POS transaction in trip "${tripPosData?.tripId?.tripConfirmedNumber}".`;
+            }
+
+            if (inventoryLogMessage !== null) {
+                // Genarate Log Message to increase inventory
+                let beforeTransactionInventory = product.inventory;
+                product.inventory += returnedQuantityWithSiUnitOfMeasure;
+
+                let inventoryLogMsg = inventoryUtil.buildInventoryLog({
+                    type: WellKnownGrnLogType.POS_TRANSACTION_RETURN,
+                    quantity: returnedQuantityWithSiUnitOfMeasure,
+                    before: beforeTransactionInventory,
+                    after: product.inventory,
+                    productId: product._id,
+                    userId: auth.id,
+                    message: inventoryLogMessage
+                })
+
+                product.inventoryLogs.push(inventoryLogMsg)
+                product = await productService.save(product, session);
             }
         }
 
@@ -516,68 +407,6 @@ const getPosByTrip = async (req: Request, res: Response) => {
     return CommonResponse(res, true, StatusCodes.OK, '', response);
 }
 
-
-const fromMeasureUnitToSiMeasureUnit = (fromUnitId: number, quantity: number) => {
-    let quantityInSiUnit = 0;
-
-    let fromUnit = measureUnit.find((item: any) => item.unitId === fromUnitId);
-
-    if (fromUnit?.isSaveWithSiUnit) {
-        if (fromUnit?.isSiUnit) {
-            quantityInSiUnit = quantity;
-        } else {
-            quantityInSiUnit = quantity * fromUnit?.conversionToSi
-        }
-    } else {
-        quantityInSiUnit = quantity
-    }
-
-    return quantityInSiUnit;
-}
-
-const fromMeasureUnitToOtherMeasureUnit = (fromUnitId: number, toUnitId: number, quantity: number) => {
-    let quantityInOtherUnit = 0;
-
-    let fromUnit = measureUnit.find((item: any) => item.unitId === fromUnitId);
-    let toUnit = measureUnit.find((item: any) => item.unitId === toUnitId);
-
-
-    if (fromUnit?.categoryId != toUnit?.categoryId) {
-        throw new BadRequestError("Invalid Measure Unit Conversion!");
-    }
-
-    if (fromUnit?.conversionToSi && toUnit?.conversionToSi) {
-        let fromQuantityInSiUnit = fromMeasureUnitToSiMeasureUnit(fromUnitId, quantity);
-
-        quantityInOtherUnit = fromQuantityInSiUnit / toUnit?.conversionToSi;
-    } else {
-        quantityInOtherUnit = quantity;
-    }
-
-    return quantityInOtherUnit;
-}
-
-const fromSiMeasureUnitToOtherMeasureUnit = (fromUnitId: number, toUnitId: number, siQuantity: number) => {
-    let quantityInOtherUnit = 0;
-
-    let fromUnit = measureUnit.find((item: any) => item.unitId === fromUnitId);
-    let toUnit = measureUnit.find((item: any) => item.unitId === toUnitId);
-
-
-    if (fromUnit?.categoryId != toUnit?.categoryId) {
-        throw new BadRequestError("Invalid Measure Unit Conversion!");
-    }
-
-    if (fromUnit && toUnit) {
-        if (toUnit?.isSiUnit) {
-            quantityInOtherUnit = siQuantity;
-        } else {
-            quantityInOtherUnit = siQuantity / toUnit?.conversionToSi;
-        }
-    }
-
-    return quantityInOtherUnit;
-}
 
 
 export { saveProductForPos, voidProductInPos, tripEndPosAudit, getPosByTrip };

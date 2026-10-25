@@ -96,4 +96,7 @@ const InventoryProductSchema = new mongoose.Schema(
     versionKey: false,
 });
 
+// Indexes for the filters used by the services (non-unique, no behaviour change)
+InventoryProductSchema.index({ status: 1 });
+
 export default mongoose.model('InventoryProduct', InventoryProductSchema);

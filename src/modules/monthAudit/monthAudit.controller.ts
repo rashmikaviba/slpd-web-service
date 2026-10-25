@@ -18,14 +18,12 @@ import WorkingInfoResponseDto from './dto/workingInfoResponseDto';
 import monthAuditUtil from './monthAudit.util';
 
 import {
-    TripPlaceResponseDto,
     TripResponseDtoGetAll,
 } from '../trip/dto/tripResponseDtos';
 import tripService from '../trip/trip.service';
 import { WellKnownTripStatus } from '../../util/enums/well-known-trip-status.enum';
 import tripUtil from '../trip/trip.util';
 import expensesService from '../expenses/expenses.service';
-import assert from 'assert';
 import internalTripService from '../internalTrip/internalTrip.service';
 import MonthlyExpenses from '../monthlyExpenses/monthlyExpenses.model';
 import monthlyExpensesService from '../monthlyExpenses/monthlyExpenses.service';
@@ -38,8 +36,9 @@ const createNewDate = async (req: Request, res: Response) => {
     const { month, year } = req.body;
     const correlationId = req.correlationId;
 
+    // modified and saved below, so not the shared cached copy
     let lastCompanyInfo: any =
-        await companyWorkingInfoService.getCompanyWorkingInfo();
+        await companyWorkingInfoService.getCompanyWorkingInfoFresh();
 
     const session = await startSession();
     let createdMonth = null;
@@ -168,7 +167,7 @@ const monthEndDoneForLeave = async (
     correlationId: string
 ) => {
     const leaves: any[] =
-        await leaveService.findAllLeavesByMonthYearAndStatusIn(
+        await leaveService.findAllIdsByMonthYearAndStatusIn(
             currYear,
             currMonth,
             [
@@ -179,13 +178,9 @@ const monthEndDoneForLeave = async (
             ]
         );
 
+    await leaveService.markMonthEndDone(leaves.map((leave) => leave._id), userId, batchId, session);
+
     for (const leave of leaves) {
-        leave.isMonthEndDone = true;
-        leave.updatedBy = userId;
-        leave.batchId = batchId;
-
-        await leaveService.save(leave, session);
-
         helperUtil.consoleLogMessage("info", `MONTH_AUDIT | Leave Month End Done: Leave ID: ${leave._id} | Status: ${leave.status} | Month End Done By: ${userId} | Correlation ID: ${correlationId}`);
     }
 };
@@ -205,12 +200,9 @@ const monthEndDoneForInternalTrip = async (
             [WellKnownStatus.ACTIVE, WellKnownStatus.INACTIVE]
         );
 
-    for (const internalTrip of internalTrips) {
-        internalTrip.isMonthEndDone = true;
-        internalTrip.batchId = batchId;
-        internalTrip.updatedBy = userId;
+    await internalTripService.markMonthEndDone(internalTrips.map((internalTrip) => internalTrip._id), userId, batchId, session);
 
-        await internalTripService.save(internalTrip, session);
+    for (const internalTrip of internalTrips) {
         helperUtil.consoleLogMessage("info", `MONTH_AUDIT | Internal Trip Month End Done: Internal Trip ID: ${internalTrip._id} | Month End Done By: ${userId} | Correlation ID: ${correlationId}`);
     }
 };
@@ -229,11 +221,9 @@ const monthEndDoneForMonthlyExpenses = async (
         [WellKnownStatus.ACTIVE, WellKnownStatus.INACTIVE]
     );
 
+    await monthlyExpensesService.markMonthEndDone(monthlyExpenses.map((monthlyExpense) => monthlyExpense._id), userId, batchId, session);
+
     for (let monthlyExpense of monthlyExpenses) {
-        monthlyExpense.isMonthEndDone = true;
-        monthlyExpense.batchId = batchId;
-        monthlyExpense.updatedBy = userId;
-        await monthlyExpensesService.save(monthlyExpense, session);
         helperUtil.consoleLogMessage("info", `MONTH_AUDIT | Monthly Expense Month End Done for Monthly Expense ID: ${monthlyExpense._id} | Month End Done By: ${userId} | Correlation ID: ${correlationId}`);
     }
 };
@@ -252,11 +242,9 @@ const monthEndDoneForVehicleMaintenance = async (
         [WellKnownStatus.ACTIVE,]
     );
 
+    await vehicleMaintenanceService.markMonthEndDone(vehicleMaintains.map((vehicleMaintain) => vehicleMaintain._id), userId, batchId, session);
+
     for (let vehicleMaintain of vehicleMaintains) {
-        vehicleMaintain.isMonthEndDone = true;
-        vehicleMaintain.batchId = batchId;
-        vehicleMaintain.updatedBy = userId;
-        await vehicleMaintenanceService.save(vehicleMaintain, session);
         helperUtil.consoleLogMessage("info", `MONTH_AUDIT | Vehicle Maintain Month End Done: Vehicle Maintain ID: ${vehicleMaintain._id} | Month End Done By: ${userId} | Correlation ID: ${correlationId}`);
     }
 }
@@ -269,7 +257,7 @@ const monthEndDoneForTrip = async (
     batchId: number,
     correlationId: string
 ) => {
-    const trips: any[] = await tripService.findAllByEndMonthAndStatusIn(
+    const trips: any[] = await tripService.findAllIdsByEndMonthAndStatusIn(
         currMonth,
         currYear,
         [
@@ -280,47 +268,30 @@ const monthEndDoneForTrip = async (
         ]
     );
 
+    // expenses header and pos of the finished trips, found once instead of per trip
+    const finishedTripIds: string[] = trips
+        .filter((trip: any) => trip.status == WellKnownTripStatus.FINISHED)
+        .map((trip: any) => trip._id.toString());
+    const expenseHeaderIds = await expensesService.findAllIdsByTripIdsAndStatusIn(
+        finishedTripIds,
+        [WellKnownStatus.ACTIVE]
+    );
+    const posIds = await posService.findAllIdsByTripIdsAndStatusIn(
+        finishedTripIds,
+        [WellKnownStatus.ACTIVE]
+    );
+
+    // month end for expenses header, pos and trips
+    await expensesService.markMonthEndDone(expenseHeaderIds, userId, batchId, session);
+    await posService.markMonthEndDone(posIds, userId, batchId, session);
+    await tripService.markMonthEndDone(trips.map((trip: any) => trip._id), userId, batchId, session);
+
     for (let trip of trips) {
-        trip.isMonthEndDone = true;
-        trip.batchId = batchId;
-        trip.updatedBy = userId;
-
-        if (trip.status == WellKnownTripStatus.FINISHED) {
-            // month end for expenses header
-            let expenseHeader: any =
-                await expensesService.findByTripIdAndStatusIn(trip._id, [
-                    WellKnownStatus.ACTIVE,
-                ]);
-
-            if (expenseHeader) {
-                expenseHeader.isMonthEndDone = true;
-                expenseHeader.updatedBy = userId;
-                expenseHeader.batchId = batchId;
-                await expensesService.save(expenseHeader, session);
-            }
-
-            let posTransaction: any = await posService.findByTripIdAndStatusIn(
-                trip._id,
-                [WellKnownStatus.ACTIVE]
-            )
-
-            if (posTransaction) {
-                posTransaction.isMonthEndDone = true;
-                posTransaction.updatedBy = userId;
-                posTransaction.batchId = batchId;
-                await posService.save(posTransaction, session);
-            }
-        }
-
-        await tripService.save(trip, session);
-
         helperUtil.consoleLogMessage("info", `MONTH_AUDIT | Trip Month End Done: Trip ID: ${trip._id} | Status: ${trip.status} | Month End Done By: ${userId} | Correlation ID: ${correlationId}`);
     }
 };
 
 const getPendingLeaves = async (req: Request, res: Response) => {
-    const auth: any = req.auth;
-
     let response: LeaveResponseDto[] = [];
 
     const activeCompanyInfo: any =
@@ -338,12 +309,21 @@ const getPendingLeaves = async (req: Request, res: Response) => {
         );
 
     if (superAdminLeaves.length > 0) {
+        // users and leave totals are loaded once for all leaves instead of per leave
+        const appliedUsers = await userService.findAllByIdsWithRole(
+            superAdminLeaves
+                .filter(
+                    (leave: any) => leave.status == WellKnownLeaveStatus.PENDING
+                )
+                .map((leave: any) => leave.appliedUser._id)
+        );
+
+        const leavesWithUser: { leave: any; appliedUser: any }[] = [];
         for (const leave of superAdminLeaves) {
             if (leave.status == WellKnownLeaveStatus.PENDING) {
-                const appliedUser: any =
-                    await userService.findByIdWithGenderRole(
-                        leave.appliedUser._id
-                    );
+                const appliedUser: any = appliedUsers.get(
+                    leave.appliedUser._id.toString()
+                );
 
                 if (
                     (appliedUser?.role?.id == constants.USER.ROLES.ADMIN ||
@@ -352,16 +332,20 @@ const getPendingLeaves = async (req: Request, res: Response) => {
                         appliedUser?.role?.id ==
                         constants.USER.ROLES.FINANCEOFFICER)
                 ) {
-                    const availableLeaveCount =
-                        await leaveService.getTotalLeaveDaysFromYear(
-                            appliedUser._id,
-                            activeCompanyInfo.workingYear
-                        );
-
-                    leave.availableLeaveCount =
-                        appliedUser.leaveCount - availableLeaveCount;
+                    leavesWithUser.push({ leave, appliedUser });
                 }
             }
+        }
+
+        const leaveTotals = await leaveService.getTotalLeaveDaysForUsers(
+            leavesWithUser.map(({ appliedUser }) => appliedUser._id),
+            activeCompanyInfo.workingYear
+        );
+
+        for (const { leave, appliedUser } of leavesWithUser) {
+            leave.availableLeaveCount =
+                appliedUser.leaveCount -
+                (leaveTotals.get(appliedUser._id.toString()) as number);
         }
     }
 
@@ -371,8 +355,6 @@ const getPendingLeaves = async (req: Request, res: Response) => {
 };
 
 const getWorkingInformation = async (req: Request, res: Response) => {
-    const auth: any = req.auth;
-
     let response: WorkingInfoResponseDto = Object.create(null);
 
     let lastCompanyInfo: any =
@@ -409,37 +391,7 @@ const getTripInfoForWorkingMonth = async (req: Request, res: Response) => {
         ]
     );
 
-    await Promise.all(
-        trips.map(async (trip: any) => {
-            trip.isDriverSalaryDone = false;
-            if (
-                trip.status === WellKnownTripStatus.START ||
-                trip.status === WellKnownTripStatus.FINISHED
-            ) {
-                const expense = await expensesService.findByTripIdAndStatusIn(
-                    trip._id.toString(),
-                    [WellKnownStatus.ACTIVE]
-                );
-                if (expense && trip.drivers?.length > 0) {
-                    const paidDriverIds = new Set(
-                        (expense.driverSalaries || []).map((s: any) => s.driver?.toString())
-                    );
-
-                    const allDriversPaid = trip.drivers.every((d: any) => {
-                        return paidDriverIds.has(d?.driver?._id?.toString())
-                    });
-
-                    trip.isDriverSalaryDone = allDriversPaid;
-                } else {
-                    trip.isDriverSalaryDone = false;
-                }
-                // if (expense) {
-                //     trip.isDriverSalaryDone =
-                //         expense.toObject()?.driverSalaries.length > 0; //  expense.toObject()?.driverSalary != null;
-                // }
-            }
-        })
-    );
+    await expensesService.applyDriverSalaryDone(trips);
 
     trips = trips.filter((trip: any) => {
         return trip.isDriverSalaryDone == false;

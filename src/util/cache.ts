@@ -1,6 +1,11 @@
 import NodeCache from "node-cache";
 
-const cache = new NodeCache({ stdTTL: 300, checkperiod: 120 });
+// useClones: false -> get() returns the stored object instead of a deep copy (a deep clone of a
+// Mongoose document on every hit, including the auth lookup on every request, was the main cost).
+// The flip side: cached values are shared, so callers must treat them as read-only. Anything that
+// mutates and saves a document has to load it fresh (see authService.findByIdFresh,
+// companyWorkingInfoService.getCompanyWorkingInfoFresh).
+const cache = new NodeCache({ stdTTL: 300, checkperiod: 120, useClones: false });
 
 const setCache = (key: string, data: any, ttl?: number) => {
     cache.set(key, data, ttl || 300);
@@ -18,18 +23,13 @@ const clearCache = () => {
     cache.flushAll();
 };
 
+// prefixs: comma separated list of key prefixes. One pass over the keys, however many prefixes.
 const clearCacheByPrefixs = (prefixs: string) => {
-    const keys = cache.keys();
+    const prifixes = prefixs.split(",");
 
-    let prifixes = prefixs.split(",");
-
-    prifixes.forEach((prifix) => {
-        keys.forEach((key) => {
-            if (key.startsWith(prifix)) {
-                cache.del(key);
-            }
-        });
-    });
+    cache.del(
+        cache.keys().filter((key) => prifixes.some((prifix) => key.startsWith(prifix)))
+    );
 };
 
 const getCacheKeys = () => {

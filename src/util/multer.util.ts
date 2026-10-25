@@ -1,6 +1,4 @@
 import multer, { StorageEngine } from 'multer';
-import path from 'path';
-import fs from 'fs-extra';
 import helperUtil from './helper.util';
 import { WellKnownUploadType } from './enums/well-known-upload-type.enum';
 import BadRequestError from '../error/BadRequestError';
@@ -26,15 +24,3 @@ const storage: StorageEngine = multer.diskStorage({
 
 export const upload = multer({ storage });
 
-export const DeleteFileFromName = async (imageUrl: string) => {
-    let filename: any = imageUrl.split('/uploads').pop();
-
-    let filePath = path.join(__dirname, '..', 'uploads', filename);
-
-    try {
-        await fs.remove(filePath);
-        return true;
-    } catch (err: any) {
-        return false;
-    }
-};

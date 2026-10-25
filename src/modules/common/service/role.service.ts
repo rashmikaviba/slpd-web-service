@@ -5,7 +5,7 @@ import constants from '../../../constant';
 
 const findAllByStatusIn = async (status: number[]) => {
     const cacheKey = constants.CACHE.PREFIX.ROLE + JSON.stringify(status);
-    const cached = await cacheUtil.getCache(cacheKey);
+    const cached = cacheUtil.getCache(cacheKey);
     if (cached) return cached;
 
     const data: any = await Role.find({ status: { $in: status } });
@@ -19,7 +19,7 @@ const findAllByStatusIn = async (status: number[]) => {
 
 const findByIdAndStatus = async (id: string, status: number) => {
     const cacheKey = constants.CACHE.PREFIX.ROLE + id + status;
-    const cached = await cacheUtil.getCache(cacheKey);
+    const cached = cacheUtil.getCache(cacheKey);
     if (cached) return cached;
 
 
@@ -34,7 +34,7 @@ const findByIdAndStatus = async (id: string, status: number) => {
 
 const findByCustomId = async (id: string) => {
     const cacheKey = constants.CACHE.PREFIX.ROLE + id;
-    const cached = await cacheUtil.getCache(cacheKey);
+    const cached = cacheUtil.getCache(cacheKey);
     if (cached) return cached;
 
     const data: any = await Role.findOne({ id: id, status: WellKnownStatus.ACTIVE });
@@ -45,16 +45,6 @@ const findByCustomId = async (id: string) => {
 
     return data;
 };
-
-// pass _id as string array
-// const findIdsByCustomIds = async (ids: string[]) => {
-//     const roles = await Role.find({
-//         id: { $in: ids },
-//         status: WellKnownStatus.ACTIVE,
-//     }).select('id');
-
-//     return roles?.map((role) => role._id.toString()) || [];
-// };
 
 export default {
     findAllByStatusIn,

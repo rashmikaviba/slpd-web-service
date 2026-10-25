@@ -16,7 +16,10 @@ const findAllTripsByDateAndStatusIn = async (date: Date, status: number[]) => {
 
 const findAllExpensesByTripIds = async (tripIds: string[]) => {
     const expenses = await Expenses.find({ tripId: { $in: tripIds } })
-        .populate('tripId')
+        .populate({
+            path: 'tripId',
+            select: '_id tripConfirmedNumber startDate endDate totalCost totalCostLocalCurrency estimatedExpense',
+        })
         .populate({
             path: 'expenses.createdBy expenses.updatedBy',
             model: 'User',
@@ -52,20 +55,6 @@ const findAllDriverSalaryByTripIds = async (tripIds: string[]) => {
         tripId: { $in: tripIds },
         driverSalaries: { $ne: [] },
     })
-        // .populate({
-        //     path: 'tripId',
-        //     populate: {
-        //         path: 'drivers.driver',
-        //         model: 'User',
-        //         select: 'fullName userName', // Include only the required fields
-        //         match: { 'drivers.isActive': true },
-        //     },
-        // })
-        // .populate({
-        //     path: 'driverSalary.createdBy driverSalary.updatedBy',
-        //     model: 'User',
-        //     select: 'fullName userName',
-        // })
         .populate({
             path: 'driverSalaries',
             populate: {
@@ -74,7 +63,7 @@ const findAllDriverSalaryByTripIds = async (tripIds: string[]) => {
                 select: 'fullName userName',
             },
         })
-        .populate('tripId')
+        .populate({ path: 'tripId', select: '_id tripConfirmedNumber' })
         .select('tripId driverSalaries')
         .lean();
 };
@@ -86,7 +75,10 @@ const findVehicleMaintenanceByDateAndStatusIn = async (date: Date, status: numbe
     return await vehicleMaintenanceModel.find({
         maintenanceDate: { $gte: monthStartDate, $lt: monthEndDate },
         status: { $in: status },
-    }).populate('vehicle garage createdBy updatedBy').lean();
+    }).populate({ path: 'vehicle', select: '_id registrationNumber isRentalVehicle isFreelanceVehicle' })
+        .populate({ path: 'garage', select: '_id name' })
+        .populate({ path: 'createdBy updatedBy', select: '_id userName fullName' })
+        .lean();
 };
 
 const findVehicleMaintenanceByDateAndStatusInAndVehicle = async (date: Date, status: number[], vehicleId: string) => {

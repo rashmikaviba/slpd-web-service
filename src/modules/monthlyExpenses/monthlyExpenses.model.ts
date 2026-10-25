@@ -111,4 +111,7 @@ const monthlyExpensesSchema = new mongoose.Schema(
     }
 );
 
+// Indexes for the filters used by the services (non-unique, no behaviour change)
+monthlyExpensesSchema.index({ month: 1 });
+
 export default mongoose.model('MonthlyExpenses', monthlyExpensesSchema);

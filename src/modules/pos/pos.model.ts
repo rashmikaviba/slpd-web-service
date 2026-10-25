@@ -172,4 +172,7 @@ const PosSchema = new mongoose.Schema({
     versionKey: false,
 })
 
+// Indexes for the filters used by the services (non-unique, no behaviour change)
+PosSchema.index({ tripId: 1, status: 1 });
+
 export default mongoose.model('Pos', PosSchema);

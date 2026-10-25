@@ -9,7 +9,9 @@ import Vehicle from '../vehicle/vehicle.model';
 const getPendingExpenseRequest = async () => {
     return await ExpenseRequest.find({
         status: WellKnownLeaveStatus.PENDING,
-    }).populate('tripId createdBy');
+    }).populate({ path: 'tripId', select: '_id tripConfirmedNumber' })
+        .populate({ path: 'createdBy', select: '_id fullName userName' })
+        .lean();
 };
 
 const findVehicleRenewalBy7DaysBefore = async () => {
@@ -26,7 +28,9 @@ const findVehicleRenewalBy7DaysBefore = async () => {
         isFreelanceVehicle: false,
         isRentalVehicle: false,
         status: { $ne: WellKnownStatus.DELETED },
-    }).lean();
+    })
+        .select('_id registrationNumber insuranceRenewalDate licenseRenewalDate')
+        .lean();
 
     if (vehicles.length > 0) {
         vehicles.forEach((vehicle: any) => {
@@ -67,7 +71,9 @@ const findTripsBy3DaysBefore = async () => {
             { 'vehicles.isActive': false }, // Vehicles are not active
         ],
         status: WellKnownTripStatus.PENDING,
-    }).lean();
+    })
+        .select('_id tripConfirmedNumber startDate')
+        .lean();
 
     return trips || [];
 };
@@ -85,7 +91,8 @@ const findPendingLeaveBy3DaysBefore = async () => {
         endDate: { $gte: today },
         status: WellKnownLeaveStatus.PENDING,
     })
-        .populate('appliedUser')
+        .select('_id startDate appliedUser')
+        .populate({ path: 'appliedUser', select: '_id fullName' })
         .lean();
 
     return leaves || [];

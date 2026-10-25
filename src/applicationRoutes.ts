@@ -1,4 +1,3 @@
-import constants from './constant';
 
 const applicationRoutes = {
     common: {

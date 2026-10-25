@@ -25,13 +25,13 @@ const findAllTripSummaryByTripIdAndStatusIn = async (
     status: any
 ) => {
     const cacheKey = constants.CACHE.PREFIX.TRIP_SUMMARY + tripId + JSON.stringify(status);
-    const cached = await cache.getCache(cacheKey) as any[];
+    const cached = cache.getCache(cacheKey) as any[];
     if (cached) return cached;
 
     const data: any[] = await TripSummary.find({
         tripId: tripId,
         status: { $in: status },
-    });
+    }).lean();
 
     if (data) {
         cache.setCache(cacheKey, data, constants.CACHE.DURATION.ONE_WEEK);
@@ -42,19 +42,26 @@ const findAllTripSummaryByTripIdAndStatusIn = async (
 
 const findTripByIdAndStatusIn = async (id: string, status: number[]) => {
     return Trip.findOne({ _id: id, status: { $in: status } })
-        .populate('createdBy updatedBy startedBy endedBy')
+        .populate({
+            path: 'createdBy updatedBy startedBy endedBy',
+            select: '_id fullName',
+        })
         .populate({
             path: 'drivers.driver',
             model: 'User',
+            select: '_id fullName userName',
         })
         .populate({
             path: 'drivers.driverAssignedBy',
             model: 'User',
+            select: '_id fullName',
         })
         .populate({
             path: 'vehicles.vehicle',
             model: 'Vehicle',
-        });
+            select: '_id registrationNumber licenseRenewalDate insuranceRenewalDate',
+        })
+        .lean();
 };
 export default {
     save,

@@ -3,3 +3,13 @@
 .env
 node_modules
 npm-debug.log
+.git
+.vscode
+dist
+backups
+dbscripts
+Documents
+*.md
+Jenkinsfile
+Dockerfile
+.dockerignore

@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import express, { Express, Request, Response } from 'express';
+import express, { Express } from 'express';
 
 import http from 'http';
 import { envConfig } from './environment.config';

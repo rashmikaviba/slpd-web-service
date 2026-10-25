@@ -49,12 +49,12 @@ const findByIdAndStatusIn = async (id: string, status: number[]) => {
 
 const findAllAndStatusIn = async (status: number[]) => {
     const cacheKey = constants.CACHE.PREFIX.VEHICLE + JSON.stringify(status);
-    const cached = await cache.getCache(cacheKey);
+    const cached = cache.getCache(cacheKey);
     if (cached) return cached;
 
 
     const data: any = await Vehicle.find({ status: { $in: status } })
-        .populate('createdBy updatedBy')
+        .populate({ path: 'createdBy updatedBy', select: '_id fullName' })
         .sort({ createdAt: -1 });
 
     if (data) {
@@ -92,40 +92,42 @@ const findVehiclesBySheetCountAndNotInInternalTripsAndNormalTrips = async (
     let internalTripVehicles: string[] = [];
     let normalTripVehicles: string[] = [];
     if (startDate && endDate) {
-        internalTripVehicles = await InternalTrip.find({
-            $or: [
-                { startDate: { $gte: startDate, $lt: endDate } },
-                { endDate: { $gte: startDate, $lt: endDate } },
-                { startDate: { $lte: startDate }, endDate: { $gte: endDate } },
-            ],
-            status: WellKnownStatus.ACTIVE,
-        })
-            .select('vehicle')
-            .lean()
-            .then((trips) => trips.map((trip) => trip.vehicle.toString()));
+        [internalTripVehicles, normalTripVehicles] = await Promise.all([
+            InternalTrip.find({
+                $or: [
+                    { startDate: { $gte: startDate, $lt: endDate } },
+                    { endDate: { $gte: startDate, $lt: endDate } },
+                    { startDate: { $lte: startDate }, endDate: { $gte: endDate } },
+                ],
+                status: WellKnownStatus.ACTIVE,
+            })
+                .select('vehicle')
+                .lean()
+                .then((trips) => trips.map((trip) => trip.vehicle.toString())),
 
-        normalTripVehicles = await Trip.find({
-            $or: [
-                { startDate: { $gte: startDate, $lt: endDate } },
-                { endDate: { $gte: startDate, $lt: endDate } },
-                { startDate: { $lte: startDate }, endDate: { $gte: endDate } },
-            ],
-            _id: { $ne: tripId },
-            status: {
-                $in: [WellKnownTripStatus.PENDING, WellKnownTripStatus.START],
-            },
-        })
-            .select('vehicles.vehicle vehicles.isActive')
-            .lean()
-            .then((trips) =>
-                trips.flatMap((trip) =>
-                    trip.vehicles
-                        .filter((vehicleObj: any) => vehicleObj.isActive)
-                        .map((vehicleObj: any) =>
-                            vehicleObj?.vehicle.toString()
-                        )
-                )
-            );
+            Trip.find({
+                $or: [
+                    { startDate: { $gte: startDate, $lt: endDate } },
+                    { endDate: { $gte: startDate, $lt: endDate } },
+                    { startDate: { $lte: startDate }, endDate: { $gte: endDate } },
+                ],
+                _id: { $ne: tripId },
+                status: {
+                    $in: [WellKnownTripStatus.PENDING, WellKnownTripStatus.START],
+                },
+            })
+                .select('vehicles.vehicle vehicles.isActive')
+                .lean()
+                .then((trips) =>
+                    trips.flatMap((trip) =>
+                        trip.vehicles
+                            .filter((vehicleObj: any) => vehicleObj.isActive)
+                            .map((vehicleObj: any) =>
+                                vehicleObj?.vehicle.toString()
+                            )
+                    )
+                ),
+        ]);
     }
 
     let excludedVehicles = [...internalTripVehicles, ...normalTripVehicles];

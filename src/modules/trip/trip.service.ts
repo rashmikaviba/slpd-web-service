@@ -1,4 +1,3 @@
-import { start } from 'repl';
 import Trip from './trip.model';
 import { isValidObjectId } from 'mongoose';
 import { WellKnownTripStatus } from '../../util/enums/well-known-trip-status.enum';
@@ -13,15 +12,6 @@ const save = async (trip: any, session: any) => {
 
 const findByIdAndStatusIn = async (id: string, status: number[]) => {
     return Trip.findOne({ _id: id, status: { $in: status } });
-    // .populate('createdBy updatedBy startedBy endedBy')
-    // .populate({
-    //     path: 'drivers.driver',
-    //     model: 'User',
-    // })
-    // .populate({
-    //     path: 'drivers.driverAssignedBy',
-    //     model: 'User',
-    // });
 };
 
 const findAllByStatusIn = async (
@@ -42,17 +32,23 @@ const findAllByStatusIn = async (
         ],
         // isMonthEndDone: false,
     })
-        .populate('createdBy updatedBy startedBy endedBy')
+        .populate({
+            path: 'createdBy updatedBy startedBy endedBy',
+            select: '_id fullName',
+        })
         .populate({
             path: 'drivers.driver',
             model: 'User',
             match: { 'drivers.isActive': true },
+            select: '_id fullName userName',
         })
         .populate({
             path: 'vehicles.vehicle',
             model: 'Vehicle',
+            select: '_id registrationNumber licenseRenewalDate insuranceRenewalDate',
         })
-        .sort({ startDate: 1 });
+        .sort({ startDate: 1 })
+        .lean();
 };
 
 const findAllByDriverIdAndStatusIn = async (
@@ -64,31 +60,24 @@ const findAllByDriverIdAndStatusIn = async (
         status: { $in: status },
         isMonthEndDone: false,
     })
-        .populate('createdBy updatedBy startedBy endedBy')
+        .populate({
+            path: 'createdBy updatedBy startedBy endedBy',
+            select: '_id fullName',
+        })
         .populate({
             path: 'drivers.driver',
             model: 'User',
             match: { 'drivers.isActive': true },
+            select: '_id fullName userName',
         })
         .populate({
             path: 'vehicles.vehicle',
             model: 'Vehicle',
             match: { 'vehicles.isActive': true },
+            select: '_id registrationNumber licenseRenewalDate insuranceRenewalDate',
         })
-        .sort({ startDate: 1 });
-};
-
-const generateTripId = async () => {
-    //find max tripConfirmedNumber from trip collection and increment by 1
-    const maxTripConfirmedNumber = await Trip.findOne()
-        .sort('-tripConfirmedNumber')
-        .limit(1);
-
-    if (maxTripConfirmedNumber) {
-        return maxTripConfirmedNumber.tripConfirmedNumber + 1;
-    } else {
-        return 1;
-    }
+        .sort({ startDate: 1 })
+        .lean();
 };
 
 const findTripPlacesByTripIdAndStatusIn = async (
@@ -103,36 +92,43 @@ const findTripPlacesByTripIdAndStatusIn = async (
     });
 };
 
-// const findAllByStatusIn = async (status: number[]) => {
-//     return Trip.find({ status: { $in: status } })
-// .populate('createdBy updatedBy startedBy endedBy')
-// .populate({
-//     path: 'drivers.driver',
-//     model: 'User',
-//     match: { 'drivers.isActive': true },
-// })
-// .populate({
-//     path: 'vehicles.vehicle',
-//     model: 'Vehicle',
-// })
-// .sort({ startDate: 1 });
-// };
+const monthEndFilter = (endMonth: number, currYear: number, status: number[]) => {
+    let endDate = new Date();
+    endDate.setFullYear(currYear);
+    endDate.setMonth(endMonth);
+    endDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+
+    return {
+        endDate: { $lt: endDate },
+        status: { $in: status },
+        isMonthEndDone: false,
+    };
+};
+
+// Month end: only the ids and status are needed to flag the trips and log them.
+const findAllIdsByEndMonthAndStatusIn = async (
+    endMonth: number,
+    currYear: number,
+    status: number[]
+) => {
+    return (await Trip.find(monthEndFilter(endMonth, currYear, status))
+        .select('_id status')
+        .sort({ startDate: 1 })
+        .lean()) as any[];
+};
+
+// Month end: flag many trips in one write (same fields the per-document save set).
+const markMonthEndDone = async (ids: any[], userId: string, batchId: number, session: any) => {
+    if (ids.length === 0) return;
+    await Trip.updateMany({ _id: { $in: ids } }, { $set: { isMonthEndDone: true, batchId, updatedBy: userId } }, { session });
+};
 
 const findAllByEndMonthAndStatusIn = async (
     endMonth: number,
     currYear: number,
     status: number[]
 ) => {
-    let endDate = new Date();
-    endDate.setFullYear(currYear);
-    endDate.setMonth(endMonth);
-    endDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
-
-    return Trip.find({
-        endDate: { $lt: endDate },
-        status: { $in: status },
-        isMonthEndDone: false,
-    })
+    return Trip.find(monthEndFilter(endMonth, currYear, status))
         .populate('createdBy updatedBy startedBy endedBy')
         .populate({
             path: 'drivers.driver',
@@ -180,27 +176,34 @@ const findAllByStatusInAndOnlyFromEndDate = async (
         ],
         // isMonthEndDone: false,
     })
-        .populate('createdBy updatedBy startedBy endedBy')
+        .populate({
+            path: 'createdBy updatedBy startedBy endedBy',
+            select: '_id fullName',
+        })
         .populate({
             path: 'drivers.driver',
             model: 'User',
             match: { 'drivers.isActive': true },
+            select: '_id fullName userName',
         })
         .populate({
             path: 'vehicles.vehicle',
             model: 'Vehicle',
+            select: '_id registrationNumber licenseRenewalDate insuranceRenewalDate',
         })
-        .sort({ startDate: 1 });
+        .sort({ startDate: 1 })
+        .lean();
 };
 
 export default {
     save,
     findByIdAndStatusIn,
-    generateTripId,
     findAllByStatusIn,
     findAllByDriverIdAndStatusIn,
     findTripPlacesByTripIdAndStatusIn,
     findAllByEndMonthAndStatusIn,
+    findAllIdsByEndMonthAndStatusIn,
+    markMonthEndDone,
     isTripConfirmedNumberExists,
     findAllByStatusInAndOnlyFromEndDate
 };

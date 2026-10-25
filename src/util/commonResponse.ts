@@ -1,4 +1,4 @@
-import { Response, Request } from 'express';
+import { Response } from 'express';
 
 const CommonResponse = (
     res: Response,

@@ -1,5 +1,4 @@
 import Joi from 'joi';
-import { endianness } from 'os';
 
 const createNewExpensesSchema = Joi.object({
     expenseType: Joi.number().required().messages({

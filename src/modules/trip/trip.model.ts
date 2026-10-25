@@ -485,4 +485,11 @@ const tripSchema = new mongoose.Schema(
     }
 );
 
+// Indexes for the filters used by the services (non-unique, no behaviour change)
+tripSchema.index({ status: 1, startDate: 1, endDate: 1 });
+tripSchema.index({ endDate: 1, status: 1, isMonthEndDone: 1 });
+tripSchema.index({ 'drivers.driver': 1, status: 1, isMonthEndDone: 1 });
+tripSchema.index({ 'vehicles.vehicle': 1 });
+tripSchema.index({ tripConfirmedNumber: 1, status: 1 });
+
 export default mongoose.model('Trip', tripSchema);

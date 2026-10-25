@@ -173,4 +173,9 @@ const userSchema = new mongoose.Schema(
     }
 );
 
+// Indexes for the filters used by the services (non-unique, no behaviour change)
+userSchema.index({ userName: 1, status: 1 });
+userSchema.index({ email: 1, status: 1 });
+userSchema.index({ nic: 1, status: 1 });
+
 export default mongoose.model('User', userSchema);

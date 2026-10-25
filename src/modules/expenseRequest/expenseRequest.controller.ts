@@ -17,6 +17,34 @@ import ExpensesExtensionResponseDto from '../notification/dto/expensesExtensionR
 import notificationUtil from '../notification/notification.util';
 import helperUtil from '../../util/helper.util';
 
+// sockets of the roles that get expense request notifications
+const getAdminSocketIds = () =>
+    getActiveSocketIdsByRoles([
+        constants.USER.ROLES.SUPERADMIN,
+        constants.USER.ROLES.ADMIN,
+        constants.USER.ROLES.FINANCEOFFICER,
+        constants.USER.ROLES.TRIPMANAGER,
+    ]);
+
+const emitExpenseRequestEvent = (
+    activeSockets: string[],
+    event: string,
+    expenseRequest: any,
+    getMessage: (response: ExpensesExtensionResponseDto) => string = () => ''
+) => {
+    if (activeSockets.length > 0 && expenseRequest) {
+        let response: ExpensesExtensionResponseDto =
+            notificationUtil.modelToExpensesExtensionResponseDto(
+                expenseRequest
+            );
+
+        io.to(activeSockets).emit(event, {
+            message: getMessage(response),
+            data: response,
+        });
+    }
+};
+
 const requestMoreExpenses = async (req: Request, res: Response) => {
     const body: any = req.body;
     const auth: any = req.auth;
@@ -27,75 +55,61 @@ const requestMoreExpenses = async (req: Request, res: Response) => {
         throw new BadRequestError(error.message);
     }
 
-    try {
-        // check if trip exists
-        const trip: any = await tripService.findByIdAndStatusIn(body.tripId, [
-            WellKnownTripStatus.START,
-        ]);
+    // check if trip exists
+    const trip: any = await tripService.findByIdAndStatusIn(body.tripId, [
+        WellKnownTripStatus.START,
+    ]);
 
-        if (!trip) {
-            throw new BadRequestError(
-                'Invalid trip or trip is not in started status!'
-            );
-        }
-        // check if trip has pending more expenses request
-        const expensesRequests =
-            await expensesRequestService.findByTripIdAndStatusIn(body.tripId, [
-                WellKnownLeaveStatus.PENDING,
-            ]);
-
-        if (expensesRequests.length > 0) {
-            throw new BadRequestError(
-                'You already have a pending expense request for this trip. If you need immediate assistance, please contact the administrator!'
-            );
-        }
-
-        // if it is false then create new expenses request
-        let newExpenseRequest = new ExpenseRequest();
-
-        newExpenseRequest.tripId = body.tripId;
-        newExpenseRequest.requestedAmount = body.requestedAmount;
-        newExpenseRequest.description = body.description;
-        newExpenseRequest.createdBy = auth.id;
-        newExpenseRequest.updatedBy = auth.id;
-
-        await expensesRequestService.save(newExpenseRequest, null);
-
-        // send notification to admins
-        let activeSockets = getActiveSocketIdsByRoles([
-            constants.USER.ROLES.SUPERADMIN,
-            constants.USER.ROLES.ADMIN,
-            constants.USER.ROLES.FINANCEOFFICER,
-            constants.USER.ROLES.TRIPMANAGER,
-        ]);
-
-        let newExpenseReq = await expensesRequestService.findByIdAndStatusIn(
-            newExpenseRequest._id.toString(),
-            [WellKnownLeaveStatus.PENDING]
+    if (!trip) {
+        throw new BadRequestError(
+            'Invalid trip or trip is not in started status!'
         );
-
-        if (activeSockets.length > 0 && newExpenseReq) {
-            let response: ExpensesExtensionResponseDto =
-                notificationUtil.modelToExpensesExtensionResponseDto(
-                    newExpenseReq
-                );
-
-            io.to(activeSockets).emit('new-expense-request', {
-                message: `New expense request has been created for trip ${response?.tripConfirmedNumber} by ${response?.requestedUserName} `,
-                data: response,
-            });
-        }
-
-        CommonResponse(
-            res,
-            true,
-            StatusCodes.CREATED,
-            'Expense request saved successfully!',
-            null
-        );
-    } catch (error) {
-        throw error;
     }
+    // check if trip has pending more expenses request
+    const expensesRequests =
+        await expensesRequestService.findByTripIdAndStatusIn(body.tripId, [
+            WellKnownLeaveStatus.PENDING,
+        ]);
+
+    if (expensesRequests.length > 0) {
+        throw new BadRequestError(
+            'You already have a pending expense request for this trip. If you need immediate assistance, please contact the administrator!'
+        );
+    }
+
+    // if it is false then create new expenses request
+    let newExpenseRequest = new ExpenseRequest();
+
+    newExpenseRequest.tripId = body.tripId;
+    newExpenseRequest.requestedAmount = body.requestedAmount;
+    newExpenseRequest.description = body.description;
+    newExpenseRequest.createdBy = auth.id;
+    newExpenseRequest.updatedBy = auth.id;
+
+    await expensesRequestService.save(newExpenseRequest, null);
+
+    // send notification to admins
+    let activeSockets = getAdminSocketIds();
+
+    let newExpenseReq = await expensesRequestService.findByIdAndStatusIn(
+        newExpenseRequest._id.toString(),
+        [WellKnownLeaveStatus.PENDING]
+    );
+
+    emitExpenseRequestEvent(
+        activeSockets,
+        'new-expense-request',
+        newExpenseReq,
+        (response) => `New expense request has been created for trip ${response?.tripConfirmedNumber} by ${response?.requestedUserName} `
+    );
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.CREATED,
+        'Expense request saved successfully!',
+        null
+    );
 };
 
 const approveExpensesRequest = async (req: Request, res: Response) => {
@@ -160,24 +174,9 @@ const approveExpensesRequest = async (req: Request, res: Response) => {
         await tripService.save(trip, session);
 
         // send notification to admins
-        let activeSockets = getActiveSocketIdsByRoles([
-            constants.USER.ROLES.SUPERADMIN,
-            constants.USER.ROLES.ADMIN,
-            constants.USER.ROLES.FINANCEOFFICER,
-            constants.USER.ROLES.TRIPMANAGER,
-        ]);
+        let activeSockets = getAdminSocketIds();
 
-        if (activeSockets.length > 0 && expenseRequest) {
-            let response: ExpensesExtensionResponseDto =
-                notificationUtil.modelToExpensesExtensionResponseDto(
-                    expenseRequest
-                );
-
-            io.to(activeSockets).emit('expense-request-approved', {
-                message: '',
-                data: response,
-            });
-        }
+        emitExpenseRequestEvent(activeSockets, 'expense-request-approved', expenseRequest);
 
         helperUtil.consoleLogMessage("info", logMessage);
 
@@ -208,88 +207,65 @@ const rejectExpensesRequest = async (req: Request, res: Response) => {
         throw new BadRequestError(error.message);
     }
 
-    try {
-        // check if expense request exists
-        let expenseRequest: any =
-            await expensesRequestService.findByIdAndStatusIn(expenseReqId, [
-                WellKnownLeaveStatus.PENDING,
-                WellKnownLeaveStatus.APPROVED,
-                WellKnownLeaveStatus.REJECTED,
-            ]);
-
-        if (!expenseRequest) {
-            throw new BadRequestError('No expense requests were found.!');
-        }
-
-        if (expenseRequest.status == WellKnownLeaveStatus.APPROVED) {
-            throw new BadRequestError('Expense request already approved!');
-        } else if (expenseRequest.status == WellKnownLeaveStatus.REJECTED) {
-            throw new BadRequestError('Expense request already rejected!');
-        }
-
-        expenseRequest.status = WellKnownLeaveStatus.REJECTED;
-        expenseRequest.updatedBy = auth.id;
-        expenseRequest.rejectRemark = body.rejectRemark;
-
-        await expensesRequestService.save(expenseRequest, null);
-
-        // send notification to admins
-        let activeSockets = getActiveSocketIdsByRoles([
-            constants.USER.ROLES.SUPERADMIN,
-            constants.USER.ROLES.ADMIN,
-            constants.USER.ROLES.FINANCEOFFICER,
-            constants.USER.ROLES.TRIPMANAGER,
+    // check if expense request exists
+    let expenseRequest: any =
+        await expensesRequestService.findByIdAndStatusIn(expenseReqId, [
+            WellKnownLeaveStatus.PENDING,
+            WellKnownLeaveStatus.APPROVED,
+            WellKnownLeaveStatus.REJECTED,
         ]);
 
-        if (activeSockets.length > 0 && expenseRequest) {
-            let response: ExpensesExtensionResponseDto =
-                notificationUtil.modelToExpensesExtensionResponseDto(
-                    expenseRequest
-                );
-
-            io.to(activeSockets).emit('expense-request-rejected', {
-                message: '',
-                data: response,
-            });
-        }
-
-        CommonResponse(
-            res,
-            true,
-            StatusCodes.OK,
-            'Expense request rejected successfully!',
-            null
-        );
-    } catch (error) {
-        throw error;
+    if (!expenseRequest) {
+        throw new BadRequestError('No expense requests were found.!');
     }
+
+    if (expenseRequest.status == WellKnownLeaveStatus.APPROVED) {
+        throw new BadRequestError('Expense request already approved!');
+    } else if (expenseRequest.status == WellKnownLeaveStatus.REJECTED) {
+        throw new BadRequestError('Expense request already rejected!');
+    }
+
+    expenseRequest.status = WellKnownLeaveStatus.REJECTED;
+    expenseRequest.updatedBy = auth.id;
+    expenseRequest.rejectRemark = body.rejectRemark;
+
+    await expensesRequestService.save(expenseRequest, null);
+
+    // send notification to admins
+    let activeSockets = getAdminSocketIds();
+
+    emitExpenseRequestEvent(activeSockets, 'expense-request-rejected', expenseRequest);
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        'Expense request rejected successfully!',
+        null
+    );
 };
 
 const getExpenseExtension = async (req: Request, res: Response) => {
     const expenseReqId: string = req.params.id;
 
-    try {
-        // check if expense request exists
-        let expenseRequest: any =
-            await expensesRequestService.findByIdAndStatusIn(expenseReqId, [
-                WellKnownLeaveStatus.PENDING,
-                WellKnownLeaveStatus.APPROVED,
-                WellKnownLeaveStatus.REJECTED,
-            ]);
+    // check if expense request exists
+    let expenseRequest: any =
+        await expensesRequestService.findByIdAndStatusIn(expenseReqId, [
+            WellKnownLeaveStatus.PENDING,
+            WellKnownLeaveStatus.APPROVED,
+            WellKnownLeaveStatus.REJECTED,
+        ]);
 
-        if (!expenseRequest) {
-            throw new BadRequestError('No expense requests were found.!');
-        }
-
-        const response: ExpenseRequestByIdResponseDto =
-            expensesRequestUtil.modelToExpensesRequestByIdResponseDto(
-                expenseRequest
-            );
-
-        CommonResponse(res, true, StatusCodes.OK, '', response);
-    } catch (error) {
-        throw error;
+    if (!expenseRequest) {
+        throw new BadRequestError('No expense requests were found.!');
     }
+
+    const response: ExpenseRequestByIdResponseDto =
+        expensesRequestUtil.modelToExpensesRequestByIdResponseDto(
+            expenseRequest
+        );
+
+    CommonResponse(res, true, StatusCodes.OK, '', response);
 };
 
 export {

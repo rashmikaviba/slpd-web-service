@@ -27,32 +27,28 @@ const createGarage = async (req: Request, res: Response) => {
         throw new BadRequestError(error.message);
     }
 
-    try {
-        let garage = new Garage({
-            name,
-            address,
-            city,
-            contactNumber1,
-            contactNumber2,
-            googleMapUrl,
-            specializations,
-            description,
-            createdBy: auth?.id,
-            updatedBy: auth?.id
-        });
+    let garage = new Garage({
+        name,
+        address,
+        city,
+        contactNumber1,
+        contactNumber2,
+        googleMapUrl,
+        specializations,
+        description,
+        createdBy: auth?.id,
+        updatedBy: auth?.id
+    });
 
-        let result = await garageService.save(garage, null);
+    let result = await garageService.save(garage, null);
 
-        CommonResponse(
-            res,
-            true,
-            StatusCodes.CREATED,
-            'Garage created successfully!',
-            result
-        );
-    } catch (error) {
-        throw error;
-    }
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.CREATED,
+        'Garage created successfully!',
+        result
+    );
 }
 
 
@@ -75,36 +71,32 @@ const updateGarage = async (req: Request, res: Response) => {
         throw new BadRequestError(error.message);
     }
 
-    try {
-        let garage = await garageService.findByIdAndStatusIn(id, [WellKnownStatus.ACTIVE, WellKnownStatus.INACTIVE]);
+    let garage = await garageService.findByIdAndStatusIn(id, [WellKnownStatus.ACTIVE, WellKnownStatus.INACTIVE]);
 
-        if (!garage) {
-            throw new BadRequestError('Garage not found!');
-        }
-
-        garage.name = name;
-        garage.address = address;
-        garage.city = city;
-        garage.contactNumber1 = contactNumber1;
-        garage.contactNumber2 = contactNumber2;
-        garage.googleMapUrl = googleMapUrl;
-        garage.specializations = specializations;
-        garage.description = description;
-        garage.updatedBy = auth?.id;
-
-        let result = await garageService.save(garage, null);
-
-        CommonResponse(
-            res,
-            true,
-            StatusCodes.OK,
-            'Garage updated successfully!',
-            result
-        );
-
-    } catch (error) {
-        throw error;
+    if (!garage) {
+        throw new BadRequestError('Garage not found!');
     }
+
+    garage.name = name;
+    garage.address = address;
+    garage.city = city;
+    garage.contactNumber1 = contactNumber1;
+    garage.contactNumber2 = contactNumber2;
+    garage.googleMapUrl = googleMapUrl;
+    garage.specializations = specializations;
+    garage.description = description;
+    garage.updatedBy = auth?.id;
+
+    let result = await garageService.save(garage, null);
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        'Garage updated successfully!',
+        result
+    );
+
 }
 
 const deleteGarage = async (req: Request, res: Response) => {
@@ -120,21 +112,17 @@ const deleteGarage = async (req: Request, res: Response) => {
         throw new BadRequestError('Garage not found!');
     }
 
-    try {
-        garage.status = WellKnownStatus.DELETED;
-        garage.updatedBy = auth.id;
-        await garageService.save(garage, null);
+    garage.status = WellKnownStatus.DELETED;
+    garage.updatedBy = auth.id;
+    await garageService.save(garage, null);
 
-        return CommonResponse(
-            res,
-            true,
-            StatusCodes.OK,
-            'Garage deleted successfully!',
-            null
-        );
-    } catch (error) {
-        throw error;
-    }
+    return CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        'Garage deleted successfully!',
+        null
+    );
 }
 
 const getAllGarages = async (req: Request, res: Response) => {
@@ -189,33 +177,29 @@ const activeInactiveGarage = async (req: Request, res: Response) => {
         throw new BadRequestError('Garage not found!');
     }
 
-    try {
-        if (garage.status === WellKnownStatus.ACTIVE) {
-            garage.status = WellKnownStatus.INACTIVE;
-        } else if (garage.status === WellKnownStatus.INACTIVE) {
-            garage.status = WellKnownStatus.ACTIVE;
-        }
-
-        garage.updatedBy = auth.id;
-        await garageService.save(garage, null);
-
-        let messageString = '';
-        if (garage.status == WellKnownStatus.ACTIVE) {
-            messageString = 'Garage activated successfully!';
-        } else {
-            messageString = 'Garage inactivated successfully!';
-        }
-
-        return CommonResponse(
-            res,
-            true,
-            StatusCodes.OK,
-            messageString,
-            null
-        );
-    } catch (error) {
-        throw error;
+    if (garage.status === WellKnownStatus.ACTIVE) {
+        garage.status = WellKnownStatus.INACTIVE;
+    } else if (garage.status === WellKnownStatus.INACTIVE) {
+        garage.status = WellKnownStatus.ACTIVE;
     }
+
+    garage.updatedBy = auth.id;
+    await garageService.save(garage, null);
+
+    let messageString = '';
+    if (garage.status == WellKnownStatus.ACTIVE) {
+        messageString = 'Garage activated successfully!';
+    } else {
+        messageString = 'Garage inactivated successfully!';
+    }
+
+    return CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        messageString,
+        null
+    );
 }
 
 export {

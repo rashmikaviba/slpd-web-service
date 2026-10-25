@@ -14,7 +14,6 @@ import userUtil from './user.util';
 import BadRequestError from '../../error/BadRequestError';
 import CommonResponse from '../../util/commonResponse';
 import { StatusCodes } from 'http-status-codes';
-import UserResponseDto from './dto/userResponseDto';
 import NotFoundError from '../../error/NotFoundError';
 import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
 import constants from '../../constant';
@@ -478,7 +477,6 @@ const deleteUser = async (req: Request, res: Response) => {
 };
 
 const getAllUsersByRole = async (req: Request, res: Response) => {
-    const userAuth: any = req.auth;
     const roleId = req.params.id;
 
     const role: any = await roleService.findByCustomId(roleId);

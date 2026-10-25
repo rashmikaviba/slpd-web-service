@@ -73,4 +73,8 @@ const internalTripSchema = new mongoose.Schema(
     }
 );
 
+// Indexes for the filters used by the services (non-unique, no behaviour change)
+internalTripSchema.index({ vehicle: 1, status: 1, startDate: 1, endDate: 1 });
+internalTripSchema.index({ status: 1, isMonthEndDone: 1, createdAt: 1 });
+
 export default mongoose.model('InternalTrip', internalTripSchema);

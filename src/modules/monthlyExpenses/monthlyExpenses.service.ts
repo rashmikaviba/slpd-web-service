@@ -18,10 +18,7 @@ const findAllByEndMonthAndStatusIn = async (
     status: number[]
 ) => {
 
-    let cacheKey = constants.CACHE.PREFIX.MONTHLY_EXPENSES + endMonth + currYear + JSON.stringify(status);
-    const cached = await cache.getCache(cacheKey) as any[];
-    if (cached) return cached;
-
+    // Month end only, not cached: only the ids are needed to flag the monthly expenses and log them.
     let endDate = new Date();
     endDate.setFullYear(currYear);
     endDate.setMonth(endMonth);
@@ -33,13 +30,16 @@ const findAllByEndMonthAndStatusIn = async (
         month: { $lt: endDate },
         status: { $in: status },
         isMonthEndDone: false,
-    }).sort({ startDate: 1 });
-
-    if (data) {
-        cache.setCache(cacheKey, data, constants.CACHE.DURATION.ONE_WEEK);
-    }
+    }).select('_id').sort({ startDate: 1 }).lean();
 
     return data;
+};
+
+// Month end: flag many monthly expenses in one write (same fields the per-document save set).
+const markMonthEndDone = async (ids: any[], userId: string, batchId: number, session: any) => {
+    if (ids.length === 0) return;
+    cache.clearCacheByPrefixs(constants.CACHE.PREFIX.MONTHLY_EXPENSES);
+    await MonthlyExpenses.updateMany({ _id: { $in: ids } }, { $set: { isMonthEndDone: true, batchId, updatedBy: userId } }, { session });
 };
 
 const findByIdAndStatusIn = async (id: any, status: any) => {
@@ -50,11 +50,11 @@ const findByIdAndStatusIn = async (id: any, status: any) => {
 const advanceSearch = async (startMonth: Date, endMonth: Date) => {
     let prefix = constants.CACHE.PREFIX.MONTHLY_EXPENSES + "AdvanceSearch-" + startMonth + endMonth;
 
-    const cached = await cache.getCache(prefix) as any[];
+    const cached = cache.getCache(prefix) as any[];
     if (cached) return cached;
 
     let data: any[] = await MonthlyExpenses.find({ month: { $gte: startMonth, $lte: endMonth } })
-        .populate('createdBy updatedBy')
+        .populate({ path: 'createdBy updatedBy', select: '_id userName' })
         .sort({ startDate: 1 });
 
     if (data) {
@@ -68,5 +68,6 @@ const advanceSearch = async (startMonth: Date, endMonth: Date) => {
 export default {
     save,
     findAllByEndMonthAndStatusIn,
+    markMonthEndDone,
     findByIdAndStatusIn, advanceSearch
 }

@@ -1,4 +1,3 @@
-import constants from "../../constant";
 import { WellKnownStatus } from "../../util/enums/well-known-status.enum";
 import Pos from "./pos.model";
 
@@ -40,7 +39,35 @@ const findByTripIdAndStatusInWIthProducts = async (tripId: string, status: numbe
     return pos;
 }
 
+// Month end: ids of the active POS transaction of each trip (first match per trip, like findOne).
+const findAllIdsByTripIdsAndStatusIn = async (tripIds: string[], status: number[]) => {
+    if (tripIds.length === 0) return [];
+
+    const list: any[] = await Pos.find({
+        tripId: { $in: tripIds },
+        status: { $in: status },
+    })
+        .select('_id tripId')
+        .lean();
+
+    const first = new Map<string, any>();
+    for (const pos of list) {
+        const key = String(pos.tripId);
+        if (!first.has(key)) first.set(key, pos._id);
+    }
+
+    return Array.from(first.values());
+};
+
+// Month end: flag many POS transactions in one write (same fields the per-document save set).
+const markMonthEndDone = async (ids: any[], userId: string, batchId: number, session: any) => {
+    if (ids.length === 0) return;
+    await Pos.updateMany({ _id: { $in: ids } }, { $set: { isMonthEndDone: true, batchId, updatedBy: userId } }, { session });
+};
+
 export default {
+    findAllIdsByTripIdsAndStatusIn,
+    markMonthEndDone,
     save,
     findByTripIdAndStatusIn,
     findByTripIdAndStatusInWIthProducts

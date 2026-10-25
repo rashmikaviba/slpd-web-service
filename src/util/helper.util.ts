@@ -75,6 +75,39 @@ const fromSiMeasureUnitToOtherMeasureUnit = (fromUnitId: number, toUnitId: numbe
 }
 
 
+// SI quantity -> quantity in `toUnitId` (no category check, unlike fromSiMeasureUnitToOtherMeasureUnit)
+const fromSiToMeasureUnit = (toUnitId: number, siQuantity: number) => {
+    let quantityInOtherUnit = 0;
+
+    let toUnit = measureUnit.find((item: any) => item.unitId === toUnitId);
+
+
+    if (toUnit) {
+        if (toUnit?.isSiUnit) {
+            quantityInOtherUnit = siQuantity;
+        } else {
+            quantityInOtherUnit = siQuantity / toUnit?.conversionToSi;
+        }
+    }
+
+    return quantityInOtherUnit;
+}
+
+// code of the SI unit stock is kept in for a product measured in `unitId`
+// (the unit's own code when the product is not saved with an SI unit)
+const getSiUnitCode = (unitId: number): string => {
+    let productMeasureUnit: any = measureUnit.find((item: any) => item.unitId === unitId);
+    let siUnitCode = "";
+    if (productMeasureUnit.isSaveWithSiUnit) {
+        const siUnit = measureUnit.find((item: any) => item.isSiUnit && item.categoryId === productMeasureUnit.categoryId);
+        siUnitCode = siUnit != null ? siUnit?.code : "";
+    } else {
+        siUnitCode = productMeasureUnit.code || ""
+    }
+
+    return siUnitCode;
+}
+
 type LogType = "info" | "error" | "warn" | "debug" | "success";
 
 const consoleLogMessage = (
@@ -111,5 +144,7 @@ export default {
     fromMeasureUnitToSiMeasureUnit,
     fromMeasureUnitToOtherMeasureUnit,
     fromSiMeasureUnitToOtherMeasureUnit,
+    fromSiToMeasureUnit,
+    getSiUnitCode,
     consoleLogMessage
 };

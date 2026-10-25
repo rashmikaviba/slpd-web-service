@@ -21,9 +21,10 @@ import companyWorkingInfoService from '../common/service/companyWorkingInfo.serv
 const userLogin = async (req: Request, res: Response) => {
     const { userName, password } = req.body;
 
-    const existAuth: any = await authService.findByUserName(userName);
-
-    const workingInfo = await companyWorkingInfoService.getCompanyWorkingInfo();
+    const [existAuth, workingInfo]: any[] = await Promise.all([
+        authService.findByUserName(userName),
+        companyWorkingInfoService.getCompanyWorkingInfo(),
+    ]);
 
     if (!existAuth)
         throw new BadRequestError(
@@ -44,8 +45,6 @@ const userLogin = async (req: Request, res: Response) => {
         );
 
     const token = jwtUtil.generateToken(existAuth);
-
-    let modules = [];
 
     const response = {
         token: token,
@@ -122,7 +121,8 @@ const changePassword = async (req: Request, res: Response) => {
     const { oldPassword, newPassword } = req.body;
     const userAuth: any = req.auth;
 
-    let auth = await authService.findById(userAuth.authId);
+    // modified and saved below, so not the shared cached copy
+    let auth = await authService.findByIdFresh(userAuth.authId);
 
     if (!auth) throw new BadRequestError('User not found!');
 

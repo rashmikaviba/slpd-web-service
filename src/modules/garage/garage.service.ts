@@ -19,7 +19,7 @@ const findByIdAndStatusIn = async (id: string, status: number[]) => {
 
 const findAllAndStatusIn = async (status: number[]) => {
     const key = constants.CACHE.PREFIX.GARAGE + JSON.stringify(status);
-    const cached = await cacheUtil.getCache(key);
+    const cached = cacheUtil.getCache(key);
     if (cached) return cached;
 
 

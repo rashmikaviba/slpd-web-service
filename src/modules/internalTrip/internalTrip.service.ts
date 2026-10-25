@@ -22,7 +22,7 @@ const findByIdAndStatusIn = async (id: any, status: any) => {
 
 const findAllByVehicleId = async (vehicleId: any) => {
     const cacheKey = constants.CACHE.PREFIX.INTERNAL_TRIP + vehicleId;
-    const cached = await cache.getCache(cacheKey) as any[];
+    const cached = cache.getCache(cacheKey) as any[];
     if (cached) return cached;
 
     const data: any[] = await internalTrip
@@ -42,7 +42,8 @@ const findAllByVehicleId = async (vehicleId: any) => {
             path: 'updatedBy',
             select: '_id userName',
         })
-        .sort({ startDate: -1 });
+        .sort({ startDate: -1 })
+        .lean();
 
     if (data) {
         cache.setCache(cacheKey, data, constants.CACHE.DURATION.ONE_WEEK);
@@ -56,26 +57,30 @@ const findAllByEndMonthAndStatusIn = async (
     currYear: number,
     status: number[]
 ) => {
-    const cacheKey = constants.CACHE.PREFIX.INTERNAL_TRIP + endMonth + currYear + JSON.stringify(status);
-    const cached = await cache.getCache(cacheKey) as any[];
-    if (cached) return cached;
-
+    // Month end only, not cached: only the ids are needed to flag the internal trips and log them.
     let endDate = new Date();
     endDate.setFullYear(currYear);
     endDate.setMonth(endMonth);
     endDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
 
-    let data: any[] = await internalTrip.find({
-        createdAt: { $lt: endDate },
-        status: { $in: status },
-        isMonthEndDone: false,
-    });
-
-    if (data) {
-        cache.setCache(cacheKey, data, constants.CACHE.DURATION.ONE_WEEK);
-    }
+    let data: any[] = await internalTrip
+        .find({
+            createdAt: { $lt: endDate },
+            status: { $in: status },
+            isMonthEndDone: false,
+        })
+        .select('_id')
+        .lean();
 
     return data;
+};
+
+// Month end: flag many internal trips in one write (same fields the per-document save set;
+// the schema has no batchId, so strict mode drops it exactly as the document assignment did).
+const markMonthEndDone = async (ids: any[], userId: string, batchId: number, session: any) => {
+    if (ids.length === 0) return;
+    cache.clearCacheByPrefixs(constants.CACHE.PREFIX.INTERNAL_TRIP);
+    await internalTrip.updateMany({ _id: { $in: ids } }, { $set: { isMonthEndDone: true, batchId, updatedBy: userId } }, { session });
 };
 
 const validateVehicleForDateRange = async (
@@ -139,5 +144,6 @@ export default {
     findByIdAndStatusIn,
     findAllByVehicleId,
     findAllByEndMonthAndStatusIn,
+    markMonthEndDone,
     validateVehicleForDateRange,
 };

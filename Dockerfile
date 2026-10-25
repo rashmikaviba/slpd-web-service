@@ -1,5 +1,17 @@
-# Use official Node.js image
-FROM node:20.19.4
+# ---- Build stage: compile TypeScript (needs the dev dependencies)
+FROM node:20.19.4-slim AS build
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY tsconfig.json ./
+COPY src ./src
+RUN npm run build
+
+# ---- Runtime stage: compiled output and production dependencies only
+FROM node:20.19.4-slim
 
 # Install MongoDB Database Tools (for mongodump, mongorestore, etc.)
 RUN apt-get update && apt-get install -y wget gnupg \
@@ -10,20 +22,17 @@ RUN apt-get update && apt-get install -y wget gnupg \
     && apt-get install -y mongodb-database-tools \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
+# The code expects to live in /app (uploads are served from /app/src/uploads)
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
+RUN npm ci --omit=dev && npm cache clean --force
 
-# Install dependencies
-RUN npm install
+COPY --from=build /app/dist ./dist
 
-# Copy the rest of the app
-COPY . .
-
-# Build the app
-RUN npm run build
+# Upload folders (multer does not create them) and the backup folder (the backup job needs it)
+COPY src/uploads ./src/uploads
+RUN mkdir -p backups
 
 # Expose port (change if your app uses a different port)
 EXPOSE 8080

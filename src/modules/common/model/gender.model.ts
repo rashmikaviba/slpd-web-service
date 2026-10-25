@@ -23,4 +23,7 @@ const genderSchema = new mongoose.Schema(
     }
 );
 
+// Indexes for the filters used by the services (non-unique, no behaviour change)
+genderSchema.index({ id: 1 });
+
 export default mongoose.model('Gender', genderSchema);

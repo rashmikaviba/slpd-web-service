@@ -89,7 +89,6 @@ const updateProduct = async (req: Request, res: Response) => {
         productName,
         productShortCode,
         isReturnableProduct,
-        measureUnit,
         unitPrice,
         description
     } = req.body;
@@ -151,7 +150,6 @@ const updateProduct = async (req: Request, res: Response) => {
 
 const getProductById = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const auth = req.auth;
 
     let product = await productService.findByIdAndStatusIn(id, [WellKnownStatus.ACTIVE, WellKnownStatus.INACTIVE]);
 

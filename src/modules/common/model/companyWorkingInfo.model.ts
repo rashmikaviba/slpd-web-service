@@ -33,4 +33,7 @@ const CompanyWorkingInfoSchema = new mongoose.Schema(
     }
 );
 
+// Indexes for the filters used by the services (non-unique, no behaviour change)
+CompanyWorkingInfoSchema.index({ status: 1, createdAt: -1 });
+
 export default mongoose.model('CompanyWorkingInfo', CompanyWorkingInfoSchema);

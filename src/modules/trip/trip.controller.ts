@@ -9,21 +9,19 @@ import { StatusCodes } from 'http-status-codes';
 import tripService from './trip.service';
 import { WellKnownTripStatus } from '../../util/enums/well-known-trip-status.enum';
 import tripUtil from './trip.util';
-import commonUtil from '../../util/common.util';
 import { WellKnownStatus } from '../../util/enums/well-known-status.enum';
 import constants from '../../constant';
 import userService from '../user/user.service';
 import vehicleService from '../vehicle/vehicle.service';
 import helperUtil from '../../util/helper.util';
+import inventoryUtil from '../../util/inventory.util';
 import Expenses from '../expenses/expenses.model';
 import expensesService from '../expenses/expenses.service';
 import { startSession } from 'mongoose';
-import { number } from 'joi';
 import TripExpensesResponseDto from '../expenses/dto/tripExpensesResponseDto';
 import expensesUtil from '../expenses/expenses.util';
 import posService from '../pos/pos.service';
 import productService from '../inventory/product/product.service';
-import { measureUnit } from '../../util/data/measureUnitData';
 import { WellKnownGrnLogType } from '../../util/enums/well-known-grn-log-type.enum';
 import expenseRequestService from '../expenseRequest/expenseRequest.service';
 import { WellKnownLeaveStatus } from '../../util/enums/well-known-leave-status.enum';
@@ -37,99 +35,95 @@ const saveTrip = async (req: Request, res: Response) => {
         throw new BadRequestError(error.message);
     }
 
-    try {
-        let isTripConfirmedNumberExists =
-            await tripService.isTripConfirmedNumberExists(
-                body.tripConfirmedNumber,
-                ''
-            );
-
-        if (isTripConfirmedNumberExists) {
-            throw new BadRequestError(
-                'This trip confirmed number already used in another trip!'
-            );
-        }
-
-        let passengers: any[] =
-            body.passengers && body.passengers?.length > 0
-                ? body.passengers
-                : [];
-        let activities: any[] =
-            body.activities && body.activities?.length > 0
-                ? body.activities
-                : [];
-        let arrivalInfo = body.arrivalInfo ?? null;
-        let departureInfo = body.departureInfo ?? null;
-        let pickUpInfo = body.pickUpInfo ?? null;
-        let dropOffInfo = body.dropOffInfo ?? null;
-        let places = body.places ?? [];
-        let hotels = body.hotels ?? [];
-
-        // create passengers and activities objects
-        if (passengers.length > 0) {
-            passengers.map((p: any) => delete p._id);
-        }
-
-        if (activities.length > 0) {
-            activities.map((a: any) => delete a._id);
-        }
-
-        if (places.length > 0) {
-            places.sort((a: any, b: any) => a.index - b.index);
-
-            places.map((place: any, index: number) => {
-                delete place._id;
-                place.updatedBy = auth.id;
-                place.index = index + 1;
-            });
-        }
-
-        if (hotels.length > 0) {
-            hotels.map((hotel: any) => {
-                delete hotel._id;
-            });
-        }
-
-        // let tripConfirmedNumber = await tripService.generateTripId();
-        let newTrip = new Trip({
-            startDate: body.startDate,
-            endDate: body.endDate,
-            dateCount: body.dateCount,
-            totalCost: body.totalCost,
-            specialRequirement: body.specialRequirement,
-            requestedVehicle: body.requestedVehicle,
-            paymentMode: body.paymentMode,
-            totalCostLocalCurrency: body.totalCostLocalCurrency,
-            contactPerson: body.contactPerson,
-            estimatedExpense: body.estimatedExpense,
-            tripConfirmedNumber: body.tripConfirmedNumber,
-            passengers: passengers,
-            isPaymentCollected: body.isPaymentCollected,
-            activities: activities,
-            places: places,
-            arrivalInfo: arrivalInfo,
-            departureInfo: departureInfo,
-            pickUpInfo: pickUpInfo,
-            dropOffInfo: dropOffInfo,
-            hotels: hotels,
-            email: body.email,
-            phoneNumber: body.phoneNumber,
-            createdBy: auth.id,
-            updatedBy: auth.id,
-        });
-
-        const savedTrip = await tripService.save(newTrip, null);
-
-        CommonResponse(
-            res,
-            true,
-            StatusCodes.CREATED,
-            'Trip Created Successfully',
-            savedTrip
+    let isTripConfirmedNumberExists =
+        await tripService.isTripConfirmedNumberExists(
+            body.tripConfirmedNumber,
+            ''
         );
-    } catch (error) {
-        throw error;
+
+    if (isTripConfirmedNumberExists) {
+        throw new BadRequestError(
+            'This trip confirmed number already used in another trip!'
+        );
     }
+
+    let passengers: any[] =
+        body.passengers && body.passengers?.length > 0
+            ? body.passengers
+            : [];
+    let activities: any[] =
+        body.activities && body.activities?.length > 0
+            ? body.activities
+            : [];
+    let arrivalInfo = body.arrivalInfo ?? null;
+    let departureInfo = body.departureInfo ?? null;
+    let pickUpInfo = body.pickUpInfo ?? null;
+    let dropOffInfo = body.dropOffInfo ?? null;
+    let places = body.places ?? [];
+    let hotels = body.hotels ?? [];
+
+    // create passengers and activities objects
+    if (passengers.length > 0) {
+        passengers.map((p: any) => delete p._id);
+    }
+
+    if (activities.length > 0) {
+        activities.map((a: any) => delete a._id);
+    }
+
+    if (places.length > 0) {
+        places.sort((a: any, b: any) => a.index - b.index);
+
+        places.map((place: any, index: number) => {
+            delete place._id;
+            place.updatedBy = auth.id;
+            place.index = index + 1;
+        });
+    }
+
+    if (hotels.length > 0) {
+        hotels.map((hotel: any) => {
+            delete hotel._id;
+        });
+    }
+
+    // let tripConfirmedNumber = await tripService.generateTripId();
+    let newTrip = new Trip({
+        startDate: body.startDate,
+        endDate: body.endDate,
+        dateCount: body.dateCount,
+        totalCost: body.totalCost,
+        specialRequirement: body.specialRequirement,
+        requestedVehicle: body.requestedVehicle,
+        paymentMode: body.paymentMode,
+        totalCostLocalCurrency: body.totalCostLocalCurrency,
+        contactPerson: body.contactPerson,
+        estimatedExpense: body.estimatedExpense,
+        tripConfirmedNumber: body.tripConfirmedNumber,
+        passengers: passengers,
+        isPaymentCollected: body.isPaymentCollected,
+        activities: activities,
+        places: places,
+        arrivalInfo: arrivalInfo,
+        departureInfo: departureInfo,
+        pickUpInfo: pickUpInfo,
+        dropOffInfo: dropOffInfo,
+        hotels: hotels,
+        email: body.email,
+        phoneNumber: body.phoneNumber,
+        createdBy: auth.id,
+        updatedBy: auth.id,
+    });
+
+    const savedTrip = await tripService.save(newTrip, null);
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.CREATED,
+        'Trip Created Successfully',
+        savedTrip
+    );
 };
 
 const updateTrip = async (req: Request, res: Response) => {
@@ -155,298 +149,284 @@ const updateTrip = async (req: Request, res: Response) => {
         throw new BadRequestError('Trip not found!');
     }
 
-    try {
-        let isTripConfirmedNumberExists =
-            await tripService.isTripConfirmedNumberExists(
-                body.tripConfirmedNumber,
-                id
-            );
+    let isTripConfirmedNumberExists =
+        await tripService.isTripConfirmedNumberExists(
+            body.tripConfirmedNumber,
+            id
+        );
 
-        if (isTripConfirmedNumberExists) {
-            throw new BadRequestError(
-                'This trip confirmed number already used in another trip!'
-            );
+    if (isTripConfirmedNumberExists) {
+        throw new BadRequestError(
+            'This trip confirmed number already used in another trip!'
+        );
+    }
+
+    let passengers =
+        body.passengers && body.passengers?.length > 0
+            ? body.passengers
+            : [];
+    let activities =
+        body.activities && body.activities?.length > 0
+            ? body.activities
+            : [];
+    let arrivalInfo = body.arrivalInfo ?? null;
+    let departureInfo = body.departureInfo ?? null;
+    let pickUpInfo = body.pickUpInfo ?? null;
+    let dropOffInfo = body.dropOffInfo ?? null;
+    let places = body.places ?? [];
+    let hotels = body.hotels ?? [];
+
+    // create passengers and activities objects
+    if (passengers.length > 0) {
+        passengers.map((p: any) => delete p._id);
+    }
+
+    let savedActivities = [...trip.activities];
+
+    //  Validate deleted activities has isPaymentDone is true
+    let deletedActivityIds: string[] =
+        savedActivities
+            .filter((a: any) => {
+                return !activities.find((activity: any) => {
+                    return activity._id.toString() === a._id.toString();
+                });
+            })
+            .map((a: any) => a._id.toString()) || [];
+
+    // delete  deletedActivityIds
+    deletedActivityIds.forEach((activityId: string) => {
+        savedActivities.forEach((a: any, index: number) => {
+            if (a._id.toString() === activityId) {
+                if (a.isPaymentDone) {
+                    throw new BadRequestError(
+                        `Cannot delete activity ${a.description}, because payment is already done!`
+                    );
+                }
+
+                savedActivities.splice(index, 1);
+            }
+        });
+    });
+
+    // update not deleted activities
+    activities.forEach((activity: any) => {
+        savedActivities.forEach((a: any, index: number) => {
+            if (a._id.toString() === activity._id) {
+                if (
+                    a.isPaymentDone &&
+                    a.isPaymentByCompany &&
+                    !activity.isPaymentByCompany
+                ) {
+                    throw new BadRequestError(
+                        `Cannot update activity ${a.description} as not payment by company, because payment is already done!`
+                    );
+                }
+                a.date = activity.date;
+                a.description = activity.description;
+                a.adultCount = activity.adultCount;
+                a.childCount = activity.childCount;
+                a.totalCost = activity.totalCost;
+                a.isPaymentByCompany = activity.isPaymentByCompany;
+            }
+        });
+    });
+
+    // add new activities
+    activities.forEach((activity: any) => {
+        if (
+            !savedActivities.find(
+                (a: any) => a?._id && a?._id.toString() === activity?._id
+            )
+        ) {
+            delete activity._id;
+            savedActivities.push(activity);
+        }
+    });
+
+    activities = savedActivities;
+
+    // arrange activities by date
+    activities.sort((a: any, b: any) => {
+        let earliestDateA: any = new Date(a.date);
+        let earliestDateB: any = new Date(b.date);
+        return earliestDateA - earliestDateB; // Sort in ascending order
+    });
+
+    let savedHotels = [...trip.hotels];
+
+    //  Validate deleted activities has isPaymentDone is true
+    let deletedHotelIds: string[] =
+        savedHotels
+            .filter((h: any) => {
+                return !hotels.find((hotel: any) => {
+                    return hotel._id.toString() === h._id.toString();
+                });
+            })
+            .map((h: any) => h._id.toString()) || [];
+
+    // delete  deletedActivityIds
+    deletedHotelIds.forEach((hotelId: string) => {
+        savedHotels.forEach((h: any, index: number) => {
+            if (h._id.toString() === hotelId) {
+                if (h.isPaymentDone) {
+                    throw new BadRequestError(
+                        `Cannot delete hotel ${h.hotelName}, because payment is already done!`
+                    );
+                }
+
+                savedHotels.splice(index, 1);
+            }
+        });
+    });
+
+    // Update not deleted hotels by _id
+    hotels.forEach((hotel: any) => {
+        savedHotels.forEach((h: any) => {
+            if (hotel._id.toString() === h._id.toString()) {
+                if (
+                    h.isPaymentByCompany &&
+                    h.isPaymentDone &&
+                    !hotel.isPaymentByCompany
+                ) {
+                    throw new BadRequestError(
+                        `Cannot update hotel ${h.hotelName} as not payment by company, because payment is already done!`
+                    );
+                }
+                h.hotelName = hotel.hotelName;
+                h.dates = hotel.dates;
+                h.city = hotel.city;
+                h.isPaymentByCompany = hotel.isPaymentByCompany;
+            }
+        });
+    });
+
+    // add new activities
+    hotels.forEach((hotel: any) => {
+        if (
+            !savedHotels.find(
+                (h: any) => h?._id && h?._id.toString() === hotel?._id
+            )
+        ) {
+            delete hotel._id;
+            savedHotels.push(hotel);
+        }
+    });
+
+    hotels = savedHotels;
+
+    // arrange hotels by dates sort
+    hotels.sort((a: any, b: any) => {
+        let earliestDateA: any = new Date(
+            a.dates
+                .split(',')
+                .map((date: string) => date.trim())
+                .sort()[0]
+        );
+        let earliestDateB: any = new Date(
+            b.dates
+                .split(',')
+                .map((date: string) => date.trim())
+                .sort()[0]
+        );
+
+        return earliestDateA - earliestDateB;
+    });
+
+    if (places.length > 0) {
+        let rearrangedPlaces: any[] = [];
+        // sort places by index
+        places.sort((a: any, b: any) => a.index - b.index);
+        places.map((place: any, index: number) => {
+            place.index = index + 1;
+            place.updatedBy = auth.id;
+        });
+
+        let savedPlaces: any[] = [...trip.places];
+        let placesFromBody: any[] = [...places];
+        let placesFromBodyIds = placesFromBody.map((p: any) => p._id);
+
+        let removedPlaces = savedPlaces.filter((p: any) => {
+            return !placesFromBodyIds.includes(p._id.toString());
+        });
+        // remove removed places from saved places
+        savedPlaces = savedPlaces.filter((p: any) =>
+            placesFromBodyIds.includes(p._id.toString())
+        );
+
+        // check if try to deleted  isReached place
+        if (removedPlaces.length > 0) {
+            let isReachedPlace = removedPlaces.find((p: any) => {
+                return p.isReached;
+            });
+
+            if (isReachedPlace) {
+                throw new BadRequestError('Can not delete reached place!');
+            }
         }
 
-        let passengers =
-            body.passengers && body.passengers?.length > 0
-                ? body.passengers
-                : [];
-        let activities =
-            body.activities && body.activities?.length > 0
-                ? body.activities
-                : [];
-        let arrivalInfo = body.arrivalInfo ?? null;
-        let departureInfo = body.departureInfo ?? null;
-        let pickUpInfo = body.pickUpInfo ?? null;
-        let dropOffInfo = body.dropOffInfo ?? null;
-        let places = body.places ?? [];
-        let hotels = body.hotels ?? [];
-
-        // create passengers and activities objects
-        if (passengers.length > 0) {
-            passengers.map((p: any) => delete p._id);
-        }
-
-        // if (activities.length > 0) {
-        //     activities.map((a: any) => delete a._id);
-        // }
-
-        // if (hotels.length > 0) {
-        //     hotels.map((hotel: any) => {
-        //         delete hotel._id;
-        //     });
-        // }
-
-        let savedActivities = [...trip.activities];
-
-        //  Validate deleted activities has isPaymentDone is true
-        let deletedActivityIds: string[] =
-            savedActivities
-                .filter((a: any) => {
-                    return !activities.find((activity: any) => {
-                        return activity._id.toString() === a._id.toString();
-                    });
-                })
-                .map((a: any) => a._id.toString()) || [];
-
-        // delete  deletedActivityIds
-        deletedActivityIds.forEach((activityId: string) => {
-            savedActivities.forEach((a: any, index: number) => {
-                if (a._id.toString() === activityId) {
-                    if (a.isPaymentDone) {
-                        throw new BadRequestError(
-                            `Cannot delete activity ${a.description}, because payment is already done!`
-                        );
-                    }
-
-                    savedActivities.splice(index, 1);
-                }
-            });
-        });
-
-        // update not deleted activities
-        activities.forEach((activity: any) => {
-            savedActivities.forEach((a: any, index: number) => {
-                if (a._id.toString() === activity._id) {
-                    if (
-                        a.isPaymentDone &&
-                        a.isPaymentByCompany &&
-                        !activity.isPaymentByCompany
-                    ) {
-                        throw new BadRequestError(
-                            `Cannot update activity ${a.description} as not payment by company, because payment is already done!`
-                        );
-                    }
-                    a.date = activity.date;
-                    a.description = activity.description;
-                    a.adultCount = activity.adultCount;
-                    a.childCount = activity.childCount;
-                    a.totalCost = activity.totalCost;
-                    a.isPaymentByCompany = activity.isPaymentByCompany;
-                }
-            });
-        });
-
-        // add new activities
-        activities.forEach((activity: any) => {
-            if (
-                !savedActivities.find(
-                    (a: any) => a?._id && a?._id.toString() === activity?._id
-                )
-            ) {
-                delete activity._id;
-                savedActivities.push(activity);
-            }
-        });
-
-        activities = savedActivities;
-
-        // arrange activities by date
-        activities.sort((a: any, b: any) => {
-            let earliestDateA: any = new Date(a.date);
-            let earliestDateB: any = new Date(b.date);
-            return earliestDateA - earliestDateB; // Sort in ascending order
-        });
-
-        let savedHotels = [...trip.hotels];
-
-        //  Validate deleted activities has isPaymentDone is true
-        let deletedHotelIds: string[] =
-            savedHotels
-                .filter((h: any) => {
-                    return !hotels.find((hotel: any) => {
-                        return hotel._id.toString() === h._id.toString();
-                    });
-                })
-                .map((h: any) => h._id.toString()) || [];
-
-        // delete  deletedActivityIds
-        deletedHotelIds.forEach((hotelId: string) => {
-            savedHotels.forEach((h: any, index: number) => {
-                if (h._id.toString() === hotelId) {
-                    if (h.isPaymentDone) {
-                        throw new BadRequestError(
-                            `Cannot delete hotel ${h.hotelName}, because payment is already done!`
-                        );
-                    }
-
-                    savedHotels.splice(index, 1);
-                }
-            });
-        });
-
-        // Update not deleted hotels by _id
-        hotels.forEach((hotel: any) => {
-            savedHotels.forEach((h: any) => {
-                if (hotel._id.toString() === h._id.toString()) {
-                    if (
-                        h.isPaymentByCompany &&
-                        h.isPaymentDone &&
-                        !hotel.isPaymentByCompany
-                    ) {
-                        throw new BadRequestError(
-                            `Cannot update hotel ${h.hotelName} as not payment by company, because payment is already done!`
-                        );
-                    }
-                    h.hotelName = hotel.hotelName;
-                    h.dates = hotel.dates;
-                    h.city = hotel.city;
-                    h.isPaymentByCompany = hotel.isPaymentByCompany;
-                }
-            });
-        });
-
-        // add new activities
-        hotels.forEach((hotel: any) => {
-            if (
-                !savedHotels.find(
-                    (h: any) => h?._id && h?._id.toString() === hotel?._id
-                )
-            ) {
-                delete hotel._id;
-                savedHotels.push(hotel);
-            }
-        });
-
-        hotels = savedHotels;
-
-        // arrange hotels by dates sort
-        hotels.sort((a: any, b: any) => {
-            let earliestDateA: any = new Date(
-                a.dates
-                    .split(',')
-                    .map((date: string) => date.trim())
-                    .sort()[0]
-            );
-            let earliestDateB: any = new Date(
-                b.dates
-                    .split(',')
-                    .map((date: string) => date.trim())
-                    .sort()[0]
-            );
-
-            return earliestDateA - earliestDateB;
-        });
-
-        if (places.length > 0) {
-            let rearrangedPlaces: any[] = [];
-            // sort places by index
-            places.sort((a: any, b: any) => a.index - b.index);
-            places.map((place: any, index: number) => {
-                place.index = index + 1;
-                place.updatedBy = auth.id;
+        places.forEach((place: any) => {
+            let fromSavedPlaces = savedPlaces.find((p: any) => {
+                return p._id.toString() === place._id.toString();
             });
 
-            let savedPlaces: any[] = [...trip.places];
-            let placesFromBody: any[] = [...places];
-            let placesFromBodyIds = placesFromBody.map((p: any) => p._id);
-
-            let removedPlaces = savedPlaces.filter((p: any) => {
-                return !placesFromBodyIds.includes(p._id.toString());
-            });
-            // remove removed places from saved places
-            savedPlaces = savedPlaces.filter((p: any) =>
-                placesFromBodyIds.includes(p._id.toString())
-            );
-
-            // check if try to deleted  isReached place
-            if (removedPlaces.length > 0) {
-                let isReachedPlace = removedPlaces.find((p: any) => {
-                    return p.isReached;
-                });
-
-                if (isReachedPlace) {
-                    throw new BadRequestError('Can not delete reached place!');
-                }
-            }
-
-            places.forEach((place: any) => {
-                let fromSavedPlaces = savedPlaces.find((p: any) => {
-                    return p._id.toString() === place._id.toString();
-                });
-
-                if (fromSavedPlaces) {
-                    // check if updated place and saved place are same other wise edit palce with checking isReached flag
-                    if (
-                        fromSavedPlaces.description !== place.description ||
-                        JSON.stringify(fromSavedPlaces.dates) !== JSON.stringify(place.dates)
-                    ) {
-                        if (fromSavedPlaces.isReached) {
-                            throw new BadRequestError('Can not update reached place!');
-                        } else {
-                            Object.assign(fromSavedPlaces, place, { updatedBy: auth.id });
-                            rearrangedPlaces.push(fromSavedPlaces);
-                        }
+            if (fromSavedPlaces) {
+                // check if updated place and saved place are same other wise edit palce with checking isReached flag
+                if (
+                    fromSavedPlaces.description !== place.description ||
+                    JSON.stringify(fromSavedPlaces.dates) !== JSON.stringify(place.dates)
+                ) {
+                    if (fromSavedPlaces.isReached) {
+                        throw new BadRequestError('Can not update reached place!');
                     } else {
+                        Object.assign(fromSavedPlaces, place, { updatedBy: auth.id });
                         rearrangedPlaces.push(fromSavedPlaces);
                     }
                 } else {
-                    delete place._id;
-                    place.updatedBy = auth.id;
-                    rearrangedPlaces.push(place);
+                    rearrangedPlaces.push(fromSavedPlaces);
                 }
-            });
+            } else {
+                delete place._id;
+                place.updatedBy = auth.id;
+                rearrangedPlaces.push(place);
+            }
+        });
 
-            places = [...rearrangedPlaces];
-        }
-
-        trip.contactPerson = body.contactPerson;
-        trip.startDate = body.startDate;
-        trip.endDate = body.endDate;
-        trip.dateCount = body.dateCount;
-        trip.totalCost = body.totalCost;
-        trip.tripConfirmedNumber = body.tripConfirmedNumber;
-        trip.specialRequirement = body.specialRequirement;
-        trip.requestedVehicle = body.requestedVehicle;
-        trip.paymentMode = body.paymentMode;
-        trip.totalCostLocalCurrency = body.totalCostLocalCurrency;
-        trip.estimatedExpense = body.estimatedExpense;
-        trip.isPaymentCollected = body.isPaymentCollected;
-        trip.passengers = passengers;
-        trip.activities = activities;
-        trip.places = places;
-        trip.hotels = hotels;
-        trip.arrivalInfo = arrivalInfo;
-        trip.departureInfo = departureInfo;
-        trip.pickUpInfo = pickUpInfo;
-        trip.dropOffInfo = dropOffInfo;
-        trip.email = body.email;
-        trip.phoneNumber = body.phoneNumber;
-        trip.updatedBy = req.auth.id;
-
-        const updatedTrip = await tripService.save(trip, null);
-
-        CommonResponse(
-            res,
-            true,
-            StatusCodes.OK,
-            'Trip Updated Successfully',
-            updatedTrip
-        );
-    } catch (error) {
-        throw error;
+        places = [...rearrangedPlaces];
     }
+
+    trip.contactPerson = body.contactPerson;
+    trip.startDate = body.startDate;
+    trip.endDate = body.endDate;
+    trip.dateCount = body.dateCount;
+    trip.totalCost = body.totalCost;
+    trip.tripConfirmedNumber = body.tripConfirmedNumber;
+    trip.specialRequirement = body.specialRequirement;
+    trip.requestedVehicle = body.requestedVehicle;
+    trip.paymentMode = body.paymentMode;
+    trip.totalCostLocalCurrency = body.totalCostLocalCurrency;
+    trip.estimatedExpense = body.estimatedExpense;
+    trip.isPaymentCollected = body.isPaymentCollected;
+    trip.passengers = passengers;
+    trip.activities = activities;
+    trip.places = places;
+    trip.hotels = hotels;
+    trip.arrivalInfo = arrivalInfo;
+    trip.departureInfo = departureInfo;
+    trip.pickUpInfo = pickUpInfo;
+    trip.dropOffInfo = dropOffInfo;
+    trip.email = body.email;
+    trip.phoneNumber = body.phoneNumber;
+    trip.updatedBy = req.auth.id;
+
+    const updatedTrip = await tripService.save(trip, null);
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        'Trip Updated Successfully',
+        updatedTrip
+    );
 };
 
 const cancelTrip = async (req: Request, res: Response) => {
@@ -486,38 +466,33 @@ const cancelTrip = async (req: Request, res: Response) => {
             let posProduct = tripPosData.products.filter((p: any) => p.status === WellKnownStatus.ACTIVE);
 
             if (posProduct.length > 0) {
+                const loadProduct = await productService.createBatchLoader(
+                    posProduct.map((p: any) => p.product),
+                    [WellKnownStatus.ACTIVE]
+                );
+
                 for (const p of posProduct) {
 
-                    let product: any = await productService.findByIdAndStatusIn(p.product, [
-                        WellKnownStatus.ACTIVE
-                    ]);
+                    let product: any = await loadProduct(p.product);
 
                     if (!product) {
                         continue;
                     }
 
-                    let productMeasureUnit: any = measureUnit.find((item: any) => item.unitId === product?.measureUnit);
-                    let siUnitCode = "";
-                    if (productMeasureUnit.isSaveWithSiUnit) {
-                        const siUnit = measureUnit.find((item: any) => item.isSiUnit && item.categoryId === productMeasureUnit.categoryId);
-                        siUnitCode = siUnit != null ? siUnit?.code : "";
-                    } else {
-                        siUnitCode = productMeasureUnit.code || ""
-                    }
+                    let siUnitCode = helperUtil.getSiUnitCode(product?.measureUnit);
 
 
                     let beforeTransactionInventory = product.inventory;
                     product.inventory += p.quantityWithSiUnitOfMeasure;
-                    let inventoryLogMsg = {
-                        inventoryLogType: WellKnownGrnLogType.POS_TRANSACTION,
-                        inventoryLogDate: new Date(),
-                        inventoryLogQuantity: p.quantityWithSiUnitOfMeasure,
-                        beforeTransactionInventory: beforeTransactionInventory,
-                        afterTransactionInventory: product.inventory,
-                        inventoryLogProductId: product._id,
-                        inventoryLogCreatedBy: auth.id,
+                    let inventoryLogMsg = inventoryUtil.buildInventoryLog({
+                        type: WellKnownGrnLogType.POS_TRANSACTION,
+                        quantity: p.quantityWithSiUnitOfMeasure,
+                        before: beforeTransactionInventory,
+                        after: product.inventory,
+                        productId: product._id,
+                        userId: auth.id,
                         message: `Inventory updated: ${p.quantityWithSiUnitOfMeasure}${siUnitCode} added to product "${product.productName}" via voiding POS transaction in trip "${tripPosData?.tripId?.tripConfirmedNumber}". (Trip Cancellation)`,
-                    }
+                    })
 
                     product.inventoryLogs.push(inventoryLogMsg)
                     product = await productService.save(product, session);
@@ -606,34 +581,7 @@ const getAllTripsByRole = async (req: Request, res: Response) => {
             endDate
         );
 
-        await Promise.all(
-            trips.map(async (trip: any) => {
-                trip.isDriverSalaryDone = false;
-                if (
-                    trip.status === WellKnownTripStatus.START ||
-                    trip.status === WellKnownTripStatus.FINISHED
-                ) {
-                    const expense =
-                        await expensesService.findByTripIdAndStatusIn(
-                            trip._id.toString(),
-                            [WellKnownStatus.ACTIVE]
-                        );
-                    if (expense && trip.drivers?.length > 0) {
-                        const paidDriverIds = new Set(
-                            (expense.driverSalaries || []).map((s: any) => s.driver?.toString())
-                        );
-
-                        const allDriversPaid = trip.drivers.every((d: any) => {
-                            return paidDriverIds.has(d?.driver?._id?.toString())
-                        });
-
-                        trip.isDriverSalaryDone = allDriversPaid;
-                    } else {
-                        trip.isDriverSalaryDone = false;
-                    }
-                }
-            })
-        );
+        await expensesService.applyDriverSalaryDone(trips);
 
         // get only finished trips with driver salary
         if (trips.length > 0 && +status == 5) {
@@ -693,122 +641,118 @@ const assignDriverAndVehicle = async (req: Request, res: Response) => {
         throw new BadRequestError(error.message);
     }
 
-    try {
-        let trip: any = await tripService.findByIdAndStatusIn(id, [
-            WellKnownTripStatus.PENDING,
-            WellKnownTripStatus.START,
-        ]);
+    let trip: any = await tripService.findByIdAndStatusIn(id, [
+        WellKnownTripStatus.PENDING,
+        WellKnownTripStatus.START,
+    ]);
 
-        if (!trip) {
-            throw new BadRequestError('Trip not found!');
-        }
-
-        if (body?.driverId) {
-            let diver = await userService.findById(body?.driverId);
-
-            if (!diver) {
-                throw new BadRequestError('Driver not found!');
-            }
-
-            if (trip.status === WellKnownTripStatus.PENDING) {
-                // if trip is pending remove all drivers and asign as new one as active
-                let driver = {
-                    driver: body?.driverId,
-                    driverAssignedBy: auth.id,
-                    isActive: true,
-                };
-                trip.drivers = [driver];
-            } else {
-                // if it is not deactive all other drivers and assign new one as active
-                let isDriverAvailable = false;
-                let activeDriver = trip.drivers.find((driver: any) => {
-                    return driver.isActive === true;
-                });
-
-                if (activeDriver.driver.toString() !== body?.driverId) {
-                    trip.drivers.map((driver: any) => {
-                        if (driver.driver === body?.driverId) {
-                            isDriverAvailable = true;
-                            driver.isActive = true;
-                            driver.driverAssignedBy = auth.id;
-                        } else {
-                            driver.isActive = false;
-                        }
-                    });
-
-                    if (!isDriverAvailable) {
-                        let driver = {
-                            driver: body?.driverId,
-                            driverAssignedBy: auth.id,
-                            isActive: true,
-                        };
-                        trip.drivers.push(driver);
-                    }
-                }
-            }
-        }
-
-        if (body?.vehicleId) {
-            let vehicle = await vehicleService.findByIdAndStatusIn(
-                body?.vehicleId,
-                [WellKnownStatus.ACTIVE]
-            );
-
-            if (!vehicle) {
-                throw new BadRequestError('Vehicle not found!');
-            }
-
-            // if trip is pending remove all vehicles and asign as new one as active
-            if (trip?.status == WellKnownTripStatus.PENDING) {
-                let vehicle = {
-                    vehicle: body?.vehicleId,
-                    isActive: true,
-                    vehicleAssignedBy: auth.id,
-                };
-
-                trip.vehicles = [vehicle];
-            } else {
-                let isVehicleAvailable = false;
-                let activeVehicle = trip.vehicles.find((vehicle: any) => {
-                    return vehicle.isActive === true;
-                });
-
-                if (activeVehicle.vehicle.toString() !== body?.vehicleId) {
-                    trip.vehicles.map((vehicle: any) => {
-                        if (vehicle.vehicle === body?.vehicleId) {
-                            isVehicleAvailable = true;
-                            vehicle.isActive = true;
-                            vehicle.vehicleAssignedBy = auth.id;
-                        } else {
-                            vehicle.isActive = false;
-                        }
-                    });
-
-                    if (!isVehicleAvailable) {
-                        let vehicle = {
-                            vehicle: body?.vehicleId,
-                            isActive: true,
-                            vehicleAssignedBy: auth.id,
-                        };
-                        trip.vehicles.push(vehicle);
-                    }
-                }
-            }
-        }
-
-        await tripService.save(trip, null);
-
-        let message =
-            body?.driverId && body?.vehicleId
-                ? 'Driver and vehicle assigned successfully!'
-                : body?.driverId
-                    ? 'Driver assigned successfully!'
-                    : 'Vehicle assigned successfully!';
-
-        CommonResponse(res, true, StatusCodes.OK, message, null);
-    } catch (error) {
-        throw error;
+    if (!trip) {
+        throw new BadRequestError('Trip not found!');
     }
+
+    if (body?.driverId) {
+        let diver = await userService.findById(body?.driverId);
+
+        if (!diver) {
+            throw new BadRequestError('Driver not found!');
+        }
+
+        if (trip.status === WellKnownTripStatus.PENDING) {
+            // if trip is pending remove all drivers and asign as new one as active
+            let driver = {
+                driver: body?.driverId,
+                driverAssignedBy: auth.id,
+                isActive: true,
+            };
+            trip.drivers = [driver];
+        } else {
+            // if it is not deactive all other drivers and assign new one as active
+            let isDriverAvailable = false;
+            let activeDriver = trip.drivers.find((driver: any) => {
+                return driver.isActive === true;
+            });
+
+            if (activeDriver.driver.toString() !== body?.driverId) {
+                trip.drivers.map((driver: any) => {
+                    if (driver.driver === body?.driverId) {
+                        isDriverAvailable = true;
+                        driver.isActive = true;
+                        driver.driverAssignedBy = auth.id;
+                    } else {
+                        driver.isActive = false;
+                    }
+                });
+
+                if (!isDriverAvailable) {
+                    let driver = {
+                        driver: body?.driverId,
+                        driverAssignedBy: auth.id,
+                        isActive: true,
+                    };
+                    trip.drivers.push(driver);
+                }
+            }
+        }
+    }
+
+    if (body?.vehicleId) {
+        let vehicle = await vehicleService.findByIdAndStatusIn(
+            body?.vehicleId,
+            [WellKnownStatus.ACTIVE]
+        );
+
+        if (!vehicle) {
+            throw new BadRequestError('Vehicle not found!');
+        }
+
+        // if trip is pending remove all vehicles and asign as new one as active
+        if (trip?.status == WellKnownTripStatus.PENDING) {
+            let vehicle = {
+                vehicle: body?.vehicleId,
+                isActive: true,
+                vehicleAssignedBy: auth.id,
+            };
+
+            trip.vehicles = [vehicle];
+        } else {
+            let isVehicleAvailable = false;
+            let activeVehicle = trip.vehicles.find((vehicle: any) => {
+                return vehicle.isActive === true;
+            });
+
+            if (activeVehicle.vehicle.toString() !== body?.vehicleId) {
+                trip.vehicles.map((vehicle: any) => {
+                    if (vehicle.vehicle === body?.vehicleId) {
+                        isVehicleAvailable = true;
+                        vehicle.isActive = true;
+                        vehicle.vehicleAssignedBy = auth.id;
+                    } else {
+                        vehicle.isActive = false;
+                    }
+                });
+
+                if (!isVehicleAvailable) {
+                    let vehicle = {
+                        vehicle: body?.vehicleId,
+                        isActive: true,
+                        vehicleAssignedBy: auth.id,
+                    };
+                    trip.vehicles.push(vehicle);
+                }
+            }
+        }
+    }
+
+    await tripService.save(trip, null);
+
+    let message =
+        body?.driverId && body?.vehicleId
+            ? 'Driver and vehicle assigned successfully!'
+            : body?.driverId
+                ? 'Driver assigned successfully!'
+                : 'Vehicle assigned successfully!';
+
+    CommonResponse(res, true, StatusCodes.OK, message, null);
 };
 
 const changeTripStatus = async (req: Request, res: Response) => {
@@ -1072,32 +1016,28 @@ const saveCheckListAnswers = async (req: Request, res: Response) => {
         throw new BadRequestError(error.message);
     }
 
-    try {
-        let trip = await tripService.findByIdAndStatusIn(id, [
-            WellKnownTripStatus.PENDING,
-        ]);
+    let trip = await tripService.findByIdAndStatusIn(id, [
+        WellKnownTripStatus.PENDING,
+    ]);
 
-        if (!trip) {
-            throw new BadRequestError(
-                'Invalid trip or trip is not in pending status!'
-            );
-        }
-
-        trip.checkListAnswers = body;
-        trip.checkListCheckBy = auth.id;
-
-        await tripService.save(trip, null);
-
-        CommonResponse(
-            res,
-            true,
-            StatusCodes.OK,
-            'Answers saved successfully!',
-            null
+    if (!trip) {
+        throw new BadRequestError(
+            'Invalid trip or trip is not in pending status!'
         );
-    } catch (error) {
-        throw error;
     }
+
+    trip.checkListAnswers = body;
+    trip.checkListCheckBy = auth.id;
+
+    await tripService.save(trip, null);
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        'Answers saved successfully!',
+        null
+    );
 };
 
 const getCheckListAnswers = async (req: Request, res: Response) => {
@@ -1267,111 +1207,65 @@ const getTripForReport = async (req: Request, res: Response) => {
     const { id } = req.params;
     const auth = req.auth;
 
-    try {
-        let trip: any = await tripService.findByIdAndStatusIn(id, [
-            WellKnownTripStatus.PENDING,
-            WellKnownTripStatus.START,
-            WellKnownTripStatus.FINISHED,
-        ]);
+    let trip: any = await tripService.findByIdAndStatusIn(id, [
+        WellKnownTripStatus.PENDING,
+        WellKnownTripStatus.START,
+        WellKnownTripStatus.FINISHED,
+    ]);
 
-        let roleArr = [
-            constants.USER.ROLES.ADMIN,
-            constants.USER.ROLES.SUPERADMIN,
-            constants.USER.ROLES.TRIPMANAGER,
-            constants.USER.ROLES.FINANCEOFFICER,
-        ];
-        if (trip && roleArr.includes(auth.role)) {
-            trip = trip.toObject();
-            //  get expense by trip id and status active
-            let expense: any = await expensesService.findByTripIdAndStatusIn(
-                trip._id.toString(),
-                [WellKnownStatus.ACTIVE]
-            );
+    let roleArr = [
+        constants.USER.ROLES.ADMIN,
+        constants.USER.ROLES.SUPERADMIN,
+        constants.USER.ROLES.TRIPMANAGER,
+        constants.USER.ROLES.FINANCEOFFICER,
+    ];
+    if (trip && roleArr.includes(auth.role)) {
+        trip = trip.toObject();
+        //  get expense by trip id and status active
+        let expense: any = await expensesService.findByTripIdAndStatusIn(
+            trip._id.toString(),
+            [WellKnownStatus.ACTIVE]
+        );
 
-            let response: TripExpensesResponseDto | null = null;
+        let response: TripExpensesResponseDto | null = null;
 
-            if (expense) {
-                // get only active expenses
-                let activeExpenses = expense.expenses.filter(
-                    (exp: any) => exp.status === WellKnownStatus.ACTIVE
-                );
-
-                let totalExpensesAmount = activeExpenses.reduce(
-                    (total: number, exp: any) => total + exp.amount,
-                    0
-                );
-
-                expense.expenses = activeExpenses;
-                expense.tripExpensesAmount = expense?.tripId?.estimatedExpense;
-                expense.totalTripExpensesAmount = totalExpensesAmount;
-                expense.remainingTripExpensesAmount =
-                    expense?.tripExpensesAmount - totalExpensesAmount;
-
-                response =
-                    expensesUtil.ExpensesModelToTripExpensesResponseDto(
-                        expense
-                    );
-            }
-
-            trip.expenses = response;
+        if (expense) {
+            response = expensesUtil.expenseWithTotalsToResponseDto(expense);
         }
 
-        CommonResponse(res, true, StatusCodes.OK, '', trip);
-    } catch (error) {
-        throw error;
+        trip.expenses = response;
     }
+
+    CommonResponse(res, true, StatusCodes.OK, '', trip);
 };
 
 const getTripForQrCode = async (req: Request, res: Response) => {
     const { id } = req.params;
 
-    try {
-        let trip: any = await tripService.findByIdAndStatusIn(id, [
-            WellKnownTripStatus.PENDING,
-            WellKnownTripStatus.START,
-            WellKnownTripStatus.FINISHED,
-        ]);
+    let trip: any = await tripService.findByIdAndStatusIn(id, [
+        WellKnownTripStatus.PENDING,
+        WellKnownTripStatus.START,
+        WellKnownTripStatus.FINISHED,
+    ]);
 
-        if (trip) {
-            trip = trip.toObject();
-            //  get expense by trip id and status active
-            let expense: any = await expensesService.findByTripIdAndStatusIn(
-                trip._id.toString(),
-                [WellKnownStatus.ACTIVE]
-            );
+    if (trip) {
+        trip = trip.toObject();
+        //  get expense by trip id and status active
+        let expense: any = await expensesService.findByTripIdAndStatusIn(
+            trip._id.toString(),
+            [WellKnownStatus.ACTIVE]
+        );
 
-            let response: TripExpensesResponseDto | null = null;
+        let response: TripExpensesResponseDto | null = null;
 
-            if (expense) {
-                // get only active expenses
-                let activeExpenses = expense.expenses.filter(
-                    (exp: any) => exp.status === WellKnownStatus.ACTIVE
-                );
-
-                let totalExpensesAmount = activeExpenses.reduce(
-                    (total: number, exp: any) => total + exp.amount,
-                    0
-                );
-
-                expense.expenses = activeExpenses;
-                expense.tripExpensesAmount = expense?.tripId?.estimatedExpense;
-                expense.totalTripExpensesAmount = totalExpensesAmount;
-                expense.remainingTripExpensesAmount =
-                    expense?.tripExpensesAmount - totalExpensesAmount;
-
-                response =
-                    expensesUtil.ExpensesModelToTripExpensesResponseDto(
-                        expense
-                    );
-            }
-
-            trip.expenses = response;
+        if (expense) {
+            response = expensesUtil.expenseWithTotalsToResponseDto(expense);
         }
 
-        CommonResponse(res, true, StatusCodes.OK, '', trip);
-    } catch (error) {
-        throw error;
+        trip.expenses = response;
     }
+
+    CommonResponse(res, true, StatusCodes.OK, '', trip);
 }
 
 const getDestinationSummaryPrint = async (req: Request, res: Response) => {
@@ -1393,32 +1287,28 @@ const getDestinationSummaryPrint = async (req: Request, res: Response) => {
 const getTripHotelsAndActivities = async (req: Request, res: Response) => {
     const { id } = req.params;
 
-    try {
-        const trip = await tripService.findByIdAndStatusIn(id, [
-            WellKnownTripStatus.PENDING,
-            WellKnownTripStatus.START,
-            WellKnownTripStatus.FINISHED,
-        ]);
+    const trip = await tripService.findByIdAndStatusIn(id, [
+        WellKnownTripStatus.PENDING,
+        WellKnownTripStatus.START,
+        WellKnownTripStatus.FINISHED,
+    ]);
 
-        let response: any = {
-            hotels: [],
-            activities: [],
-        };
+    let response: any = {
+        hotels: [],
+        activities: [],
+    };
 
-        if (trip) {
-            response.hotels =
-                trip.hotels.filter((h: any) => h.isPaymentByCompany === true) ||
-                [];
-            response.activities =
-                trip.activities.filter(
-                    (a: any) => a.isPaymentByCompany === true
-                ) || [];
-        }
-
-        CommonResponse(res, true, StatusCodes.OK, '', response);
-    } catch (error) {
-        throw error;
+    if (trip) {
+        response.hotels =
+            trip.hotels.filter((h: any) => h.isPaymentByCompany === true) ||
+            [];
+        response.activities =
+            trip.activities.filter(
+                (a: any) => a.isPaymentByCompany === true
+            ) || [];
     }
+
+    CommonResponse(res, true, StatusCodes.OK, '', response);
 };
 
 const updateHotelActivityPayment = async (req: Request, res: Response) => {
@@ -1426,79 +1316,75 @@ const updateHotelActivityPayment = async (req: Request, res: Response) => {
     const auth = req.auth;
     const body: any = req.body;
 
-    try {
-        const trip = await tripService.findByIdAndStatusIn(tripId, [
-            WellKnownTripStatus.PENDING,
-            WellKnownTripStatus.START,
-            WellKnownTripStatus.FINISHED,
-        ]);
+    const trip = await tripService.findByIdAndStatusIn(tripId, [
+        WellKnownTripStatus.PENDING,
+        WellKnownTripStatus.START,
+        WellKnownTripStatus.FINISHED,
+    ]);
 
-        if (!trip) {
-            throw new BadRequestError('Trip not found!');
-        }
-
-        if (trip.isMonthEndDone) {
-            throw new BadRequestError('Cannot update trip after month end!');
-        }
-
-        let message: string = '';
-        // Type 1 = Hotel, Type 2 = Activity
-        if (body.type === 1) {
-            const hotel = trip.hotels.find(
-                (h: any) => h._id.toString() === body.objectId
-            );
-
-            if (!hotel) {
-                throw new BadRequestError('Hotel not found!');
-            } else if (hotel.isPaymentByCompany === false) {
-                throw new BadRequestError(
-                    'Selected hotel is not paid by company!'
-                );
-            }
-
-            hotel.isPaymentDone = true;
-            hotel.paymentDate = body.paymentDate;
-            hotel.paymentAmount = body.paymentAmount;
-            hotel.paymentRemark = body.paymentRemark;
-            hotel.paymentMode = body.paymentMode;
-            hotel.receiptImageUrl = body.receiptImageUrl;
-            hotel.updatedBy = auth.id;
-
-            await tripService.save(trip, null);
-
-            message = 'Hotel payment updated successfully!';
-        } else if (body.type === 2) {
-            const activity = trip.activities.find(
-                (a: any) => a._id.toString() === body.objectId
-            );
-
-            if (!activity) {
-                throw new BadRequestError('Activity not found!');
-            } else if (activity.isPaymentByCompany === false) {
-                throw new BadRequestError(
-                    'Selected activity is not paid by company!'
-                );
-            }
-
-            activity.isPaymentDone = true;
-            activity.paymentDate = body.paymentDate;
-            activity.paymentAmount = body.paymentAmount;
-            activity.paymentRemark = body.paymentRemark;
-            activity.paymentMode = body.paymentMode;
-            activity.receiptImageUrl = body.receiptImageUrl;
-            activity.updatedBy = auth.id;
-
-            await tripService.save(trip, null);
-
-            message = 'Activity payment updated successfully!';
-        } else {
-            throw new BadRequestError('Invalid request type!');
-        }
-
-        CommonResponse(res, true, StatusCodes.OK, message, null);
-    } catch (error) {
-        throw error;
+    if (!trip) {
+        throw new BadRequestError('Trip not found!');
     }
+
+    if (trip.isMonthEndDone) {
+        throw new BadRequestError('Cannot update trip after month end!');
+    }
+
+    let message: string = '';
+    // Type 1 = Hotel, Type 2 = Activity
+    if (body.type === 1) {
+        const hotel = trip.hotels.find(
+            (h: any) => h._id.toString() === body.objectId
+        );
+
+        if (!hotel) {
+            throw new BadRequestError('Hotel not found!');
+        } else if (hotel.isPaymentByCompany === false) {
+            throw new BadRequestError(
+                'Selected hotel is not paid by company!'
+            );
+        }
+
+        hotel.isPaymentDone = true;
+        hotel.paymentDate = body.paymentDate;
+        hotel.paymentAmount = body.paymentAmount;
+        hotel.paymentRemark = body.paymentRemark;
+        hotel.paymentMode = body.paymentMode;
+        hotel.receiptImageUrl = body.receiptImageUrl;
+        hotel.updatedBy = auth.id;
+
+        await tripService.save(trip, null);
+
+        message = 'Hotel payment updated successfully!';
+    } else if (body.type === 2) {
+        const activity = trip.activities.find(
+            (a: any) => a._id.toString() === body.objectId
+        );
+
+        if (!activity) {
+            throw new BadRequestError('Activity not found!');
+        } else if (activity.isPaymentByCompany === false) {
+            throw new BadRequestError(
+                'Selected activity is not paid by company!'
+            );
+        }
+
+        activity.isPaymentDone = true;
+        activity.paymentDate = body.paymentDate;
+        activity.paymentAmount = body.paymentAmount;
+        activity.paymentRemark = body.paymentRemark;
+        activity.paymentMode = body.paymentMode;
+        activity.receiptImageUrl = body.receiptImageUrl;
+        activity.updatedBy = auth.id;
+
+        await tripService.save(trip, null);
+
+        message = 'Activity payment updated successfully!';
+    } else {
+        throw new BadRequestError('Invalid request type!');
+    }
+
+    CommonResponse(res, true, StatusCodes.OK, message, null);
 };
 
 export {

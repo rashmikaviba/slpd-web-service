@@ -3,7 +3,6 @@ import { Request, Response, NextFunction } from 'express';
 import UnauthorizedError from '../error/UnauthorizedError';
 import ForbiddenError from '../error/ForbiddenError';
 import jwtUtil from '../util/jwt.util';
-import roleService from '../modules/common/service/role.service';
 import authService from '../modules/auth/auth.service';
 
 declare global {
@@ -57,18 +56,7 @@ const authorize = (rolesArray: any = [], isNoNeedAuth: boolean = false) => {
                 );
             }
 
-            // if (!userAuth || userAuth.isBlocked) {
-            //     return next(
-            //         new UnauthorizedError(
-            //             `You're unauthorized to access this resource!`
-            //         )
-            //     );
-            // }
-
             if (rolesArray.length) {
-                // const roleIds = await roleService.findIdsByCustomIds(
-                //     rolesArray
-                // );
 
                 if (!rolesArray.includes(payload.role)) {
                     return next(

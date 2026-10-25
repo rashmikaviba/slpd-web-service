@@ -15,7 +15,7 @@ const modelToProductResponseDto = (product: any): ProductResponseDto => {
         unitPrice: product.unitPrice,
         description: product.description,
         // inventory: product.inventory,
-        inventory: fromSiMeasureUnitToOtherMeasureUnit(product.measureUnit, product.inventory),
+        inventory: helperUtil.fromSiToMeasureUnit(product.measureUnit, product.inventory),
         status: product.status,
         statusName: helperUtil.getNameFromEnum(WellKnownStatus, product.status),
         createdBy: product.createdBy?._id || "",
@@ -39,22 +39,5 @@ const modelsToProductResponseDtos = (products: any): ProductResponseDto[] => {
 
     return productResponseDtos;
 };
-
-const fromSiMeasureUnitToOtherMeasureUnit = (toUnitId: number, siQuantity: number) => {
-    let quantityInOtherUnit = 0;
-
-    let toUnit = measureUnit.find((item: any) => item.unitId === toUnitId);
-
-
-    if (toUnit) {
-        if (toUnit?.isSiUnit) {
-            quantityInOtherUnit = siQuantity;
-        } else {
-            quantityInOtherUnit = siQuantity / toUnit?.conversionToSi;
-        }
-    }
-
-    return quantityInOtherUnit;
-}
 
 export default { modelToProductResponseDto, modelsToProductResponseDtos };

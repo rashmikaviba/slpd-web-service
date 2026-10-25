@@ -13,7 +13,6 @@ import {
 } from './dto/tripResponseDtos';
 import helperUtil from '../../util/helper.util';
 import { WellKnownTripStatus } from '../../util/enums/well-known-trip-status.enum';
-import { truncate } from 'fs/promises';
 
 const mapPassengerToPassengerDto = (passenger: any): PassengerDto => ({
     id: passenger.id,
@@ -147,7 +146,7 @@ const tripModelToTripResponseDtoGetAll = (trip: any): TripResponseDtoGetAll => {
         email: trip.email,
         phoneNumber: trip.phoneNumber || null,
         status: trip.status,
-        passengersCount: trip.passengers.length || 0,
+        passengersCount: trip.passengers?.length || 0,
         statusName: helperUtil.getNameFromEnum(
             WellKnownTripStatus,
             trip.status
@@ -166,24 +165,24 @@ const tripModelToTripResponseDtoGetAll = (trip: any): TripResponseDtoGetAll => {
         endedUser: trip.endedBy?.fullName || null,
         canUndo:
             trip?.status === WellKnownTripStatus.START &&
-                !trip?.places.find((x: any) => x.isReached === true)
+                !trip?.places?.find((x: any) => x.isReached === true)
                 ? true
                 : false,
         createdAt: trip.createdAt,
         updatedAt: trip.updatedAt,
         paidByCompanyCount: paidByCompanyCount || 0,
         activeVehicleId:
-            trip?.vehicles.find((x: any) => x.isActive)?.vehicle?._id || '',
+            trip?.vehicles?.find((x: any) => x.isActive)?.vehicle?._id || '',
         activeRegistrationNumber:
-            trip?.vehicles.find((x: any) => x.isActive)?.vehicle
+            trip?.vehicles?.find((x: any) => x.isActive)?.vehicle
                 ?.registrationNumber || '',
         activeDriverId: activeDriver ? activeDriver?.driver?._id : '',
         activeDriverName: activeDriver
             ? activeDriver?.driver?.fullName +
             ` (${activeDriver.driver?.userName})`
             : '',
-        drivers: trip.drivers.map((x: any) => mapDriverToDriverDto(x)),
-        vehicles: trip.vehicles.map((x: any) => mapVehicleToVehicleDto(x)),
+        drivers: (trip.drivers || []).map((x: any) => mapDriverToDriverDto(x)),
+        vehicles: (trip.vehicles || []).map((x: any) => mapVehicleToVehicleDto(x)),
     };
 };
 

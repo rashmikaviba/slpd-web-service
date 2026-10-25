@@ -8,10 +8,7 @@ import { StatusCodes } from "http-status-codes";
 import { WellKnownTripStatus } from "../../util/enums/well-known-trip-status.enum";
 import expensesService from "../expenses/expenses.service";
 import tripService from "../trip/trip.service";
-import vehicleService from "../vehicle/vehicle.service";
-import userService from "../user/user.service";
 import constants from "../../constant";
-import roleService from "../common/service/role.service";
 import monthlyExpensesService from "../monthlyExpenses/monthlyExpenses.service";
 import vehicleMaintenanceService from "../vehicleMaintain/vehicleMaintenance.service";
 import cacheUtil from "../../util/cache";
@@ -34,8 +31,6 @@ const getDashboardData = async (req: Request, res: Response) => {
     try {
         const startDate = req.query.startDate as string;
         const endDate = req.query.endDate as string;
-
-        const todayDateString = new Date().toISOString().split("T")[0];
 
         let trips = await tripService.findAllByStatusInAndOnlyFromEndDate(
             [WellKnownTripStatus.FINISHED],
@@ -61,89 +56,14 @@ const getDashboardData = async (req: Request, res: Response) => {
     }
 };
 
-const getAvailableDriversAndVehiclesCount = async (
-    startDate: string,
-    endDate: string
-): Promise<{ availableDriversCount: number; availableVehiclesCount: number }> => {
-
-    const role: any = await roleService.findByCustomId(constants.USER.ROLES.DRIVER.toString());
-
-    const [trips, vehicles, drivers] = await Promise.all([
-        tripService.findAllByStatusIn([WellKnownTripStatus.PENDING, WellKnownTripStatus.START], startDate, endDate),
-        vehicleService.findAllAndStatusIn([WellKnownStatus.ACTIVE]),
-        userService.findAllByRoleId(role._id)
-    ]);
-
-    const totalVehiclesCount = vehicles?.length ?? 0;
-    const totalDriversCount = drivers?.length ?? 0;
-
-    const assignedDriverIds = new Set<string>();
-    const assignedVehicleIds = new Set<string>();
-
-    for (const trip of trips) {
-        for (const driverObj of trip.drivers ?? []) {
-            if (driverObj.isActive && driverObj.driver?._id) {
-                assignedDriverIds.add(driverObj.driver._id.toString());
-            }
-        }
-
-        for (const vehicleObj of trip.vehicles ?? []) {
-            if (vehicleObj.isActive && vehicleObj.vehicle?._id) {
-                assignedVehicleIds.add(vehicleObj.vehicle._id.toString());
-            }
-        }
-    }
-
-    let availableDriversCount = Math.max(0, totalDriversCount - assignedDriverIds.size);
-    let availableVehiclesCount = Math.max(0, totalVehiclesCount - assignedVehicleIds.size);
-
-    return { availableDriversCount, availableVehiclesCount };
-};
-
 const getFinishedTripsCount = async (startDate: string, endDate: string, trips: any[]): Promise<number> => {
-    // let trips = await tripService.findAllByStatusIn(
-    //     [WellKnownTripStatus.FINISHED],
-    //     startDate,
-    //     endDate
-    // );
 
-    await Promise.all(
-        trips.map(async (trip: any) => {
-            trip.isDriverSalaryDone = false;
-            if (
-                trip.status === WellKnownTripStatus.FINISHED
-            ) {
-                const expense =
-                    await expensesService.findByTripIdAndStatusIn(
-                        trip._id.toString(),
-                        [WellKnownStatus.ACTIVE]
-                    );
-                if (expense && trip.drivers?.length > 0) {
-                    const paidDriverIds = new Set(
-                        (expense.driverSalaries || []).map((s: any) => s.driver?.toString())
-                    );
-
-                    const allDriversPaid = trip.drivers.every((d: any) => {
-                        return paidDriverIds.has(d?.driver?._id?.toString())
-                    });
-
-                    trip.isDriverSalaryDone = allDriversPaid;
-                } else {
-                    trip.isDriverSalaryDone = false;
-                }
-            }
-        })
-    );
-
+    // The old per-trip isDriverSalaryDone loop was removed: nothing reads that flag
+    // here, the count is just the number of finished trips.
     return trips.length;
 }
 
 const getIncomeForDateRange = async (startDate: string, endDate: string, trips: any[]): Promise<number> => {
-    // let trips = await tripService.findAllByStatusIn(
-    //     [WellKnownTripStatus.FINISHED],
-    //     startDate,
-    //     endDate
-    // );
 
     let totalIncome = 0;
     trips.forEach((trip: any) => {
@@ -164,13 +84,26 @@ const getExpensesForDateRange = async (startDate: string, endDate: string, trips
 
     let totalExpenses = 0;
 
-    if (tripIds.size != 0) {
-        // Get Expenses for the trip Ids and driver salaries
-        let tripExpenses: any = await expensesService.findByTripIdsInAndStatusIn(
-            Array.from(tripIds),
-            [WellKnownStatus.ACTIVE]
-        );
+    // monthly expenses range
+    let startFirstDate = new Date(startDate);
+    startFirstDate = new Date(startFirstDate.getFullYear(), startFirstDate.getMonth(), 1);
+    startFirstDate.setHours(0, 0, 0, 0);
 
+    let endLastDate = new Date(endDate);
+    endLastDate = new Date(endLastDate.getFullYear(), endLastDate.getMonth() + 1, 0);
+    endLastDate.setHours(23, 59, 59, 999);
+
+    // the three lookups are independent: run them together
+    const [tripExpenses, monthlyExpenses, vehicleMaintenances]: any[] = await Promise.all([
+        // Get Expenses for the trip Ids and driver salaries
+        tripIds.size != 0
+            ? expensesService.findByTripIdsInAndStatusIn(Array.from(tripIds), [WellKnownStatus.ACTIVE])
+            : undefined,
+        monthlyExpensesService.advanceSearch(startFirstDate, endLastDate),
+        vehicleMaintenanceService.findAllByMaintenanceDateAndStatusIn([WellKnownStatus.ACTIVE], startDate, endDate),
+    ]);
+
+    if (tripIds.size != 0) {
         tripExpenses.forEach((tripExpense: any) => {
             tripExpense?.expenses.forEach((expense: any) => {
                 if (expense.status === WellKnownStatus.ACTIVE) {
@@ -186,15 +119,6 @@ const getExpensesForDateRange = async (startDate: string, endDate: string, trips
     }
 
     // monthly expenses
-    let startFirstDate = new Date(startDate);
-    startFirstDate = new Date(startFirstDate.getFullYear(), startFirstDate.getMonth(), 1);
-    startFirstDate.setHours(0, 0, 0, 0);
-
-    let endLastDate = new Date(endDate);
-    endLastDate = new Date(endLastDate.getFullYear(), endLastDate.getMonth() + 1, 0);
-    endLastDate.setHours(23, 59, 59, 999);
-
-    let monthlyExpenses: any = await monthlyExpensesService.advanceSearch(startFirstDate, endLastDate);
     let monthlyExpensesTotal = 0;
 
     monthlyExpenses?.forEach((monthlyExpense: any) => {
@@ -206,7 +130,6 @@ const getExpensesForDateRange = async (startDate: string, endDate: string, trips
     });
 
     // vehicle maintenance expenses 
-    let vehicleMaintenances: any = await vehicleMaintenanceService.findAllByMaintenanceDateAndStatusIn([WellKnownStatus.ACTIVE], startDate, endDate);
     let vehicleMaintenanceExpensesTotal = 0;
 
     for (let vehicleMaintenance of vehicleMaintenances) {
@@ -252,7 +175,12 @@ const getMonthlyIncomeExpense = async (req: Request, res: Response) => {
             { monthIndex: 12, month: 'December', income: 0, expenses: 0 },
         ];
 
-        for (let i = 1; i <= 12; i++) {
+        // read lazily and once: only needed when a month is not cached yet
+        let workingInfoPromise: Promise<any> | undefined;
+        const getWorkingInfo = () =>
+            (workingInfoPromise ??= companyWorkingInfoService.getCompanyWorkingInfo());
+
+        const loadMonth = async (i: number) => {
             let startDate = new Date(Date.UTC(currentYear, i - 1, 1))
                 .toISOString()
                 .split("T")[0];
@@ -260,43 +188,45 @@ const getMonthlyIncomeExpense = async (req: Request, res: Response) => {
                 .toISOString()
                 .split("T")[0];
 
-            if (i <= currentMonth) {
+            const cacheKey = `monthlyIncomeExpense_${currentYear}_${i}`;
+            const cached: any = cacheUtil.getCache(cacheKey);
 
-                const cacheKey = `monthlyIncomeExpense_${currentYear}_${i}`;
-                const cached: any = await cacheUtil.getCache(cacheKey);
+            if (cached) {
+                let monthData = monthlyData.find(m => m.monthIndex === i);
+                if (monthData) {
+                    monthData.income = cached.income;
+                    monthData.expenses = cached.expenses;
+                }
 
-                if (cached) {
-                    let monthData = monthlyData.find(m => m.monthIndex === i);
-                    if (monthData) {
-                        monthData.income = cached.income;
-                        monthData.expenses = cached.expenses;
-                    }
+            } else {
+                let trips = await tripService.findAllByStatusInAndOnlyFromEndDate(
+                    [WellKnownTripStatus.FINISHED],
+                    startDate,
+                    endDate
+                );
 
-                } else {
-                    let trips = await tripService.findAllByStatusInAndOnlyFromEndDate(
-                        [WellKnownTripStatus.FINISHED],
-                        startDate,
-                        endDate
-                    );
+                let totalIncome = await getIncomeForDateRange(startDate, endDate, trips);
+                let totalExpenses = await getExpensesForDateRange(startDate, endDate, trips);
 
-                    let totalIncome = await getIncomeForDateRange(startDate, endDate, trips);
-                    let totalExpenses = await getExpensesForDateRange(startDate, endDate, trips);
+                let monthData = monthlyData.find(m => m.monthIndex === i);
+                if (monthData) {
+                    monthData.income = totalIncome ?? 0;
+                    monthData.expenses = totalExpenses ?? 0;
 
-                    let monthData = monthlyData.find(m => m.monthIndex === i);
-                    if (monthData) {
-                        monthData.income = totalIncome ?? 0;
-                        monthData.expenses = totalExpenses ?? 0;
-
-                        const workingInfo = await companyWorkingInfoService.getCompanyWorkingInfo();
-                        if (workingInfo && new Date(startDate) < new Date(workingInfo.workingDate)) {
-                            cacheUtil.setCache(cacheKey, { income: totalIncome ?? 0, expenses: totalExpenses ?? 0 }, constants.CACHE.DURATION.ONE_YEAR);
-                        }
+                    const workingInfo = await getWorkingInfo();
+                    if (workingInfo && new Date(startDate) < new Date(workingInfo.workingDate)) {
+                        cacheUtil.setCache(cacheKey, { income: totalIncome ?? 0, expenses: totalExpenses ?? 0 }, constants.CACHE.DURATION.ONE_YEAR);
                     }
                 }
-            } else {
-                break;
             }
+        };
+
+        // months are independent (each writes only its own row)
+        const months: Promise<void>[] = [];
+        for (let i = 1; i <= Math.min(12, currentMonth); i++) {
+            months.push(loadMonth(i));
         }
+        await Promise.all(months);
 
         CommonResponse(res, true, StatusCodes.OK, "", monthlyData);
 

@@ -50,4 +50,9 @@ const authSchema = new mongoose.Schema(
     }
 );
 
+// Indexes for the filters used by the services (non-unique, no behaviour change)
+authSchema.index({ userName: 1, status: 1 });
+authSchema.index({ user: 1, status: 1 });
+authSchema.index({ role: 1, status: 1, isBlocked: 1 });
+
 export default mongoose.model('Auth', authSchema);

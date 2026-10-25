@@ -93,4 +93,8 @@ const leaveSchema = new mongoose.Schema(
     }
 );
 
+// Indexes for the filters used by the services (non-unique, no behaviour change)
+leaveSchema.index({ appliedUser: 1, status: 1, startDate: 1, endDate: 1 });
+leaveSchema.index({ status: 1, startDate: 1 });
+
 export default mongoose.model('Leave', leaveSchema);

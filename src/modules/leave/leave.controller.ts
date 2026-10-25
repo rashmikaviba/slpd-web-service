@@ -267,12 +267,6 @@ const updateAdminLeave = async (
         );
     }
 
-    // if (leaveCountForYear >= appliedAdmin.leaveCount) {
-    //     throw new BadRequestError(
-    //         `You have exceeded the leave limit for ${fromYear} year!`
-    //     );
-    // }
-
     leave.startDate = startDate;
     leave.endDate = endDate;
     leave.dateCount = dateCount;
@@ -349,16 +343,14 @@ const getAllLeaves = async (req: Request, res: Response) => {
                 );
 
             if (superAdminLeaves.length > 0) {
+                // leave totals for all matching users come from one query
+                const leavesWithUser: any[] = [];
                 for (const leave of superAdminLeaves) {
                     if (
                         leave.status == WellKnownLeaveStatus.PENDING ||
                         leave.status == WellKnownLeaveStatus.APPROVED ||
                         leave.status == WellKnownLeaveStatus.REJECTED
                     ) {
-                        // const appliedUser: any =
-                        //     await userService.findByIdWithGenderRole(
-                        //         leave.appliedUser._id
-                        //     );
                         const appliedUser = leave.appliedUser;
                         if (
                             appliedUser?.role?.id ==
@@ -368,16 +360,21 @@ const getAllLeaves = async (req: Request, res: Response) => {
                             appliedUser?.role?.id ==
                             constants.USER.ROLES.TRIPMANAGER
                         ) {
-                            const availableLeaveCount =
-                                await leaveService.getTotalLeaveDaysFromYear(
-                                    appliedUser._id,
-                                    year
-                                );
-
-                            leave.availableLeaveCount =
-                                appliedUser.leaveCount - availableLeaveCount;
+                            leavesWithUser.push(leave);
                         }
                     }
+                }
+
+                const leaveTotals =
+                    await leaveService.getTotalLeaveDaysForUsers(
+                        leavesWithUser.map((leave) => leave.appliedUser._id),
+                        year
+                    );
+
+                for (const leave of leavesWithUser) {
+                    leave.availableLeaveCount =
+                        leave.appliedUser.leaveCount -
+                        (leaveTotals.get(leave.appliedUser._id.toString()) as number);
                 }
             }
 
@@ -587,12 +584,6 @@ const getLeaveCount = async (req: Request, res: Response) => {
     const auth: any = req.auth;
     const year: number = req.query.year ? Number(req.query.year) : new Date().getFullYear();
 
-    // const activeCompanyInfo: any =
-    //     await companyWorkingInfoService.getCompanyWorkingInfo();
-
-    // if (!activeCompanyInfo) {
-    //     throw new BadRequestError('Company not found!');
-    // }
     let response: LeaveCountResponseDto;
     let approveLeaveCount: number = 0;
     let rejectLeaveCount: number = 0;
@@ -615,90 +606,38 @@ const getLeaveCount = async (req: Request, res: Response) => {
         type = 2;
     }
 
-    // else if (auth.role === constants.USER.ROLES.SUPERADMIN) {
-    //     type = 3;
-    // }
-
     switch (type) {
-        case 2:
-            approveLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
-                auth.id,
-                year,
-                [WellKnownLeaveStatus.APPROVED]
-            );
+        case 2: {
+            // independent lookups: run them together
+            const [approved, rejected, pending, admin, leaveCountForYear]: any[] =
+                await Promise.all([
+                    leaveService.countByYearUserIdAndStatusIn(auth.id, year, [WellKnownLeaveStatus.APPROVED]),
+                    leaveService.countByYearUserIdAndStatusIn(auth.id, year, [WellKnownLeaveStatus.REJECTED]),
+                    leaveService.countByYearUserIdAndStatusIn(auth.id, year, [WellKnownLeaveStatus.PENDING]),
+                    userService.findById(auth.id),
+                    leaveService.getTotalLeaveDaysFromYear(auth.id, year),
+                ]);
 
-            rejectLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
-                auth.id,
-                year,
-                [WellKnownLeaveStatus.REJECTED]
-            );
-
-            pendingLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
-                auth.id,
-                year,
-                [WellKnownLeaveStatus.PENDING]
-            );
-
-            const admin: any = await userService.findById(auth.id);
-
-            const leaveCountForYear =
-                await leaveService.getTotalLeaveDaysFromYear(
-                    auth.id,
-                    year
-                );
+            approveLeaveCount = approved;
+            rejectLeaveCount = rejected;
+            pendingLeaveCount = pending;
 
             remainingLeaveCount = admin.leaveCount - leaveCountForYear;
 
             yearlyEligibleLeaveCount = admin.leaveCount;
 
             break;
+        }
 
-        case 1:
-            approveLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
-                auth.id,
-                year,
-                [WellKnownLeaveStatus.APPROVED]
-            );
-
-            rejectLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
-                auth.id,
-                year,
-                [WellKnownLeaveStatus.REJECTED]
-            );
-
-            pendingLeaveCount = await leaveService.countByYearUserIdAndStatusIn(
-                auth.id,
-                year,
-                [WellKnownLeaveStatus.PENDING]
-            );
+        case 1: {
+            [approveLeaveCount, rejectLeaveCount, pendingLeaveCount] = await Promise.all([
+                leaveService.countByYearUserIdAndStatusIn(auth.id, year, [WellKnownLeaveStatus.APPROVED]),
+                leaveService.countByYearUserIdAndStatusIn(auth.id, year, [WellKnownLeaveStatus.REJECTED]),
+                leaveService.countByYearUserIdAndStatusIn(auth.id, year, [WellKnownLeaveStatus.PENDING]),
+            ]);
 
             break;
-
-        // case 3:
-        //     approveLeaveCount =
-        //         await leaveService.countByMonthYearUserIdAndStatusIn(
-        //             '',
-        //             activeCompanyInfo.workingYear,
-        //             activeCompanyInfo.workingMonth,
-        //             [WellKnownLeaveStatus.APPROVED]
-        //         );
-
-        //     rejectLeaveCount =
-        //         await leaveService.countByMonthYearUserIdAndStatusIn(
-        //             '',
-        //             activeCompanyInfo.workingYear,
-        //             activeCompanyInfo.workingMonth,
-        //             [WellKnownLeaveStatus.REJECTED]
-        //         );
-
-        //     pendingLeaveCount =
-        //         await leaveService.countByMonthYearUserIdAndStatusIn(
-        //             '',
-        //             activeCompanyInfo.workingYear,
-        //             activeCompanyInfo.workingMonth,
-        //             [WellKnownLeaveStatus.PENDING]
-        //         );
-        //     break;
+        }
 
         default:
             break;

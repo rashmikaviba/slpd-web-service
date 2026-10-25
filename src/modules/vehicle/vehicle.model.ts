@@ -109,4 +109,9 @@ const vehicleSchema = new mongoose.Schema(
     }
 );
 
+// Indexes for the filters used by the services (non-unique, no behaviour change)
+vehicleSchema.index({ registrationNumber: 1, status: 1 });
+vehicleSchema.index({ gpsTracker: 1, status: 1 });
+vehicleSchema.index({ status: 1, availableSeats: 1 });
+
 export default mongoose.model('Vehicle', vehicleSchema);

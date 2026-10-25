@@ -30,7 +30,7 @@ const findByIdAndStatusIn = async (id: string, status: number[]) => {
 const advanceSearch = async (startDate: string, endDate: string, status: number) => {
 
     const cacheKey = constants.CACHE.PREFIX.GRN + startDate + endDate + status;
-    const cached = await cacheUtil.getCache(cacheKey);
+    const cached = cacheUtil.getCache(cacheKey);
     if (cached) return cached;
 
     let statusArray = [];
@@ -68,7 +68,8 @@ const advanceSearch = async (startDate: string, endDate: string, status: number)
         .populate({
             path: 'rejectedBy',
             select: 'userName'
-        });
+        })
+        .lean();
 
     if (data) {
         cacheUtil.setCache(cacheKey, data, constants.CACHE.DURATION.ONE_WEEK);

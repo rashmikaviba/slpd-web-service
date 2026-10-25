@@ -14,7 +14,7 @@ const save = async (expenseExtension: any, session: any) => {
 
 const findByTripIdAndStatusIn = async (tripId: string, status: number[]) => {
     const cacheKey = constants.CACHE.PREFIX.EXPENSES_REQUEST + tripId + JSON.stringify(status);
-    const cached = await cache.getCache(cacheKey) as any[];
+    const cached = cache.getCache(cacheKey) as any[];
     if (cached) return cached;
 
     let data: any = await ExpenseRequest.find({

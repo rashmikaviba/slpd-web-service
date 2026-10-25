@@ -6,7 +6,7 @@ import constants from '../../../constant';
 // get All genders by status in
 const findAllGendersByStatusIn = async (status: number[]) => {
     const cacheKey = constants.CACHE.PREFIX.GENDER + JSON.stringify(status);
-    const cached = await cacheUtil.getCache(cacheKey);
+    const cached = cacheUtil.getCache(cacheKey);
     if (cached) return cached;
 
     const data: any = await Gender.find({ status: { $in: status } });
@@ -20,7 +20,7 @@ const findAllGendersByStatusIn = async (status: number[]) => {
 
 const findGenderByCustomId = async (id: number) => {
     const cacheKey = constants.CACHE.PREFIX.GENDER + id;
-    const cached = await cacheUtil.getCache(cacheKey);
+    const cached = cacheUtil.getCache(cacheKey);
 
     if (cached) {
         return cached;

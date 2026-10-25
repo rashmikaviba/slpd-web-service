@@ -3,46 +3,27 @@ import constants from '../../constant';
 import CommonResponse from '../../util/commonResponse';
 import { StatusCodes } from 'http-status-codes';
 import notificationService from './notification.service';
-import ExpensesExtensionResponseDto from './dto/expensesExtensionResponseDto';
 import notificationUtil from './notification.util';
 
 const getAllNotifications = async (req: Request, res: Response) => {
     const auth = req.auth;
     let response: any = [];
 
-    if (auth.role === constants.USER.ROLES.SUPERADMIN) {
-        response = [
-            ...response,
-            ...(await getPendingExpenseExtensionRequests()),
-            ...(await getVehicleRenewalRequests()),
-            ...(await getPendingAndDriverVehicleNotAssignedTrips()),
-            ...(await getPendingLeaves()),
-        ];
-    } else if (auth.role === constants.USER.ROLES.ADMIN) {
-        response = [
-            ...response,
-            ...(await getPendingExpenseExtensionRequests()),
-            ...(await getVehicleRenewalRequests()),
-            ...(await getPendingAndDriverVehicleNotAssignedTrips()),
-            ...(await getPendingLeaves()),
-        ];
-    } else if (auth.role === constants.USER.ROLES.DRIVER) {
-    } else if (auth.role === constants.USER.ROLES.FINANCEOFFICER) {
-        response = [
-            ...response,
-            ...(await getPendingExpenseExtensionRequests()),
-            ...(await getVehicleRenewalRequests()),
-            ...(await getPendingAndDriverVehicleNotAssignedTrips()),
-            ...(await getPendingLeaves()),
-        ];
-    } else if (auth.role === constants.USER.ROLES.TRIPMANAGER) {
-        response = [
-            ...response,
-            ...(await getPendingExpenseExtensionRequests()),
-            ...(await getVehicleRenewalRequests()),
-            ...(await getPendingAndDriverVehicleNotAssignedTrips()),
-            ...(await getPendingLeaves()),
-        ];
+    if (
+        auth.role === constants.USER.ROLES.SUPERADMIN ||
+        auth.role === constants.USER.ROLES.ADMIN ||
+        auth.role === constants.USER.ROLES.FINANCEOFFICER ||
+        auth.role === constants.USER.ROLES.TRIPMANAGER
+    ) {
+        // the four lookups are independent: run them together, keep the same order
+        const [expenseRequests, vehicleRenewals, trips, leaves] = await Promise.all([
+            getPendingExpenseExtensionRequests(),
+            getVehicleRenewalRequests(),
+            getPendingAndDriverVehicleNotAssignedTrips(),
+            getPendingLeaves(),
+        ]);
+
+        response = [...response, ...expenseRequests, ...vehicleRenewals, ...trips, ...leaves];
     }
 
     response.sort((a: any, b: any) => {

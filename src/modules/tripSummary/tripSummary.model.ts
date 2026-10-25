@@ -78,4 +78,7 @@ const tripSummarySchema = new mongoose.Schema(
     }
 );
 
+// Indexes for the filters used by the services (non-unique, no behaviour change)
+tripSummarySchema.index({ tripId: 1, status: 1 });
+
 export default mongoose.model('TripSummary', tripSummarySchema);

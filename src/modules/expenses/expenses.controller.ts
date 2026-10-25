@@ -109,59 +109,55 @@ const updateExpense = async (req: Request, res: Response) => {
         throw new BadRequestError(error.message);
     }
 
-    try {
-        // check trip expanses available
-        const trip: any = await tripService.findByIdAndStatusIn(tripId, [
-            WellKnownTripStatus.START,
-        ]);
+    // check trip expanses available
+    const trip: any = await tripService.findByIdAndStatusIn(tripId, [
+        WellKnownTripStatus.START,
+    ]);
 
-        if (!trip) {
-            throw new BadRequestError(
-                'No trip found or trip not in started status!'
-            );
-        }
-
-        let expense: any = await expensesService.findByTripIdAndStatusIn(
-            tripId,
-            [WellKnownStatus.ACTIVE]
+    if (!trip) {
+        throw new BadRequestError(
+            'No trip found or trip not in started status!'
         );
-
-        if (!expense) {
-            throw new BadRequestError('No expense header found for this trip!');
-        } else if (expense?.isMonthEndDone) {
-            throw new BadRequestError('Cannot update expense after month end!');
-        }
-
-        // find expense by id and update
-        let updatedExpense: any = expense.expenses.find(
-            (exp: any) => exp.id === expenseId
-        );
-
-        if (!updatedExpense) {
-            throw new BadRequestError('Expense not found!');
-        }
-
-        updatedExpense.typeId = body.typeId;
-        updatedExpense.typeName = body.typeName;
-        updatedExpense.amount = body.amount;
-        updatedExpense.description = body.description;
-        updatedExpense.date = body.date;
-        updatedExpense.receiptUrl = body.receiptUrl;
-        updatedExpense.updatedBy = auth.id;
-        updatedExpense.updatedAt = new Date();
-
-        await expensesService.save(expense, null);
-
-        CommonResponse(
-            res,
-            true,
-            StatusCodes.OK,
-            'Expense updated successfully!',
-            null
-        );
-    } catch (error) {
-        throw error;
     }
+
+    let expense: any = await expensesService.findByTripIdAndStatusIn(
+        tripId,
+        [WellKnownStatus.ACTIVE]
+    );
+
+    if (!expense) {
+        throw new BadRequestError('No expense header found for this trip!');
+    } else if (expense?.isMonthEndDone) {
+        throw new BadRequestError('Cannot update expense after month end!');
+    }
+
+    // find expense by id and update
+    let updatedExpense: any = expense.expenses.find(
+        (exp: any) => exp.id === expenseId
+    );
+
+    if (!updatedExpense) {
+        throw new BadRequestError('Expense not found!');
+    }
+
+    updatedExpense.typeId = body.typeId;
+    updatedExpense.typeName = body.typeName;
+    updatedExpense.amount = body.amount;
+    updatedExpense.description = body.description;
+    updatedExpense.date = body.date;
+    updatedExpense.receiptUrl = body.receiptUrl;
+    updatedExpense.updatedBy = auth.id;
+    updatedExpense.updatedAt = new Date();
+
+    await expensesService.save(expense, null);
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        'Expense updated successfully!',
+        null
+    );
 };
 
 const deleteExpense = async (req: Request, res: Response) => {
@@ -169,131 +165,94 @@ const deleteExpense = async (req: Request, res: Response) => {
     const expenseId: any = req.params.expenseId;
     const auth: any = req.auth;
 
-    try {
-        // check trip expanses available
-        const trip: any = await tripService.findByIdAndStatusIn(tripId, [
-            WellKnownTripStatus.START,
-        ]);
+    // check trip expanses available
+    const trip: any = await tripService.findByIdAndStatusIn(tripId, [
+        WellKnownTripStatus.START,
+    ]);
 
-        if (!trip) {
-            throw new BadRequestError(
-                'No trip found or trip not in started status!'
-            );
-        }
-
-        let expense: any = await expensesService.findByTripIdAndStatusIn(
-            tripId,
-            [WellKnownStatus.ACTIVE]
+    if (!trip) {
+        throw new BadRequestError(
+            'No trip found or trip not in started status!'
         );
-
-        if (!expense) {
-            throw new BadRequestError('No expense header found for this trip!');
-        } else if (expense?.isMonthEndDone) {
-            throw new BadRequestError('Cannot delete expense after month end!');
-        }
-
-        // find expense by id and update
-        let updatedExpense: any = expense.expenses.find(
-            (exp: any) => exp.id === expenseId
-        );
-
-        if (!updatedExpense) {
-            throw new BadRequestError('Expense not found!');
-        }
-
-        updatedExpense.status = WellKnownStatus.DELETED;
-        updatedExpense.updatedBy = auth.id;
-        updatedExpense.updatedAt = new Date();
-
-        await expensesService.save(expense, null);
-
-        CommonResponse(
-            res,
-            true,
-            StatusCodes.OK,
-            'Expense deleted successfully!',
-            null
-        );
-    } catch (error) {
-        throw error;
     }
+
+    let expense: any = await expensesService.findByTripIdAndStatusIn(
+        tripId,
+        [WellKnownStatus.ACTIVE]
+    );
+
+    if (!expense) {
+        throw new BadRequestError('No expense header found for this trip!');
+    } else if (expense?.isMonthEndDone) {
+        throw new BadRequestError('Cannot delete expense after month end!');
+    }
+
+    // find expense by id and update
+    let updatedExpense: any = expense.expenses.find(
+        (exp: any) => exp.id === expenseId
+    );
+
+    if (!updatedExpense) {
+        throw new BadRequestError('Expense not found!');
+    }
+
+    updatedExpense.status = WellKnownStatus.DELETED;
+    updatedExpense.updatedBy = auth.id;
+    updatedExpense.updatedAt = new Date();
+
+    await expensesService.save(expense, null);
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        'Expense deleted successfully!',
+        null
+    );
 };
 
 const getExpenseByTripId = async (req: Request, res: Response) => {
     const tripId: any = req.params.tripId;
 
-    try {
-        let expense: any = await expensesService.findByTripIdAndStatusIn(
-            tripId,
-            [WellKnownStatus.ACTIVE]
-        );
+    let expense: any = await expensesService.findByTripIdAndStatusIn(
+        tripId,
+        [WellKnownStatus.ACTIVE]
+    );
 
-        let response: TripExpensesResponseDto | null = null;
+    let response: TripExpensesResponseDto | null = null;
 
-        if (expense) {
-            // get only active expenses
-            let activeExpenses = expense.expenses.filter(
-                (exp: any) => exp.status === WellKnownStatus.ACTIVE
-            );
-
-            let totalExpensesAmount = activeExpenses.reduce(
-                (total: number, exp: any) => total + exp.amount,
-                0
-            );
-
-            expense.expenses = activeExpenses;
-            expense.tripExpensesAmount = expense?.tripId?.estimatedExpense;
-            expense.totalTripExpensesAmount = totalExpensesAmount;
-            expense.remainingTripExpensesAmount =
-                expense?.tripExpensesAmount - totalExpensesAmount;
-
-            response =
-                expensesUtils.ExpensesModelToTripExpensesResponseDto(expense);
-        }
-
-        CommonResponse(res, true, StatusCodes.OK, '', response);
-
-        // _id: string;
-        // tripId: string;
-        // expenses: any[];
-        // driverSalary: any;
-        // isMonthEndDone: boolean;
-        // tripExpensesAmount: number;
-        // totalTripExpensesAmount: number;
-        // remainingTripExpensesAmount: number;
-    } catch (error) {
-        throw error;
+    if (expense) {
+        response = expensesUtils.expenseWithTotalsToResponseDto(expense);
     }
+
+    CommonResponse(res, true, StatusCodes.OK, '', response);
+
 };
 
 const getExpenseByTripIdAndExpenseId = async (req: Request, res: Response) => {
     const tripId: any = req.params.tripId;
     const expenseId: any = req.params.expenseId;
 
-    try {
-        let expense: any = await expensesService.findByTripIdAndStatusIn(
-            tripId,
-            [WellKnownStatus.ACTIVE]
+    let expense: any = await expensesService.findByTripIdAndStatusIn(
+        tripId,
+        [WellKnownStatus.ACTIVE]
+    );
+
+    let response: any = null;
+
+    if (expense) {
+        let expenseData: any = expense.expenses.find(
+            (exp: any) =>
+                exp.id === expenseId &&
+                exp.status === WellKnownStatus.ACTIVE
         );
 
-        let response: any = null;
-
-        if (expense) {
-            let expenseData: any = expense.expenses.find(
-                (exp: any) =>
-                    exp.id === expenseId &&
-                    exp.status === WellKnownStatus.ACTIVE
-            );
-
-            if (expenseData) {
-                response = expenseData;
-            }
+        if (expenseData) {
+            response = expenseData;
         }
-
-        CommonResponse(res, true, StatusCodes.OK, '', response);
-    } catch (error) {
-        throw error;
     }
+
+    CommonResponse(res, true, StatusCodes.OK, '', response);
 };
 
 const saveDriverSalary = async (req: Request, res: Response) => {
@@ -306,108 +265,104 @@ const saveDriverSalary = async (req: Request, res: Response) => {
         throw new BadRequestError(error.message);
     }
 
-    try {
-        let trip = await tripService.findByIdAndStatusIn(tripId, [
-            WellKnownTripStatus.FINISHED,
-        ]);
+    let trip = await tripService.findByIdAndStatusIn(tripId, [
+        WellKnownTripStatus.FINISHED,
+    ]);
 
-        if (!trip) {
-            throw new BadRequestError('Trip not found!');
-        }
+    if (!trip) {
+        throw new BadRequestError('Trip not found!');
+    }
 
-        let expense: any = await expensesService.findByTripIdAndStatusIn(
-            tripId,
-            [WellKnownStatus.ACTIVE]
-        );
+    let expense: any = await expensesService.findByTripIdAndStatusIn(
+        tripId,
+        [WellKnownStatus.ACTIVE]
+    );
 
-        if (!expense) {
-            throw new BadRequestError('No expense header found for this trip!');
-        }
+    if (!expense) {
+        throw new BadRequestError('No expense header found for this trip!');
+    }
 
-        // check driver available in trip
-        let driver = trip.drivers.find(
-            (driver: any) => driver.driver.toString() === body.driver
-        );
+    // check driver available in trip
+    let driver = trip.drivers.find(
+        (driver: any) => driver.driver.toString() === body.driver
+    );
 
-        if (!driver) {
-            throw new BadRequestError('Driver not found in trip!');
-        }
+    if (!driver) {
+        throw new BadRequestError('Driver not found in trip!');
+    }
 
-        let expenseDriverSalary: any =
-            expense
-                .toObject()
-                ?.driverSalaries.find(
-                    (driverSalary: any) =>
-                        driverSalary.driver.toString() === body.driver
-                ) || null;
-        if (!expenseDriverSalary) {
-            let driverSalary: any = {};
-            driverSalary.driver = body.driver;
-            driverSalary.salaryPerDay = body.salaryPerDay;
-            driverSalary.noOfDays = body.noOfDays;
-            driverSalary.totalSalary = calculateDriverSalary(
-                expense?.tripId,
-                expense.expenses,
-                body.salaryPerDay,
-                body.noOfDays,
-                body.totalAddition,
-                body.totalDeduction,
-                body.isRemainingToDriver
-            );
-            driverSalary.totalAddition = body.totalAddition;
-            driverSalary.totalDeduction = body.totalDeduction;
-            driverSalary.remainingExpenses = calcRemainingExpenses(
-                expense?.tripId,
-                expense.expenses
-            );
-            driverSalary.isRemainingToDriver = body.isRemainingToDriver;
-            driverSalary.createdBy = auth.id;
-            driverSalary.updatedBy = auth.id;
-            driverSalary.createdAt = new Date();
-            driverSalary.updatedAt = new Date();
-
-            expense.driverSalaries.push(driverSalary);
-        } else {
-            let index = expense.driverSalaries.findIndex(
+    let expenseDriverSalary: any =
+        expense
+            .toObject()
+            ?.driverSalaries.find(
                 (driverSalary: any) =>
                     driverSalary.driver.toString() === body.driver
-            );
-            expenseDriverSalary.salaryPerDay = body.salaryPerDay;
-            expenseDriverSalary.noOfDays = body.noOfDays;
-            expenseDriverSalary.totalSalary = calculateDriverSalary(
-                expense?.tripId,
-                expense.expenses,
-                body.salaryPerDay,
-                body.noOfDays,
-                body.totalAddition,
-                body.totalDeduction,
-                body.isRemainingToDriver
-            );
-            expenseDriverSalary.totalAddition = body.totalAddition;
-            expenseDriverSalary.totalDeduction = body.totalDeduction;
-            expenseDriverSalary.remainingExpenses = calcRemainingExpenses(
-                expense?.tripId,
-                expense.expenses
-            );
-            expenseDriverSalary.isRemainingToDriver = body.isRemainingToDriver;
-            expenseDriverSalary.updatedBy = auth.id;
-            expenseDriverSalary.updatedAt = new Date();
-
-            expense.driverSalaries[index] = expenseDriverSalary;
-        }
-
-        await expensesService.save(expense, null);
-
-        CommonResponse(
-            res,
-            true,
-            StatusCodes.OK,
-            'Driver salary saved successfully!',
-            null
+            ) || null;
+    if (!expenseDriverSalary) {
+        let driverSalary: any = {};
+        driverSalary.driver = body.driver;
+        driverSalary.salaryPerDay = body.salaryPerDay;
+        driverSalary.noOfDays = body.noOfDays;
+        driverSalary.totalSalary = calculateDriverSalary(
+            expense?.tripId,
+            expense.expenses,
+            body.salaryPerDay,
+            body.noOfDays,
+            body.totalAddition,
+            body.totalDeduction,
+            body.isRemainingToDriver
         );
-    } catch (error) {
-        throw error;
+        driverSalary.totalAddition = body.totalAddition;
+        driverSalary.totalDeduction = body.totalDeduction;
+        driverSalary.remainingExpenses = calcRemainingExpenses(
+            expense?.tripId,
+            expense.expenses
+        );
+        driverSalary.isRemainingToDriver = body.isRemainingToDriver;
+        driverSalary.createdBy = auth.id;
+        driverSalary.updatedBy = auth.id;
+        driverSalary.createdAt = new Date();
+        driverSalary.updatedAt = new Date();
+
+        expense.driverSalaries.push(driverSalary);
+    } else {
+        let index = expense.driverSalaries.findIndex(
+            (driverSalary: any) =>
+                driverSalary.driver.toString() === body.driver
+        );
+        expenseDriverSalary.salaryPerDay = body.salaryPerDay;
+        expenseDriverSalary.noOfDays = body.noOfDays;
+        expenseDriverSalary.totalSalary = calculateDriverSalary(
+            expense?.tripId,
+            expense.expenses,
+            body.salaryPerDay,
+            body.noOfDays,
+            body.totalAddition,
+            body.totalDeduction,
+            body.isRemainingToDriver
+        );
+        expenseDriverSalary.totalAddition = body.totalAddition;
+        expenseDriverSalary.totalDeduction = body.totalDeduction;
+        expenseDriverSalary.remainingExpenses = calcRemainingExpenses(
+            expense?.tripId,
+            expense.expenses
+        );
+        expenseDriverSalary.isRemainingToDriver = body.isRemainingToDriver;
+        expenseDriverSalary.updatedBy = auth.id;
+        expenseDriverSalary.updatedAt = new Date();
+
+        expense.driverSalaries[index] = expenseDriverSalary;
     }
+
+    await expensesService.save(expense, null);
+
+    CommonResponse(
+        res,
+        true,
+        StatusCodes.OK,
+        'Driver salary saved successfully!',
+        null
+    );
 };
 
 const calculateDriverSalary = (
@@ -420,14 +375,7 @@ const calculateDriverSalary = (
     isRemainingToDriver: boolean
 ): number => {
     let totalSalary: number = 0;
-    let activeExpenses = expenses.filter(
-        (exp: any) => exp.status === WellKnownStatus.ACTIVE
-    );
-
-    let totalExpensesAmount = activeExpenses.reduce(
-        (total: number, exp: any) => total + exp.amount,
-        0
-    );
+    let totalExpensesAmount = expensesUtils.sumActiveExpenses(expenses);
 
     let remainingExpenseAmount =
         trip?.estimatedExpense - totalExpensesAmount || 0;
@@ -456,14 +404,7 @@ const calculateDriverSalary = (
 };
 
 const calcRemainingExpenses = (trip: any, expenses: any) => {
-    let activeExpenses = expenses.filter(
-        (exp: any) => exp.status === WellKnownStatus.ACTIVE
-    );
-
-    let totalExpensesAmount = activeExpenses.reduce(
-        (total: number, exp: any) => total + exp.amount,
-        0
-    );
+    let totalExpensesAmount = expensesUtils.sumActiveExpenses(expenses);
 
     let remainingExpenseAmount =
         trip?.estimatedExpense - totalExpensesAmount || 0;

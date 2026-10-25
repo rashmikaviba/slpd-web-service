@@ -74,4 +74,8 @@ const vehicleMaintenanceSchema = new mongoose.Schema(
     }
 );
 
+// Indexes for the filters used by the services (non-unique, no behaviour change)
+vehicleMaintenanceSchema.index({ maintenanceDate: 1, status: 1 });
+vehicleMaintenanceSchema.index({ vehicle: 1, maintenanceDate: 1 });
+
 export default mongoose.model('VehicleMaintenance', vehicleMaintenanceSchema);

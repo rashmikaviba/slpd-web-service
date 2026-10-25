@@ -6,7 +6,6 @@ import { startSession } from "mongoose";
 import { WellKnownStatus } from "../../../util/enums/well-known-status.enum";
 import { WellKnownGrnStatus } from "../../../util/enums/well-known-grn-status.enum";
 import constants from "../../../constant";
-import { measureUnit } from "../../../util/data/measureUnitData";
 
 import productService from "../product/product.service";
 import grnService from "./grn.service";
@@ -18,6 +17,8 @@ import BadRequestError from "../../../error/BadRequestError";
 import NotFoundError from "../../../error/NotFoundError";
 import CommonResponse from "../../../util/commonResponse";
 import GrnSearchResponseDto from '../dto/grnSearchResponseDto';
+import helperUtil from "../../../util/helper.util";
+import inventoryUtil from "../../../util/inventory.util";
 
 
 const saveGrn = async (req: Request, res: Response) => {
@@ -35,16 +36,17 @@ const saveGrn = async (req: Request, res: Response) => {
 
     let toBeSavedProducts: any[] = []
     if (products.length > 0) {
+        const productsById = await productService.findAllByIdsAndStatusIn(products.map((product: any) => product.productId), [WellKnownStatus.ACTIVE]);
 
         for (let product of products) {
-            let selectedProduct = await productService.findByIdAndStatusIn(product.productId, [WellKnownStatus.ACTIVE]);
+            let selectedProduct = productsById.get(String(product.productId));
 
             if (selectedProduct) {
                 let obj: any = {
                     productId: selectedProduct._id,
                     enteredMeasureUnitId: product.enteredMeasureUnitId,
                     actualMeasureUnitId: selectedProduct.measureUnit,
-                    siConvertedQuantity: fromMeasureUnitToSiMeasureUnit(product.enteredMeasureUnitId, product.quantity),
+                    siConvertedQuantity: helperUtil.fromMeasureUnitToSiMeasureUnit(product.enteredMeasureUnitId, product.quantity),
                     quantity: product.quantity,
                     remarks: product.remarks,
                 }
@@ -115,16 +117,17 @@ const updatedGrn = async (req: Request, res: Response) => {
 
     let toBeSavedProducts: any[] = []
     if (products.length > 0) {
+        const productsById = await productService.findAllByIdsAndStatusIn(products.map((product: any) => product.productId), [WellKnownStatus.ACTIVE]);
 
         for (let product of products) {
-            let selectedProduct = await productService.findByIdAndStatusIn(product.productId, [WellKnownStatus.ACTIVE]);
+            let selectedProduct = productsById.get(String(product.productId));
 
             if (selectedProduct) {
                 let obj: any = {
                     productId: selectedProduct._id,
                     enteredMeasureUnitId: product.enteredUnitId,
                     actualMeasureUnitId: selectedProduct.measureUnit,
-                    siConvertedQuantity: fromMeasureUnitToSiMeasureUnit(product.enteredMeasureUnitId, product.quantity),
+                    siConvertedQuantity: helperUtil.fromMeasureUnitToSiMeasureUnit(product.enteredMeasureUnitId, product.quantity),
                     remarks: product.remarks,
                 }
 
@@ -197,33 +200,27 @@ const approveGrn = async (req: Request, res: Response) => {
         await grnService.save(grn, session);
 
         // update product inventory and inventoryLogs one by one
+        const loadProduct = await productService.createBatchLoader(grn.products.map((product: any) => product.productId), [WellKnownStatus.ACTIVE]);
+
         for (let product of grn.products) {
-            let selectedProduct = await productService.findByIdAndStatusIn(product.productId, [WellKnownStatus.ACTIVE]);
+            let selectedProduct = await loadProduct(product.productId);
             if (selectedProduct) {
                 let beforeTransactionInventory = selectedProduct.inventory;
                 selectedProduct.inventory = selectedProduct.inventory + product.siConvertedQuantity;
                 selectedProduct.updatedBy = auth.id;
 
-                let productMeasureUnit: any = measureUnit.find((item: any) => item.unitId === selectedProduct.measureUnit);
-                let siUnitCode = "";
-                if (productMeasureUnit.isSaveWithSiUnit) {
-                    const siUnit = measureUnit.find((item: any) => item.isSiUnit && item.categoryId === productMeasureUnit.categoryId);
-                    siUnitCode = siUnit != null ? siUnit?.code : "";
-                } else {
-                    siUnitCode = productMeasureUnit.code || ""
-                }
+                let siUnitCode = helperUtil.getSiUnitCode(selectedProduct.measureUnit);
 
                 // updated product inventoryLogs
-                let inventoryLogMsg = {
-                    inventoryLogType: WellKnownGrnLogType.GRN_APPROVED,
-                    inventoryLogDate: new Date(),
-                    inventoryLogQuantity: product.siConvertedQuantity,
-                    inventoryLogProductId: product.productId,
-                    beforeTransactionInventory: beforeTransactionInventory,
-                    afterTransactionInventory: selectedProduct.inventory,
-                    inventoryLogCreatedBy: auth.id,
+                let inventoryLogMsg = inventoryUtil.buildInventoryLog({
+                    type: WellKnownGrnLogType.GRN_APPROVED,
+                    quantity: product.siConvertedQuantity,
+                    before: beforeTransactionInventory,
+                    after: selectedProduct.inventory,
+                    productId: product.productId,
+                    userId: auth.id,
                     message: `Inventory updated: ${product.siConvertedQuantity}${siUnitCode} added for product "${selectedProduct.productName}" via approved GRN ${grn.grnNumberWithPrefix}.`
-                }
+                })
 
                 selectedProduct.inventoryLogs.push(inventoryLogMsg);
 
@@ -373,68 +370,6 @@ const getNextGrnNumber = async (req: Request, res: Response) => {
     let grnNumberWithPrefix = constants.NUMBERPREFIX.GRN + nextGrnNumber.toString().padStart(3, '0')
 
     CommonResponse(res, true, StatusCodes.OK, '', grnNumberWithPrefix);
-}
-
-const fromMeasureUnitToSiMeasureUnit = (fromUnitId: number, quantity: number) => {
-    let quantityInSiUnit = 0;
-
-    let fromUnit = measureUnit.find((item: any) => item.unitId === fromUnitId);
-
-    if (fromUnit?.isSaveWithSiUnit) {
-        if (fromUnit?.isSiUnit) {
-            quantityInSiUnit = quantity;
-        } else {
-            quantityInSiUnit = quantity * fromUnit?.conversionToSi
-        }
-    } else {
-        quantityInSiUnit = quantity
-    }
-
-    return quantityInSiUnit;
-}
-
-const fromMeasureUnitToOtherMeasureUnit = (fromUnitId: number, toUnitId: number, quantity: number) => {
-    let quantityInOtherUnit = 0;
-
-    let fromUnit = measureUnit.find((item: any) => item.unitId === fromUnitId);
-    let toUnit = measureUnit.find((item: any) => item.unitId === toUnitId);
-
-
-    if (fromUnit?.categoryId != toUnit?.categoryId) {
-        throw new BadRequestError("Invalid Measure Unit Conversion!");
-    }
-
-    if (fromUnit?.conversionToSi && toUnit?.conversionToSi) {
-        let fromQuantityInSiUnit = fromMeasureUnitToSiMeasureUnit(fromUnitId, quantity);
-
-        quantityInOtherUnit = fromQuantityInSiUnit / toUnit?.conversionToSi;
-    } else {
-        quantityInOtherUnit = quantity;
-    }
-
-    return quantityInOtherUnit;
-}
-
-const fromSiMeasureUnitToOtherMeasureUnit = (fromUnitId: number, toUnitId: number, siQuantity: number) => {
-    let quantityInOtherUnit = 0;
-
-    let fromUnit = measureUnit.find((item: any) => item.unitId === fromUnitId);
-    let toUnit = measureUnit.find((item: any) => item.unitId === toUnitId);
-
-
-    if (fromUnit?.categoryId != toUnit?.categoryId) {
-        throw new BadRequestError("Invalid Measure Unit Conversion!");
-    }
-
-    if (fromUnit && toUnit) {
-        if (toUnit?.isSiUnit) {
-            quantityInOtherUnit = siQuantity;
-        } else {
-            quantityInOtherUnit = siQuantity / toUnit?.conversionToSi;
-        }
-    }
-
-    return quantityInOtherUnit;
 }
 
 export {

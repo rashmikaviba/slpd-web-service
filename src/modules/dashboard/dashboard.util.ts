@@ -1,4 +1,5 @@
 import { measureUnit } from "../../util/data/measureUnitData";
+import helperUtil from "../../util/helper.util";
 import InventorySummaryResponseDto from "./dto/inventorySummaryResponseDto";
 
 const modelToInventorySummeryResponse = (product: any): InventorySummaryResponseDto => {
@@ -7,7 +8,7 @@ const modelToInventorySummeryResponse = (product: any): InventorySummaryResponse
         productName: product.productName,
         productShortCode: product.productShortCode,
         measureUnitDetails: measureUnit.find((item: any) => item.unitId === product.measureUnit),
-        inventory: fromSiMeasureUnitToOtherMeasureUnit(product.measureUnit, product.inventory),
+        inventory: helperUtil.fromSiToMeasureUnit(product.measureUnit, product.inventory),
     }
 
     return productResponseDto;
@@ -24,23 +25,6 @@ const modelsToInventorySummeryResponseDtos = (products: any): InventorySummaryRe
     return productResponseDtos;
 };
 
-
-const fromSiMeasureUnitToOtherMeasureUnit = (toUnitId: number, siQuantity: number) => {
-    let quantityInOtherUnit = 0;
-
-    let toUnit = measureUnit.find((item: any) => item.unitId === toUnitId);
-
-
-    if (toUnit) {
-        if (toUnit?.isSiUnit) {
-            quantityInOtherUnit = siQuantity;
-        } else {
-            quantityInOtherUnit = siQuantity / toUnit?.conversionToSi;
-        }
-    }
-
-    return quantityInOtherUnit;
-}
 
 
 export default {

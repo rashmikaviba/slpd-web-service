@@ -101,4 +101,8 @@ const InventoryGRNSchema = new mongoose.Schema({
     versionKey: false,
 })
 
+// Indexes for the filters used by the services (non-unique, no behaviour change)
+InventoryGRNSchema.index({ grnNumber: -1 });
+InventoryGRNSchema.index({ grnDate: 1, status: 1 });
+
 export default mongoose.model('GRN', InventoryGRNSchema);

@@ -46,7 +46,7 @@ const findByIdAndStatusIn = async (id: string, status: number[]) => {
 
 const findAllAndByStatusIn = async (status: number[]) => {
     let cacheKey = constants.CACHE.PREFIX.PRODUCT + JSON.stringify(status);
-    const cached = await cache.getCache(cacheKey);
+    const cached = cache.getCache(cacheKey);
     if (cached) return cached;
 
 
@@ -81,7 +81,45 @@ const findProductLogsByProductId = async (productId: string) => {
     });
 }
 
+const findAllByIdsAndStatusIn = async (ids: any[], status: number[]) => {
+    const byId = new Map<string, any>();
+    // ids may be strings, ObjectIds or populated documents; null/undefined are skipped
+    const uniqueIds = [...new Set(ids.filter((id) => id != null).map((id) => String(id._id ?? id)))];
+    if (uniqueIds.length === 0) return byId;
+
+    const products: any[] = await InventoryProduct.find({
+        _id: { $in: uniqueIds },
+        status: { $in: status },
+    });
+
+    for (const product of products) {
+        byId.set(product._id.toString(), product);
+    }
+
+    return byId;
+}
+
+// Loads the products in one query. The returned function hands out each preloaded document once;
+// a repeated request for the same id re-reads it, exactly like the per-item lookup it replaces.
+const createBatchLoader = async (ids: any[], status: number[]) => {
+    const preloaded = await findAllByIdsAndStatusIn(ids, status);
+
+    return async (id: any) => {
+        const key = id == null ? '' : String(id._id ?? id);
+        const product = preloaded.get(key);
+
+        if (product) {
+            preloaded.delete(key);
+            return product;
+        }
+
+        return findByIdAndStatusIn(id, status);
+    };
+}
+
 export default {
+    createBatchLoader,
+    findAllByIdsAndStatusIn,
     isShortCodeOrProductNameExists,
     save,
     findByIdAndStatusIn,

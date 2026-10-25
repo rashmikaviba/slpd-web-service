@@ -100,12 +100,6 @@ const findByIdWithGenderRole = async (id: string) => {
     ]);
 };
 
-const findAll = async () => {
-    return await User.find({
-        status: WellKnownStatus.ACTIVE,
-    });
-};
-
 const findAllWithGenderRole = async () => {
     const cacheKey = constants.CACHE.PREFIX.USER + 'findAllWithGenderRole';
     const cached = cacheUtil.getCache(cacheKey) as any[];
@@ -135,14 +129,22 @@ const findAllWithGenderRole = async () => {
         .sort({ createdAt: -1 });
 
     if (users.length > 0) {
-        for (let index = 0; index < users.length; index++) {
-            let element: any = users[index];
-            let auth: any = await Auth.findOne({
-                user: element._id,
-                status: WellKnownStatus.ACTIVE,
-            });
+        // blocked flags for all users in one query
+        const auths: any[] = await Auth.find({
+            user: { $in: users.map((user: any) => user._id) },
+            status: WellKnownStatus.ACTIVE,
+        })
+            .select('user isBlocked')
+            .lean();
 
-            element.isBlock = auth.isBlocked;
+        const authByUser = new Map<string, any>();
+        for (const auth of auths) {
+            const key = auth.user.toString();
+            if (!authByUser.has(key)) authByUser.set(key, auth);
+        }
+
+        for (const element of users as any[]) {
+            element.isBlock = authByUser.get(element._id.toString()).isBlocked;
         }
     }
 
@@ -155,7 +157,7 @@ const findAllWithGenderRole = async () => {
 
 const findAllByRoleId = async (roleId: string) => {
     const cacheKey = constants.CACHE.PREFIX.USER + roleId;
-    const cached = await cacheUtil.getCache(cacheKey) as any[];
+    const cached = cacheUtil.getCache(cacheKey) as any[];
     if (cached.length > 0) return cached;
 
     let users: any[] = await Auth.find({
@@ -184,38 +186,40 @@ const findDriversByNotInInternalTripsAndNormalTrips = async (
     let internalTripDrivers: string[] = [];
     let normalTripDrivers: string[] = [];
     if (startDate && endDate) {
-        internalTripDrivers = await InternalTrip.find({
-            $or: [
-                { startDate: { $gte: startDate, $lt: endDate } },
-                { endDate: { $gte: startDate, $lt: endDate } },
-                { startDate: { $lte: startDate }, endDate: { $gte: endDate } },
-            ],
-            status: WellKnownStatus.ACTIVE,
-        })
-            .select('driver')
-            .lean()
-            .then((trips) => trips.map((trip) => trip.driver.toString()));
+        [internalTripDrivers, normalTripDrivers] = await Promise.all([
+            InternalTrip.find({
+                $or: [
+                    { startDate: { $gte: startDate, $lt: endDate } },
+                    { endDate: { $gte: startDate, $lt: endDate } },
+                    { startDate: { $lte: startDate }, endDate: { $gte: endDate } },
+                ],
+                status: WellKnownStatus.ACTIVE,
+            })
+                .select('driver')
+                .lean()
+                .then((trips) => trips.map((trip) => trip.driver.toString())),
 
-        normalTripDrivers = await Trip.find({
-            $or: [
-                { startDate: { $gte: startDate, $lt: endDate } },
-                { endDate: { $gte: startDate, $lt: endDate } },
-                { startDate: { $lte: startDate }, endDate: { $gte: endDate } },
-            ],
-            _id: { $ne: tripId },
-            status: {
-                $in: [WellKnownTripStatus.PENDING, WellKnownTripStatus.START],
-            },
-        })
-            .select('drivers.driver drivers.isActive')
-            .lean()
-            .then((trips) =>
-                trips.flatMap((trip) =>
-                    trip.drivers
-                        .filter((driverObj: any) => driverObj.isActive)
-                        .map((driverObj: any) => driverObj?.driver.toString())
-                )
-            );
+            Trip.find({
+                $or: [
+                    { startDate: { $gte: startDate, $lt: endDate } },
+                    { endDate: { $gte: startDate, $lt: endDate } },
+                    { startDate: { $lte: startDate }, endDate: { $gte: endDate } },
+                ],
+                _id: { $ne: tripId },
+                status: {
+                    $in: [WellKnownTripStatus.PENDING, WellKnownTripStatus.START],
+                },
+            })
+                .select('drivers.driver drivers.isActive')
+                .lean()
+                .then((trips) =>
+                    trips.flatMap((trip) =>
+                        trip.drivers
+                            .filter((driverObj: any) => driverObj.isActive)
+                            .map((driverObj: any) => driverObj?.driver.toString())
+                    )
+                ),
+        ]);
     }
 
     const excludedUsers = [...internalTripDrivers, ...normalTripDrivers];
@@ -234,13 +238,31 @@ const findDriversByNotInInternalTripsAndNormalTrips = async (
     return users || [];
 };
 
+// Active users (with role) for many ids in one query, keyed by id.
+const findAllByIdsWithRole = async (ids: string[]) => {
+    const byId = new Map<string, any>();
+    if (ids.length === 0) return byId;
+
+    const users: any[] = await User.find({
+        _id: { $in: ids },
+        status: WellKnownStatus.ACTIVE,
+    }).populate({
+        path: 'role',
+        select: '_id name id',
+    });
+
+    for (const user of users) byId.set(user._id.toString(), user);
+
+    return byId;
+};
+
 export default {
+    findAllByIdsWithRole,
     Save,
     validateUserData,
     validateUserDataForUpdate,
     findById,
     findByIdWithGenderRole,
-    findAll,
     findAllWithGenderRole,
     findAllByRoleId,
     findDriversByNotInInternalTripsAndNormalTrips,

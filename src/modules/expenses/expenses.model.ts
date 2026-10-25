@@ -218,4 +218,7 @@ const expensesSchema = new mongoose.Schema(
     }
 );
 
+// Indexes for the filters used by the services (non-unique, no behaviour change)
+expensesSchema.index({ tripId: 1, status: 1 });
+
 export default mongoose.model('Expenses', expensesSchema);
