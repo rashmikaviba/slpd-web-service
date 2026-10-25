@@ -420,10 +420,23 @@ const getTripInfoForWorkingMonth = async (req: Request, res: Response) => {
                     trip._id.toString(),
                     [WellKnownStatus.ACTIVE]
                 );
-                if (expense) {
-                    trip.isDriverSalaryDone =
-                        expense.toObject()?.driverSalaries.length > 0; //  expense.toObject()?.driverSalary != null;
+                if (expense && trip.drivers?.length > 0) {
+                    const paidDriverIds = new Set(
+                        (expense.driverSalaries || []).map((s: any) => s.driver?.toString())
+                    );
+
+                    const allDriversPaid = trip.drivers.every((d: any) => {
+                        return paidDriverIds.has(d?.driver?._id?.toString())
+                    });
+
+                    trip.isDriverSalaryDone = allDriversPaid;
+                } else {
+                    trip.isDriverSalaryDone = false;
                 }
+                // if (expense) {
+                //     trip.isDriverSalaryDone =
+                //         expense.toObject()?.driverSalaries.length > 0; //  expense.toObject()?.driverSalary != null;
+                // }
             }
         })
     );
