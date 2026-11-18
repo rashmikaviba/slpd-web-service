@@ -1,0 +1,1052 @@
+info:
+  name: Create Vehicle Maintenance
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/vehicleMaintenance/"
+  body:
+    type: json
+    data: |-
+      {
+        "vehicle": "{{vehicleId}}",
+        "maintenancePart": "Engine oil change",
+        "garage": "{{garageId}}",
+        "maintenanceDate": "{{vmDate}}",
+        "cost": 12500,
+        "note": "Bruno test maintenance",
+        "billImageUrls": [
+          "https://example.com/bills/bruno-1.png"
+        ]
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: if (res.status === 200 || res.status === 201) bru.setVar("vehicleMaintenanceId", res.body.data._id);
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Vehicle maintenance record created successfully
+    - expression: res.body.data.vehicle
+      operator: eq
+      value: '"{{vehicleId}}"'
+    - expression: res.body.data.isMonthEndDone
+      operator: eq
+      value: "false"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "201"
+    description: |-
+      Preconditions: Setup ran; `{{vehicleId}}` and `{{garageId}}` exist. Stores `{{vehicleMaintenanceId}}` (vehicleMaintenance.controller.ts:17-85).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 201.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": "Engine oil change",
+            "garage": "{{garageId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle maintenance record created successfully",
+            "data": {
+              "vehicle": "6651a1b2c3d4e5f6a7b8c9d0",
+              "maintenancePart": "Engine oil change",
+              "garage": "6652a1b2c3d4e5f6a7b8c9d0",
+              "maintenanceDate": "2026-11-15T00:00:00.000Z",
+              "cost": 12500,
+              "note": "Bruno test maintenance",
+              "isMonthEndDone": false,
+              "billImageUrls": [
+                "https://example.com/bills/bruno-1.png"
+              ],
+              "batchId": 0,
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "_id": "6653a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:40:00.000Z",
+              "updatedAt": "2026-11-18T08:40:00.000Z"
+            }
+          }
+  - name: 201 throwaway record for delete
+    description: |-
+      `note` and `billImageUrls` null are allowed. Stores `{{vehicleMaintenanceToDeleteId}}` for the Delete folder.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 201 throwaway record for delete.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": "Brake pads",
+            "garage": "{{garageId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 4800,
+            "note": null,
+            "billImageUrls": null
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle maintenance record created successfully",
+            "data": {
+              "vehicle": "6651a1b2c3d4e5f6a7b8c9d0",
+              "maintenancePart": "Brake pads",
+              "garage": "6652a1b2c3d4e5f6a7b8c9d0",
+              "maintenanceDate": "2026-11-15T00:00:00.000Z",
+              "cost": 4800,
+              "note": null,
+              "isMonthEndDone": false,
+              "billImageUrls": null,
+              "batchId": 0,
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "_id": "6653a1b2c3d4e5f6a7b8c9d1",
+              "createdAt": "2026-11-18T08:40:01.000Z",
+              "updatedAt": "2026-11-18T08:40:01.000Z"
+            }
+          }
+  - name: 400 missing vehicle
+    description: |-
+      Joi `saveVehicleMaintenanceSchema` → BadRequestError(error.message) (vehicleMaintenance.validation.ts:5, vehicleMaintenance.controller.ts:30-33).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 400 missing vehicle.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "maintenancePart": "Engine oil change",
+            "garage": "{{garageId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle is required",
+            "data": null
+          }
+  - name: 400 invalid vehicle
+    description: |-
+      Joi `saveVehicleMaintenanceSchema` → BadRequestError(error.message) (vehicleMaintenance.validation.ts:6, vehicleMaintenance.controller.ts:30-33).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 400 invalid vehicle.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": 123,
+            "maintenancePart": "Engine oil change",
+            "garage": "{{garageId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle is invalid",
+            "data": null
+          }
+  - name: 400 missing maintenancePart
+    description: |-
+      Joi `saveVehicleMaintenanceSchema` → BadRequestError(error.message) (vehicleMaintenance.validation.ts:10, vehicleMaintenance.controller.ts:30-33).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 400 missing maintenancePart.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "garage": "{{garageId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Maintenance Part is required",
+            "data": null
+          }
+  - name: 400 invalid maintenancePart
+    description: |-
+      Joi `saveVehicleMaintenanceSchema` → BadRequestError(error.message) (vehicleMaintenance.validation.ts:11, vehicleMaintenance.controller.ts:30-33).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 400 invalid maintenancePart.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": 123,
+            "garage": "{{garageId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Maintenance Part is invalid",
+            "data": null
+          }
+  - name: 400 maintenancePart too long
+    description: |-
+      Joi `saveVehicleMaintenanceSchema` → BadRequestError(error.message) (vehicleMaintenance.validation.ts:12, vehicleMaintenance.controller.ts:30-33).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 400 maintenancePart too long.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": "{{long101}}",
+            "garage": "{{garageId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Maintenance Part cannot be more than 100 characters",
+            "data": null
+          }
+  - name: 400 missing garage
+    description: |-
+      Joi `saveVehicleMaintenanceSchema` → BadRequestError(error.message) (vehicleMaintenance.validation.ts:16, vehicleMaintenance.controller.ts:30-33).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 400 missing garage.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": "Engine oil change",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Garage is required",
+            "data": null
+          }
+  - name: 400 invalid garage
+    description: |-
+      Joi `saveVehicleMaintenanceSchema` → BadRequestError(error.message) (vehicleMaintenance.validation.ts:17, vehicleMaintenance.controller.ts:30-33).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 400 invalid garage.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": "Engine oil change",
+            "garage": 123,
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Garage is invalid",
+            "data": null
+          }
+  - name: 400 missing maintenanceDate
+    description: |-
+      Joi `saveVehicleMaintenanceSchema` → BadRequestError(error.message) (vehicleMaintenance.validation.ts:21, vehicleMaintenance.controller.ts:30-33).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 400 missing maintenanceDate.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": "Engine oil change",
+            "garage": "{{garageId}}",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Maintenance Date is required",
+            "data": null
+          }
+  - name: 400 invalid maintenanceDate
+    description: |-
+      Joi `saveVehicleMaintenanceSchema` → BadRequestError(error.message) (vehicleMaintenance.validation.ts:22, vehicleMaintenance.controller.ts:30-33).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 400 invalid maintenanceDate.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": "Engine oil change",
+            "garage": "{{garageId}}",
+            "maintenanceDate": "not-a-date",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Maintenance Date is invalid",
+            "data": null
+          }
+  - name: 400 missing cost
+    description: |-
+      Joi `saveVehicleMaintenanceSchema` → BadRequestError(error.message) (vehicleMaintenance.validation.ts:26, vehicleMaintenance.controller.ts:30-33).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 400 missing cost.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": "Engine oil change",
+            "garage": "{{garageId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Cost is required",
+            "data": null
+          }
+  - name: 400 invalid cost
+    description: |-
+      Joi `saveVehicleMaintenanceSchema` → BadRequestError(error.message) (vehicleMaintenance.validation.ts:27, vehicleMaintenance.controller.ts:30-33).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 400 invalid cost.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": "Engine oil change",
+            "garage": "{{garageId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": "abc",
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Cost is invalid",
+            "data": null
+          }
+  - name: 400 invalid note
+    description: |-
+      Joi `saveVehicleMaintenanceSchema` → BadRequestError(error.message) (vehicleMaintenance.validation.ts:31, vehicleMaintenance.controller.ts:30-33).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 400 invalid note.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": "Engine oil change",
+            "garage": "{{garageId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 12500,
+            "note": 123,
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Note is invalid",
+            "data": null
+          }
+  - name: 400 note too long
+    description: |-
+      Joi `saveVehicleMaintenanceSchema` → BadRequestError(error.message) (vehicleMaintenance.validation.ts:32, vehicleMaintenance.controller.ts:30-33).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 400 note too long.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": "Engine oil change",
+            "garage": "{{garageId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 12500,
+            "note": "{{long501}}",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Note cannot be more than 500 characters",
+            "data": null
+          }
+  - name: 400 billImageUrls not an array
+    description: |-
+      Joi `saveVehicleMaintenanceSchema` → BadRequestError(error.message) (vehicleMaintenance.validation.ts:38, vehicleMaintenance.controller.ts:30-33).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 400 billImageUrls not an array.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": "Engine oil change",
+            "garage": "{{garageId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": "https://example.com/a.png"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Bill Image URLs must be an array",
+            "data": null
+          }
+  - name: 400 invalid billImageUrls item
+    description: |-
+      Joi `saveVehicleMaintenanceSchema` → BadRequestError(error.message) (vehicleMaintenance.validation.ts:36, vehicleMaintenance.controller.ts:30-33).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 400 invalid billImageUrls item.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": "Engine oil change",
+            "garage": "{{garageId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              123
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Bill Image URL is invalid",
+            "data": null
+          }
+  - name: 400 date not in working month
+    description: |-
+      Precondition: Setup ran. Date one year before the working month (vehicleMaintenance.controller.ts:41-46).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 400 date not in working month.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": "Engine oil change",
+            "garage": "{{garageId}}",
+            "maintenanceDate": "{{vmOutOfMonthDate}}",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle maintenance date is not in working month!",
+            "data": null
+          }
+  - name: 400 vehicle does not exist
+    description: |-
+      vehicleMaintenance.controller.ts:48-54.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 400 vehicle does not exist.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{nonExistingId}}",
+            "maintenancePart": "Engine oil change",
+            "garage": "{{garageId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid vehicle. Vehicle does not exist!",
+            "data": null
+          }
+  - name: 400 garage does not exist
+    description: |-
+      vehicleMaintenance.controller.ts:56-61.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 400 garage does not exist.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": "Engine oil change",
+            "garage": "{{nonExistingId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid garage. Garage does not exist!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": "Engine oil change",
+            "garage": "{{garageId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 driver role
+    description: |-
+      ACCESS_ROLES = every role except DRIVER (vehicleMaintenance.route.ts:10-13).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 403 driver role.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": "Engine oil change",
+            "garage": "{{garageId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 vehicle invalid id
+    description: |-
+      Joi only checks `vehicle` is a string; the malformed id reaches vehicleService.findByIdAndStatusIn → CastError → 404.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 404 vehicle invalid id.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{invalidId}}",
+            "maintenancePart": "Engine oil change",
+            "garage": "{{garageId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+  - name: 404 garage invalid id
+    description: |-
+      Malformed garage id → CastError in garageService.findByIdAndStatusIn → 404.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Create Vehicle Maintenance/Create Vehicle Maintenance - 404 garage invalid id.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{vehicleId}}",
+            "maintenancePart": "Engine oil change",
+            "garage": "{{invalidId}}",
+            "maintenanceDate": "{{vmDate}}",
+            "cost": 12500,
+            "note": "Bruno test maintenance",
+            "billImageUrls": [
+              "https://example.com/bills/bruno-1.png"
+            ]
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/vehicleMaintenance`**
+
+  This request runs the main scenario **201**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 | Vehicle maintenance record created successfully |
+  | 2 | 201 | 201 throwaway record for delete | Vehicle maintenance record created successfully |
+  | 3 | 400 | 400 missing vehicle | Vehicle is required |
+  | 4 | 400 | 400 invalid vehicle | Vehicle is invalid |
+  | 5 | 400 | 400 missing maintenancePart | Maintenance Part is required |
+  | 6 | 400 | 400 invalid maintenancePart | Maintenance Part is invalid |
+  | 7 | 400 | 400 maintenancePart too long | Maintenance Part cannot be more than 100 characters |
+  | 8 | 400 | 400 missing garage | Garage is required |
+  | 9 | 400 | 400 invalid garage | Garage is invalid |
+  | 10 | 400 | 400 missing maintenanceDate | Maintenance Date is required |
+  | 11 | 400 | 400 invalid maintenanceDate | Maintenance Date is invalid |
+  | 12 | 400 | 400 missing cost | Cost is required |
+  | 13 | 400 | 400 invalid cost | Cost is invalid |
+  | 14 | 400 | 400 invalid note | Note is invalid |
+  | 15 | 400 | 400 note too long | Note cannot be more than 500 characters |
+  | 16 | 400 | 400 billImageUrls not an array | Bill Image URLs must be an array |
+  | 17 | 400 | 400 invalid billImageUrls item | Bill Image URL is invalid |
+  | 18 | 400 | 400 date not in working month | Vehicle maintenance date is not in working month! |
+  | 19 | 400 | 400 vehicle does not exist | Invalid vehicle. Vehicle does not exist! |
+  | 20 | 400 | 400 garage does not exist | Invalid garage. Garage does not exist! |
+  | 21 | 401 | 401 no token | Authentication invalid! |
+  | 22 | 403 | 403 driver role | You're unauthorized to access this resource! |
+  | 23 | 404 | 404 vehicle invalid id | No item found with ID "not-an-object-id"! |
+  | 24 | 404 | 404 garage invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  Preconditions: Setup ran; `{{vehicleId}}` and `{{garageId}}` exist. Stores `{{vehicleMaintenanceId}}` (vehicleMaintenance.controller.ts:17-85).

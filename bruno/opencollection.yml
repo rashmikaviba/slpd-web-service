@@ -1,0 +1,52 @@
+opencollection: 1.0.0
+
+info:
+  name: SLPD Web Service
+  version: "1"
+
+request:
+  auth:
+    type: bearer
+    token: "{{superAdminToken}}"
+
+docs:
+  content: |-
+    # SLPD Web Service — API collection
+
+    Covers every endpoint in `src/applicationRoutes.ts`, with one request per success case and one per reachable error case.
+    Logic behind each case: `../Document/<module>.md`.
+
+    ## Setup
+    1. In Bruno: Open Collection → pick this `bruno/` folder (it contains `opencollection.yml`). Select the **Local** environment.
+    2. Fill the secret password vars (`*Password`) — they stay in Bruno's local store, never in git.
+    3. Make sure one active user exists per role (seed or create via User folder) and put their usernames in the env.
+    4. Run **Auth / Login** first, once per role you need: it stores `<role>Token` and `<role>UserId` for whichever role logs in.
+       Change the body's userName/password vars (e.g. `{{driverUserName}}` / `{{driverPassword}}`) to log in as another role.
+    5. Default auth for every request is `{{superAdminToken}}` (collection level). Requests that need another role
+       override with `auth: { type: bearer, token: "{{driverToken}}" }` etc. Error cases that must be unauthenticated use `auth: none`.
+
+    ## Runtime vars set by scripts
+    Tokens: `superAdminToken adminToken driverToken financeOfficerToken tripManagerToken driverAssistantToken tripAssistantToken`.
+    Ids: each `Create …` request stores the new id (e.g. `vehicleId`, `tripId`) for the other requests.
+
+    ## Conventions
+    - **One request per endpoint.** The request runs its main success scenario; every scenario (all successes and every error)
+      is saved as an **example** named `<HTTP status> <case>`. Open the Examples tab to see each scenario's request
+      (body/params) and its exact expected response. The request's docs have a table of all scenarios and messages.
+    - Each example's description says which auth it uses and its source scenario. Scenario notes that mention
+      `seq N` refer to the original step order of that scenario's folder (shown in "Source scenario").
+    - Examples suffixed `(<Module> setup)` are calls made from another module's flow to prepare data.
+    - Every request asserts `res.status`, `res.body.isSuccessful` and the exact `message` of its main scenario.
+    - Requests marked `[DESTRUCTIVE]` in docs change data that is hard to undo — run against a dev DB only.
+    - Requests marked `[KNOWN BUG]` assert the current (buggy) behaviour documented in `Document/*.md › Known issues`;
+      the assert will fail once the bug is fixed — update it then.
+
+    ## Response envelope
+    `{ isSuccessful, timeStamp, message, data }` — errors have `data: null`.
+  type: text/markdown
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git

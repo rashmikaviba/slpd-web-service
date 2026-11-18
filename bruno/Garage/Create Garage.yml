@@ -1,0 +1,1030 @@
+info:
+  name: Create Garage
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/garage/"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Bruno Garage {{$timestamp}}",
+        "address": "12 Main Street",
+        "city": "Colombo",
+        "contactNumber1": "0771234567",
+        "contactNumber2": "0112345678",
+        "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+        "specializations": [
+          {
+            "id": 1,
+            "name": "Engine"
+          },
+          {
+            "id": 2,
+            "name": "Brakes"
+          }
+        ],
+        "description": "Created by Bruno"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: if (res.status === 200 || res.status === 201) bru.setVar("garageId", res.body.data._id);
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Garage created successfully!
+    - expression: res.body.data.status
+      operator: eq
+      value: "1"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "201"
+    description: |-
+      Stores `{{garageId}}`. Response 201 with saved document (garage.controller.ts:12-56). No duplicate-name check.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Create Garage/Create Garage - 201.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Garage {{$timestamp}}",
+            "address": "12 Main Street",
+            "city": "Colombo",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "specializations": [
+              {
+                "id": 1,
+                "name": "Engine"
+              },
+              {
+                "id": 2,
+                "name": "Brakes"
+              }
+            ],
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Garage created successfully!",
+            "data": {
+              "name": "Bruno Garage 1794990660",
+              "address": "12 Main Street",
+              "city": "Colombo",
+              "contactNumber1": "0771234567",
+              "contactNumber2": "0112345678",
+              "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+              "specializations": [
+                {
+                  "id": 1,
+                  "name": "Engine",
+                  "_id": "6652b1b2c3d4e5f6a7b8c9d0"
+                },
+                {
+                  "id": 2,
+                  "name": "Brakes",
+                  "_id": "6652b1b2c3d4e5f6a7b8c9d1"
+                }
+              ],
+              "description": "Created by Bruno",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "_id": "6652a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:35:00.000Z",
+              "updatedAt": "2026-11-18T08:35:00.000Z"
+            }
+          }
+  - name: 201 throwaway garage for delete
+    description: |-
+      Stores `{{garageToDeleteId}}` for Active Inactive and Delete.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Create Garage/Create Garage - 201 throwaway garage for delete.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Garage DEL {{$timestamp}}",
+            "address": "12 Main Street",
+            "city": "Colombo",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "specializations": [
+              {
+                "id": 3,
+                "name": "Tyres"
+              }
+            ],
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Garage created successfully!",
+            "data": {
+              "name": "Bruno Garage DEL 1794990661",
+              "address": "12 Main Street",
+              "city": "Colombo",
+              "contactNumber1": "0771234567",
+              "contactNumber2": "0112345678",
+              "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+              "specializations": [
+                {
+                  "id": 3,
+                  "name": "Tyres",
+                  "_id": "6652b1b2c3d4e5f6a7b8c9d2"
+                }
+              ],
+              "description": "Created by Bruno",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "_id": "6652a1b2c3d4e5f6a7b8c9d1",
+              "createdAt": "2026-11-18T08:35:01.000Z",
+              "updatedAt": "2026-11-18T08:35:01.000Z"
+            }
+          }
+  - name: 400 missing name
+    description: |-
+      Joi `garageRequestSchema` → BadRequestError(error.message) (garage.validation.ts:5, garage.controller.ts:25-28).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Create Garage/Create Garage - 400 missing name.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "address": "12 Main Street",
+            "city": "Colombo",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "specializations": [
+              {
+                "id": 1,
+                "name": "Engine"
+              },
+              {
+                "id": 2,
+                "name": "Brakes"
+              }
+            ],
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Garage Name is required",
+            "data": null
+          }
+  - name: 400 invalid name
+    description: |-
+      No custom message for this rule → Joi default text.
+      Joi `garageRequestSchema` → BadRequestError(error.message) (garage.validation.ts:4, garage.controller.ts:25-28).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Create Garage/Create Garage - 400 invalid name.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": 123,
+            "address": "12 Main Street",
+            "city": "Colombo",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "specializations": [
+              {
+                "id": 1,
+                "name": "Engine"
+              },
+              {
+                "id": 2,
+                "name": "Brakes"
+              }
+            ],
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"name\" must be a string",
+            "data": null
+          }
+  - name: 400 name too long
+    description: |-
+      Joi `garageRequestSchema` → BadRequestError(error.message) (garage.validation.ts:6, garage.controller.ts:25-28).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Create Garage/Create Garage - 400 name too long.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "{{long101}}",
+            "address": "12 Main Street",
+            "city": "Colombo",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "specializations": [
+              {
+                "id": 1,
+                "name": "Engine"
+              },
+              {
+                "id": 2,
+                "name": "Brakes"
+              }
+            ],
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Garage Name cannot be more than 100 characters",
+            "data": null
+          }
+  - name: 400 address too long
+    description: |-
+      Joi `garageRequestSchema` → BadRequestError(error.message) (garage.validation.ts:10, garage.controller.ts:25-28).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Create Garage/Create Garage - 400 address too long.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Garage",
+            "address": "{{long301}}",
+            "city": "Colombo",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "specializations": [
+              {
+                "id": 1,
+                "name": "Engine"
+              },
+              {
+                "id": 2,
+                "name": "Brakes"
+              }
+            ],
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Address cannot be more than 300 characters",
+            "data": null
+          }
+  - name: 400 city too long
+    description: |-
+      Joi `garageRequestSchema` → BadRequestError(error.message) (garage.validation.ts:14, garage.controller.ts:25-28).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Create Garage/Create Garage - 400 city too long.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Garage",
+            "address": "12 Main Street",
+            "city": "{{long101}}",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "specializations": [
+              {
+                "id": 1,
+                "name": "Engine"
+              },
+              {
+                "id": 2,
+                "name": "Brakes"
+              }
+            ],
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "City cannot be more than 100 characters",
+            "data": null
+          }
+  - name: 400 contactNumber1 too long
+    description: |-
+      Joi `garageRequestSchema` → BadRequestError(error.message) (garage.validation.ts:18, garage.controller.ts:25-28).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Create Garage/Create Garage - 400 contactNumber1 too long.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Garage",
+            "address": "12 Main Street",
+            "city": "Colombo",
+            "contactNumber1": "077123456789012",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "specializations": [
+              {
+                "id": 1,
+                "name": "Engine"
+              },
+              {
+                "id": 2,
+                "name": "Brakes"
+              }
+            ],
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Contact Number cannot be more than 14 characters",
+            "data": null
+          }
+  - name: 400 contactNumber2 too long
+    description: |-
+      Joi `garageRequestSchema` → BadRequestError(error.message) (garage.validation.ts:22, garage.controller.ts:25-28).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Create Garage/Create Garage - 400 contactNumber2 too long.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Garage",
+            "address": "12 Main Street",
+            "city": "Colombo",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "077123456789012",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "specializations": [
+              {
+                "id": 1,
+                "name": "Engine"
+              },
+              {
+                "id": 2,
+                "name": "Brakes"
+              }
+            ],
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Contact Number cannot be more than 14 characters",
+            "data": null
+          }
+  - name: 400 invalid googleMapUrl
+    description: |-
+      Joi `garageRequestSchema` → BadRequestError(error.message) (garage.validation.ts:26, garage.controller.ts:25-28).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Create Garage/Create Garage - 400 invalid googleMapUrl.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Garage",
+            "address": "12 Main Street",
+            "city": "Colombo",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": 123,
+            "specializations": [
+              {
+                "id": 1,
+                "name": "Engine"
+              },
+              {
+                "id": 2,
+                "name": "Brakes"
+              }
+            ],
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Google Map URL must be a string",
+            "data": null
+          }
+  - name: 400 missing specializations
+    description: |-
+      Joi `garageRequestSchema` → BadRequestError(error.message) (garage.validation.ts:46, garage.controller.ts:25-28).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Create Garage/Create Garage - 400 missing specializations.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Garage",
+            "address": "12 Main Street",
+            "city": "Colombo",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Specializations are required",
+            "data": null
+          }
+  - name: 400 specializations not an array
+    description: |-
+      No custom message for this rule → Joi default text.
+      Joi `garageRequestSchema` → BadRequestError(error.message) (garage.validation.ts:29, garage.controller.ts:25-28).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Create Garage/Create Garage - 400 specializations not an array.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Garage",
+            "address": "12 Main Street",
+            "city": "Colombo",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "specializations": "Engine",
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"specializations\" must be an array",
+            "data": null
+          }
+  - name: 400 empty specializations
+    description: |-
+      Joi `garageRequestSchema` → BadRequestError(error.message) (garage.validation.ts:45, garage.controller.ts:25-28).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Create Garage/Create Garage - 400 empty specializations.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Garage",
+            "address": "12 Main Street",
+            "city": "Colombo",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "specializations": [],
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "At least one specialization is required",
+            "data": null
+          }
+  - name: 400 specialization missing id
+    description: |-
+      Joi `garageRequestSchema` → BadRequestError(error.message) (garage.validation.ts:33, garage.controller.ts:25-28).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Create Garage/Create Garage - 400 specialization missing id.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Garage",
+            "address": "12 Main Street",
+            "city": "Colombo",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "specializations": [
+              {
+                "name": "Engine"
+              }
+            ],
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Specialization Id is required",
+            "data": null
+          }
+  - name: 400 specialization invalid id
+    description: |-
+      Joi `garageRequestSchema` → BadRequestError(error.message) (garage.validation.ts:34, garage.controller.ts:25-28).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Create Garage/Create Garage - 400 specialization invalid id.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Garage",
+            "address": "12 Main Street",
+            "city": "Colombo",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "specializations": [
+              {
+                "id": "abc",
+                "name": "Engine"
+              }
+            ],
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Specialization Id must be a number",
+            "data": null
+          }
+  - name: 400 specialization missing name
+    description: |-
+      Joi `garageRequestSchema` → BadRequestError(error.message) (garage.validation.ts:37, garage.controller.ts:25-28).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Create Garage/Create Garage - 400 specialization missing name.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Garage",
+            "address": "12 Main Street",
+            "city": "Colombo",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "specializations": [
+              {
+                "id": 1
+              }
+            ],
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Specialization Name is required",
+            "data": null
+          }
+  - name: 400 specialization name too long
+    description: |-
+      Joi `garageRequestSchema` → BadRequestError(error.message) (garage.validation.ts:38, garage.controller.ts:25-28).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Create Garage/Create Garage - 400 specialization name too long.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Garage",
+            "address": "12 Main Street",
+            "city": "Colombo",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "specializations": [
+              {
+                "id": 1,
+                "name": "{{long101}}"
+              }
+            ],
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Specialization Name cannot be more than 100 characters",
+            "data": null
+          }
+  - name: 400 description too long
+    description: |-
+      Joi `garageRequestSchema` → BadRequestError(error.message) (garage.validation.ts:50, garage.controller.ts:25-28).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Create Garage/Create Garage - 400 description too long.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Garage",
+            "address": "12 Main Street",
+            "city": "Colombo",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "specializations": [
+              {
+                "id": 1,
+                "name": "Engine"
+              },
+              {
+                "id": 2,
+                "name": "Brakes"
+              }
+            ],
+            "description": "{{long501}}"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Description cannot be more than 500 characters",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Garage/Create Garage/Create Garage - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Garage",
+            "address": "12 Main Street",
+            "city": "Colombo",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "specializations": [
+              {
+                "id": 1,
+                "name": "Engine"
+              },
+              {
+                "id": 2,
+                "name": "Brakes"
+              }
+            ],
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 driver role
+    description: |-
+      POST /garage allows SUPERADMIN, ADMIN, TRIPMANAGER, DRIVERASSISTANT (garage.route.ts:16-24); DRIVER is rejected.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Garage/Create Garage/Create Garage - 403 driver role.yml
+    request:
+      url: "{{baseUrl}}/garage/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "name": "Bruno Garage",
+            "address": "12 Main Street",
+            "city": "Colombo",
+            "contactNumber1": "0771234567",
+            "contactNumber2": "0112345678",
+            "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+            "specializations": [
+              {
+                "id": 1,
+                "name": "Engine"
+              },
+              {
+                "id": 2,
+                "name": "Brakes"
+              }
+            ],
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/garage`**
+
+  This request runs the main scenario **201**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 | Garage created successfully! |
+  | 2 | 201 | 201 throwaway garage for delete | Garage created successfully! |
+  | 3 | 400 | 400 missing name | Garage Name is required |
+  | 4 | 400 | 400 invalid name | "name" must be a string |
+  | 5 | 400 | 400 name too long | Garage Name cannot be more than 100 characters |
+  | 6 | 400 | 400 address too long | Address cannot be more than 300 characters |
+  | 7 | 400 | 400 city too long | City cannot be more than 100 characters |
+  | 8 | 400 | 400 contactNumber1 too long | Contact Number cannot be more than 14 characters |
+  | 9 | 400 | 400 contactNumber2 too long | Contact Number cannot be more than 14 characters |
+  | 10 | 400 | 400 invalid googleMapUrl | Google Map URL must be a string |
+  | 11 | 400 | 400 missing specializations | Specializations are required |
+  | 12 | 400 | 400 specializations not an array | "specializations" must be an array |
+  | 13 | 400 | 400 empty specializations | At least one specialization is required |
+  | 14 | 400 | 400 specialization missing id | Specialization Id is required |
+  | 15 | 400 | 400 specialization invalid id | Specialization Id must be a number |
+  | 16 | 400 | 400 specialization missing name | Specialization Name is required |
+  | 17 | 400 | 400 specialization name too long | Specialization Name cannot be more than 100 characters |
+  | 18 | 400 | 400 description too long | Description cannot be more than 500 characters |
+  | 19 | 401 | 401 no token | Authentication invalid! |
+  | 20 | 403 | 403 driver role | You're unauthorized to access this resource! |
+
+  ## Main scenario notes
+
+  Stores `{{garageId}}`. Response 201 with saved document (garage.controller.ts:12-56). No duplicate-name check.

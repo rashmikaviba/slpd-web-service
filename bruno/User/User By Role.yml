@@ -1,0 +1,181 @@
+info:
+  name: User By Role
+  type: http
+  seq: 10
+
+http:
+  method: GET
+  url: "{{baseUrl}}/user/userByRole/99"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("empty array", function () {
+          expect(res.body.data).to.eql([]);
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 unknown role returns empty
+    description: |-
+      No role with `id: 99` → `findAllByRoleId` is skipped → `[]` (user.controller.ts:484-490).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/User By Role/User By Role - 200 unknown role returns empty.yml
+    request:
+      url: "{{baseUrl}}/user/userByRole/99"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": []
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. user.router.ts:78-86.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: User/User By Role/User By Role - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/user/userByRole/3"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 driver
+    description: |-
+      Route allows SUPERADMIN, ADMIN, TRIPMANAGER only; `{{driverToken}}` is rejected by auth.middleware.ts:73-77. user.router.ts:78-86.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: User/User By Role/User By Role - 403 driver.yml
+    request:
+      url: "{{baseUrl}}/user/userByRole/3"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 non-numeric role
+    description: |-
+      `Role.findOne({ id: "abc" })` → CastError → 404 (role.service.ts:39).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/User By Role/User By Role - 404 non-numeric role.yml
+    request:
+      url: "{{baseUrl}}/user/userByRole/abc"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"abc\"!",
+            "data": null
+          }
+  - name: 500 [KNOWN BUG] cache miss crash
+    description: |-
+      [KNOWN BUG] `findAllByRoleId` does `cached.length` on a cache miss (`cached` is undefined) → TypeError → 500
+      (user.service.ts:156-159). The cache is never filled, so every call for an existing role fails.
+      Fix: `if (cached) return cached;`. Expected after fix: 200 with active, unblocked drivers.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/User By Role/User By Role - 500 [KNOWN BUG] cache miss crash.yml
+    request:
+      url: "{{baseUrl}}/user/userByRole/3"
+      method: GET
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Cannot read properties of undefined (reading 'length')",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/user/userByRole/:id`**
+
+  This request runs the main scenario **200 unknown role returns empty**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 unknown role returns empty | (empty) |
+  | 2 | 401 | 401 no token | Authentication invalid! |
+  | 3 | 403 | 403 driver | You're unauthorized to access this resource! |
+  | 4 | 404 | 404 non-numeric role | No item found with ID "abc"! |
+  | 5 | 500 | 500 [KNOWN BUG] cache miss crash | Cannot read properties of undefined (reading 'length') |
+
+  ## Main scenario notes
+
+  No role with `id: 99` → `findAllByRoleId` is skipped → `[]` (user.controller.ts:484-490).

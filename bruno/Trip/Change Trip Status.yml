@@ -1,0 +1,1034 @@
+info:
+  name: Change Trip Status
+  type: http
+  seq: 10
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/trip/{{otherDriverTripId}}/status/3"
+  auth:
+    type: bearer
+    token: "{{driverToken}}"
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Trip started successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 finish trip
+    description: |-
+      START → FINISHED, endedBy = caller (src/modules/trip/trip.controller.ts:967-968). No POS on this trip.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Finish/Change Trip Status - 200 finish trip.yml
+    request:
+      url: "{{baseUrl}}/trip/{{finishedTripId}}/status/4"
+      method: PUT
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip finished successfully!",
+            "data": null
+          }
+  - name: 200 start main trip
+    description: |-
+      Driver starts the main trip (src/modules/trip/trip.controller.ts:832-859).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Start/Change Trip Status - 200 start main trip.yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}/status/3"
+      method: PUT
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip started successfully!",
+            "data": null
+          }
+  - name: 200 undo by driver
+    description: |-
+      [DESTRUCTIVE] Driver undo: status PENDING, startedBy/checkListAnswers/checkListCheckBy cleared, Expenses hard-deleted (src/modules/trip/trip.controller.ts:912-922).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Undo/Change Trip Status - 200 undo by driver.yml
+    request:
+      url: "{{baseUrl}}/trip/{{undoTripId}}/status/1"
+      method: PUT
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip pending successfully!",
+            "data": null
+          }
+  - name: 200 start finish trip
+    description: |-
+      Setup for Mark Place As Reached / Finish.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Start/Change Trip Status - 200 start finish trip.yml
+    request:
+      url: "{{baseUrl}}/trip/{{finishedTripId}}/status/3"
+      method: PUT
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip started successfully!",
+            "data": null
+          }
+  - name: 200 start undo trip
+    description: |-
+      Setup for the undo flows (checklist saved before start).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Start/Change Trip Status - 200 start undo trip.yml
+    request:
+      url: "{{baseUrl}}/trip/{{undoTripId}}/status/3"
+      method: PUT
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip started successfully!",
+            "data": null
+          }
+  - name: 200 start payment trip
+    description: |-
+      Setup for the hotel-payment undo guard.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Start/Change Trip Status - 200 start payment trip.yml
+    request:
+      url: "{{baseUrl}}/trip/{{paymentTripId}}/status/3"
+      method: PUT
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip started successfully!",
+            "data": null
+          }
+  - name: 200 setup restart undo trip
+    description: |-
+      Setup: back to START (creates a fresh Expenses header).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Undo/Change Trip Status - 200 setup restart undo trip.yml
+    request:
+      url: "{{baseUrl}}/trip/{{undoTripId}}/status/3"
+      method: PUT
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip started successfully!",
+            "data": null
+          }
+  - name: 200 start trip without vehicle
+    description: |-
+      Setup for the Mark Place As Reached 500 case. Starting without a vehicle is allowed (Document/trip.md Known issue 8).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Start/Change Trip Status - 200 start trip without vehicle.yml
+    request:
+      url: "{{baseUrl}}/trip/{{noVehicleTripId}}/status/3"
+      method: PUT
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip started successfully!",
+            "data": null
+          }
+  - name: 200 undo by admin
+    description: |-
+      [DESTRUCTIVE] Office undo (src/modules/trip/trip.controller.ts:969-1029). Expenses hard-deleted.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Undo/Change Trip Status - 200 undo by admin.yml
+    request:
+      url: "{{baseUrl}}/trip/{{undoTripId}}/status/1"
+      method: PUT
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip pending successfully!",
+            "data": null
+          }
+  - name: 200 setup restart undo trip before expense
+    description: |-
+      Setup: back to START (creates a fresh Expenses header).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Undo/Change Trip Status - 200 setup restart undo trip before expense.yml
+    request:
+      url: "{{baseUrl}}/trip/{{undoTripId}}/status/3"
+      method: PUT
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip started successfully!",
+            "data": null
+          }
+  - name: 200 setup start other-driver trip
+    description: |-
+      Setup: driver starts `otherDriverTripId` (not their trip — no ownership check, src/modules/trip/trip.controller.ts:831-859) so the next requests hit the START branch.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Assign Driver And Vehicle/Change Trip Status - 200 setup start other-driver trip.yml
+    request:
+      url: "{{baseUrl}}/trip/{{otherDriverTripId}}/status/3"
+      method: PUT
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip started successfully!",
+            "data": null
+          }
+  - name: 200 [KNOWN BUG] undo deletes expense when no driver salary
+    description: |-
+      [KNOWN BUG][DESTRUCTIVE] Guard uses && (src/modules/trip/trip.controller.ts:990): expenses exist but driverSalaries is empty → guard passes and findAndHardDeleteByTripId (src/modules/trip/trip.controller.ts:1026) permanently deletes the expense line (Document/trip.md Known issue 1). Expected after fix: 400 "Can't change status to pending after expense added or driver salary added!".
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Undo/Change Trip Status - 200 [KNOWN BUG] undo deletes expense when no driver salary.yml
+    request:
+      url: "{{baseUrl}}/trip/{{undoTripId}}/status/1"
+      method: PUT
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip pending successfully!",
+            "data": null
+          }
+  - name: 200 setup restart undo trip before expense request
+    description: |-
+      Setup: back to START (creates a fresh Expenses header).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Undo/Change Trip Status - 200 setup restart undo trip before expense request.yml
+    request:
+      url: "{{baseUrl}}/trip/{{undoTripId}}/status/3"
+      method: PUT
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip started successfully!",
+            "data": null
+          }
+  - name: 200 setup start no-driver trip
+    description: |-
+      Setup: a trip with no drivers can be started by any driver (src/modules/trip/trip.controller.ts:831-859, Document/trip.md Known issue 8).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Assign Driver And Vehicle/Change Trip Status - 200 setup start no-driver trip.yml
+    request:
+      url: "{{baseUrl}}/trip/{{noDriverTripId}}/status/3"
+      method: PUT
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip started successfully!",
+            "data": null
+          }
+  - name: 400 finish already finished trip
+    description: |-
+      src/modules/trip/trip.controller.ts:942-950.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Finish/Change Trip Status - 400 finish already finished trip.yml
+    request:
+      url: "{{baseUrl}}/trip/{{finishedTripId}}/status/4"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip not found or not in start status!",
+            "data": null
+          }
+  - name: 400 finish pending trip
+    description: |-
+      `canceledTripId` is PENDING (src/modules/trip/trip.controller.ts:942-950).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Finish/Change Trip Status - 400 finish pending trip.yml
+    request:
+      url: "{{baseUrl}}/trip/{{canceledTripId}}/status/4"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip not found or not in start status!",
+            "data": null
+          }
+  - name: 400 start trip not pending
+    description: |-
+      Main trip is already START (src/modules/trip/trip.controller.ts:833-841).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Start/Change Trip Status - 400 start trip not pending.yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}/status/3"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip not found or not in pending status!",
+            "data": null
+          }
+  - name: 400 invalid status value
+    description: |-
+      parseInt("abc") = NaN is not in WellKnownTripStatus (src/modules/trip/trip.controller.ts:817, :824-826). Checked before the trip is loaded, for every role.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Start/Change Trip Status - 400 invalid status value.yml
+    request:
+      url: "{{baseUrl}}/trip/{{canceledTripId}}/status/abc"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid status!",
+            "data": null
+          }
+  - name: 400 finish without POS trip end audit
+    description: |-
+      Undo trip is START with an un-audited POS (src/modules/trip/trip.controller.ts:956-965).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Finish/Change Trip Status - 400 finish without POS trip end audit.yml
+    request:
+      url: "{{baseUrl}}/trip/{{undoTripId}}/status/4"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Unable to finish trip because the trip end POS audit is not completed!",
+            "data": null
+          }
+  - name: 400 driver cannot finish
+    description: |-
+      DRIVER may only use 3 and 1 (src/modules/trip/trip.controller.ts:923-931).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Start/Change Trip Status - 400 driver cannot finish.yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}/status/4"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You'r not allowed to change status to FINISHED!",
+            "data": null
+          }
+  - name: 400 finish month end done
+    description: |-
+      PRECONDITION (manual): `monthEndStartedTripId`. src/modules/trip/trip.controller.ts:952-954.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Finish/Change Trip Status - 400 finish month end done.yml
+    request:
+      url: "{{baseUrl}}/trip/{{monthEndStartedTripId}}/status/4"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip is already month end done!",
+            "data": null
+          }
+  - name: 400 driver cannot cancel
+    description: |-
+      src/modules/trip/trip.controller.ts:923-931. Cancelling is DELETE /trip/:id.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Start/Change Trip Status - 400 driver cannot cancel.yml
+    request:
+      url: "{{baseUrl}}/trip/{{canceledTripId}}/status/2"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You'r not allowed to change status to CANCELED!",
+            "data": null
+          }
+  - name: 400 admin cannot start
+    description: |-
+      Office roles may only use 4 and 1 (src/modules/trip/trip.controller.ts:1030-1038).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Start/Change Trip Status - 400 admin cannot start.yml
+    request:
+      url: "{{baseUrl}}/trip/{{canceledTripId}}/status/3"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You'r not allowed to change status to START!",
+            "data": null
+          }
+  - name: 400 admin cannot cancel
+    description: |-
+      src/modules/trip/trip.controller.ts:1030-1038.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Start/Change Trip Status - 400 admin cannot cancel.yml
+    request:
+      url: "{{baseUrl}}/trip/{{canceledTripId}}/status/2"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You'r not allowed to change status to CANCELED!",
+            "data": null
+          }
+  - name: 400 status 5 not allowed
+    description: |-
+      WellKnownTripStatus.REACHED = 5 passes the enum check but is never a valid target (src/modules/trip/trip.controller.ts:824, :1030-1038; Document/trip.md Known issue 15).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Start/Change Trip Status - 400 status 5 not allowed.yml
+    request:
+      url: "{{baseUrl}}/trip/{{canceledTripId}}/status/5"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You'r not allowed to change status to REACHED!",
+            "data": null
+          }
+  - name: 400 start month end done
+    description: |-
+      PRECONDITION (manual): `monthEndPendingTripId` = PENDING trip with isMonthEndDone=true (only after Month Audit). src/modules/trip/trip.controller.ts:843-845.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Start/Change Trip Status - 400 start month end done.yml
+    request:
+      url: "{{baseUrl}}/trip/{{monthEndPendingTripId}}/status/3"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip is already month end done!",
+            "data": null
+          }
+  - name: 400 undo after expense request (driver)
+    description: |-
+      Driver branch guard (src/modules/trip/trip.controller.ts:877, :900-904).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Undo/Change Trip Status - 400 undo after expense request (driver).yml
+    request:
+      url: "{{baseUrl}}/trip/{{undoTripId}}/status/1"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Can't change status to pending after expense request added!",
+            "data": null
+          }
+  - name: 400 undo after expense request (admin)
+    description: |-
+      Office branch guard (src/modules/trip/trip.controller.ts:986, :1009-1013).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Undo/Change Trip Status - 400 undo after expense request (admin).yml
+    request:
+      url: "{{baseUrl}}/trip/{{undoTripId}}/status/1"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Can't change status to pending after expense request added!",
+            "data": null
+          }
+  - name: 400 undo after hotel payment
+    description: |-
+      `paymentTripId` has a paid hotel and activity (src/modules/trip/trip.controller.ts:988-1001).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Undo/Change Trip Status - 400 undo after hotel payment.yml
+    request:
+      url: "{{baseUrl}}/trip/{{paymentTripId}}/status/1"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Can't change status to pending after hotel or activity payment done!",
+            "data": null
+          }
+  - name: 400 undo after place reached (admin)
+    description: |-
+      Main trip place 1 reached (src/modules/trip/trip.controller.ts:993-995, :1015-1019).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Undo/Change Trip Status - 400 undo after place reached (admin).yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}/status/1"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Can't change status to pending after reached at least one place!",
+            "data": null
+          }
+  - name: 400 undo after place reached (driver)
+    description: |-
+      src/modules/trip/trip.controller.ts:884-886, :906-910.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Undo/Change Trip Status - 400 undo after place reached (driver).yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}/status/1"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Can't change status to pending after reached at least one place!",
+            "data": null
+          }
+  - name: 400 undo trip not started (driver)
+    description: |-
+      `canceledTripId` is PENDING (src/modules/trip/trip.controller.ts:861-869).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Undo/Change Trip Status - 400 undo trip not started (driver).yml
+    request:
+      url: "{{baseUrl}}/trip/{{canceledTripId}}/status/1"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip not found or not in start status!",
+            "data": null
+          }
+  - name: 400 undo trip not started (admin)
+    description: |-
+      src/modules/trip/trip.controller.ts:970-978.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Undo/Change Trip Status - 400 undo trip not started (admin).yml
+    request:
+      url: "{{baseUrl}}/trip/{{canceledTripId}}/status/1"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip not found or not in start status!",
+            "data": null
+          }
+  - name: 400 undo month end done (driver)
+    description: |-
+      PRECONDITION (manual): `monthEndStartedTripId` = START trip with isMonthEndDone=true. src/modules/trip/trip.controller.ts:871-873.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Undo/Change Trip Status - 400 undo month end done (driver).yml
+    request:
+      url: "{{baseUrl}}/trip/{{monthEndStartedTripId}}/status/1"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip is already month end done!",
+            "data": null
+          }
+  - name: 400 undo month end done (admin)
+    description: |-
+      PRECONDITION (manual): see folder Trip docs. src/modules/trip/trip.controller.ts:980-982.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Undo/Change Trip Status - 400 undo month end done (admin).yml
+    request:
+      url: "{{baseUrl}}/trip/{{monthEndStartedTripId}}/status/1"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip is already month end done!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → `authorize()` throws UnauthorizedError (src/middleware/auth.middleware.ts:24-26).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Trip/Change Trip Status - Start/Change Trip Status - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/trip/{{canceledTripId}}/status/3"
+      method: PUT
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows TRIPMANAGER, SUPERADMIN, ADMIN, DRIVER only (src/modules/trip/trip.route.ts:103-112); `financeOfficerToken` is rejected by authorize() (src/middleware/auth.middleware.ts:66-74).
+
+      Auth: bearer {{financeOfficerToken}}
+
+      Source scenario: Trip/Change Trip Status - Start/Change Trip Status - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/trip/{{canceledTripId}}/status/3"
+      method: PUT
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid trip id
+    description: |-
+      Trip.findOne cast error inside the transaction (src/modules/trip/trip.controller.ts:833) → 404.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Start/Change Trip Status - 404 invalid trip id.yml
+    request:
+      url: "{{baseUrl}}/trip/{{invalidId}}/status/3"
+      method: PUT
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/trip/:id/status/:status`**
+
+  This request runs the main scenario **200 setup start other-driver trip**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 finish trip | Trip finished successfully! |
+  | 2 | 200 | 200 start main trip | Trip started successfully! |
+  | 3 | 200 | 200 undo by driver | Trip pending successfully! |
+  | 4 | 200 | 200 start finish trip | Trip started successfully! |
+  | 5 | 200 | 200 start undo trip | Trip started successfully! |
+  | 6 | 200 | 200 start payment trip | Trip started successfully! |
+  | 7 | 200 | 200 setup restart undo trip | Trip started successfully! |
+  | 8 | 200 | 200 start trip without vehicle | Trip started successfully! |
+  | 9 | 200 | 200 undo by admin | Trip pending successfully! |
+  | 10 | 200 | 200 setup restart undo trip before expense | Trip started successfully! |
+  | 11 | 200 | 200 setup start other-driver trip | Trip started successfully! |
+  | 12 | 200 | 200 [KNOWN BUG] undo deletes expense when no driver salary | Trip pending successfully! |
+  | 13 | 200 | 200 setup restart undo trip before expense request | Trip started successfully! |
+  | 14 | 200 | 200 setup start no-driver trip | Trip started successfully! |
+  | 15 | 400 | 400 finish already finished trip | Trip not found or not in start status! |
+  | 16 | 400 | 400 finish pending trip | Trip not found or not in start status! |
+  | 17 | 400 | 400 start trip not pending | Trip not found or not in pending status! |
+  | 18 | 400 | 400 invalid status value | Invalid status! |
+  | 19 | 400 | 400 finish without POS trip end audit | Unable to finish trip because the trip end POS audit is not completed! |
+  | 20 | 400 | 400 driver cannot finish | You'r not allowed to change status to FINISHED! |
+  | 21 | 400 | 400 finish month end done | Trip is already month end done! |
+  | 22 | 400 | 400 driver cannot cancel | You'r not allowed to change status to CANCELED! |
+  | 23 | 400 | 400 admin cannot start | You'r not allowed to change status to START! |
+  | 24 | 400 | 400 admin cannot cancel | You'r not allowed to change status to CANCELED! |
+  | 25 | 400 | 400 status 5 not allowed | You'r not allowed to change status to REACHED! |
+  | 26 | 400 | 400 start month end done | Trip is already month end done! |
+  | 27 | 400 | 400 undo after expense request (driver) | Can't change status to pending after expense request added! |
+  | 28 | 400 | 400 undo after expense request (admin) | Can't change status to pending after expense request added! |
+  | 29 | 400 | 400 undo after hotel payment | Can't change status to pending after hotel or activity payment done! |
+  | 30 | 400 | 400 undo after place reached (admin) | Can't change status to pending after reached at least one place! |
+  | 31 | 400 | 400 undo after place reached (driver) | Can't change status to pending after reached at least one place! |
+  | 32 | 400 | 400 undo trip not started (driver) | Trip not found or not in start status! |
+  | 33 | 400 | 400 undo trip not started (admin) | Trip not found or not in start status! |
+  | 34 | 400 | 400 undo month end done (driver) | Trip is already month end done! |
+  | 35 | 400 | 400 undo month end done (admin) | Trip is already month end done! |
+  | 36 | 401 | 401 no token | Authentication invalid! |
+  | 37 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 38 | 404 | 404 invalid trip id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  Setup: driver starts `otherDriverTripId` (not their trip — no ownership check, src/modules/trip/trip.controller.ts:831-859) so the next requests hit the START branch.

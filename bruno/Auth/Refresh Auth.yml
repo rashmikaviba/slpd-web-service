@@ -1,0 +1,181 @@
+info:
+  name: Refresh Auth
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/refreshAuth"
+  body:
+    type: json
+    data: |-
+      {
+        "password": "{{superAdminPassword}}"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("data is a new Bearer JWT string", function () {
+          expect(res.body.data).to.match(/^Bearer [\w-]+\.[\w-]+\.[\w-]+$/);
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Session refresh successful!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 super admin
+    description: |-
+      Password matches → `jwtUtil.generateToken(auth)` (auth.controller.ts:154-178). `{{superAdminToken}}` is left unchanged.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Auth/Refresh Auth/Refresh Auth - 200 super admin.yml
+    request:
+      url: "{{baseUrl}}/auth/refreshAuth"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "password": "{{superAdminPassword}}"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Session refresh successful!",
+            "data": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature"
+          }
+  - name: 400 wrong password
+    description: |-
+      bcrypt compare fails → `BadRequestError` (auth.controller.ts:167).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Auth/Refresh Auth/Refresh Auth - 400 wrong password.yml
+    request:
+      url: "{{baseUrl}}/auth/refreshAuth"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "password": "wrong-password"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid password!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. auth.router.ts:28-32.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Auth/Refresh Auth/Refresh Auth - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/auth/refreshAuth"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "password": "x"
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 500 [KNOWN BUG] empty body
+    description: |-
+      [KNOWN BUG] No validation: `bcrypt.compare(undefined, hash)` throws → 500 (auth.controller.ts:162-165).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Auth/Refresh Auth/Refresh Auth - 500 [KNOWN BUG] empty body.yml
+    request:
+      url: "{{baseUrl}}/auth/refreshAuth"
+      method: POST
+      body:
+        type: json
+        data: "{}"
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Illegal arguments: undefined, string",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/auth/refreshAuth`**
+
+  This request runs the main scenario **200 super admin**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 super admin | Session refresh successful! |
+  | 2 | 400 | 400 wrong password | Invalid password! |
+  | 3 | 401 | 401 no token | Authentication invalid! |
+  | 4 | 500 | 500 [KNOWN BUG] empty body | Illegal arguments: undefined, string |
+
+  ## Main scenario notes
+
+  Password matches → `jwtUtil.generateToken(auth)` (auth.controller.ts:154-178). `{{superAdminToken}}` is left unchanged.

@@ -1,0 +1,228 @@
+info:
+  name: Delete Vehicle Maintenance
+  type: http
+  seq: 3
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/vehicleMaintenance/{{vehicleMaintenanceToDeleteId}}"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Vehicle maintenance deleted successfully
+    - expression: res.body.data
+      operator: isNull
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      [DESTRUCTIVE] Soft-deletes the throwaway record (vehicleMaintenance.controller.ts:172-200).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Delete Vehicle Maintenance/Delete Vehicle Maintenance - 200.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/{{vehicleMaintenanceToDeleteId}}"
+      method: DELETE
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle maintenance deleted successfully",
+            "data": null
+          }
+  - name: 400 already deleted
+    description: |-
+      Precondition: previous request deleted it (vehicleMaintenance.controller.ts:176-181).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Delete Vehicle Maintenance/Delete Vehicle Maintenance - 400 already deleted.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/{{vehicleMaintenanceToDeleteId}}"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid vehicle maintenance!",
+            "data": null
+          }
+  - name: 400 not found
+    description: |-
+      vehicleMaintenance.controller.ts:176-181.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Delete Vehicle Maintenance/Delete Vehicle Maintenance - 400 not found.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/{{nonExistingId}}"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid vehicle maintenance!",
+            "data": null
+          }
+  - name: 400 month end done
+    description: |-
+      Precondition: `{{closedVehicleMaintenanceId}}` set by the closed month lookup (vehicleMaintenance.controller.ts:183-185).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Delete Vehicle Maintenance/Delete Vehicle Maintenance - 400 month end done.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/{{closedVehicleMaintenanceId}}"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Cannot delete vehicle maintenance, Month end process already done!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Vehicle Maintenance/Delete Vehicle Maintenance/Delete Vehicle Maintenance - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/{{vehicleMaintenanceToDeleteId}}"
+      method: DELETE
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 driver role
+    description: |-
+      DRIVER is not in ACCESS_ROLES (vehicleMaintenance.route.ts:18-19).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Vehicle Maintenance/Delete Vehicle Maintenance/Delete Vehicle Maintenance - 403 driver role.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/{{vehicleMaintenanceToDeleteId}}"
+      method: DELETE
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed id → CastError → 404.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Delete Vehicle Maintenance/Delete Vehicle Maintenance - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/{{invalidId}}"
+      method: DELETE
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **DELETE `/api/v1/vehicleMaintenance/:id`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | Vehicle maintenance deleted successfully |
+  | 2 | 400 | 400 already deleted | Invalid vehicle maintenance! |
+  | 3 | 400 | 400 not found | Invalid vehicle maintenance! |
+  | 4 | 400 | 400 month end done | Cannot delete vehicle maintenance, Month end process already done! |
+  | 5 | 401 | 401 no token | Authentication invalid! |
+  | 6 | 403 | 403 driver role | You're unauthorized to access this resource! |
+  | 7 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  [DESTRUCTIVE] Soft-deletes the throwaway record (vehicleMaintenance.controller.ts:172-200).

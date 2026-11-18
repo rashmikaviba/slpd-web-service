@@ -1,0 +1,206 @@
+info:
+  name: Get Working Info
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: "{{baseUrl}}/monthAudit/workingInfo"
+  auth:
+    type: bearer
+    token: "{{driverToken}}"
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.status === 200) {
+          const m = res.body.data.workingMonth, y = res.body.data.workingYear;
+          bru.setVar("workingMonth", m);
+          bru.setVar("workingYear", y);
+          bru.setVar("nextMonth", m === 12 ? 1 : m + 1);
+          bru.setVar("nextYear", m === 12 ? y + 1 : y);
+        }
+    - type: tests
+      code: |-
+        test("working info dto", function () {
+          expect(res.body.data.workingMonth).to.be.within(1, 12);
+          expect(res.body.data).to.have.property("workingYear");
+          expect(res.body.data).to.have.property("workingDate");
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      Any authenticated role (`authorize([])`, monthAudit.route.ts:26-30), shown with a driver token. Stores `{{workingMonth}}` `{{workingYear}}` `{{nextMonth}}` `{{nextYear}}` (monthAudit.controller.ts:373-391).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Month Audit/Get Working Info - 200.yml
+    request:
+      url: "{{baseUrl}}/monthAudit/workingInfo"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "workingMonth": 11,
+              "workingYear": 2026,
+              "workingDate": "2026-10-31T18:30:00.000Z"
+            }
+          }
+  - name: 200 after close
+    description: |-
+      Effect of seq 16: the new ACTIVE working info is returned (cache was cleared on save).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Month Audit/Get Working Info - 200 after close.yml
+    request:
+      url: "{{baseUrl}}/monthAudit/workingInfo"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "workingMonth": 12,
+              "workingYear": 2026,
+              "workingDate": "2026-11-30T18:30:00.000Z"
+            }
+          }
+  - name: 400 no working info
+    description: |-
+      [PRECONDITION] Only passes when no ACTIVE CompanyWorkingInfo exists; in a normal run it returns 200 and fails. monthAudit.controller.ts:381-383.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Month Audit/Get Working Info - 400 no working info.yml
+    request:
+      url: "{{baseUrl}}/monthAudit/workingInfo"
+      method: GET
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No active company information found!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. monthAudit.route.ts:26-30.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Month Audit/Get Working Info - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/monthAudit/workingInfo"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 200 setup (Vehicle Maintenance setup)
+    description: |-
+      Setup only (monthAudit module, GET /monthAudit/workingInfo, any role). Stores `workingYear`, `workingMonth` and the dates
+      used by this folder: `vmDate` (15th of working month), `vmOutOfMonthDate` (same day one year earlier),
+      `vmMonthStart`/`vmMonthEnd` (working month range), `vmBeforeMonthEnd` (last day of the previous month).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Setup/Get Working Info - 200 setup.yml
+    request:
+      url: "{{baseUrl}}/monthAudit/workingInfo"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "workingMonth": 11,
+              "workingYear": 2026,
+              "workingDate": "2026-11-01T00:00:00.000Z"
+            }
+          }
+
+docs: |-
+  **GET `/api/v1/monthAudit/workingInfo`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | (empty) |
+  | 2 | 200 | 200 after close | (empty) |
+  | 3 | 400 | 400 no working info | No active company information found! |
+  | 4 | 401 | 401 no token | Authentication invalid! |
+  | 5 | 200 | 200 setup (Vehicle Maintenance setup) | (empty) |
+
+  ## Main scenario notes
+
+  Any authenticated role (`authorize([])`, monthAudit.route.ts:26-30), shown with a driver token. Stores `{{workingMonth}}` `{{workingYear}}` `{{nextMonth}}` `{{nextYear}}` (monthAudit.controller.ts:373-391).

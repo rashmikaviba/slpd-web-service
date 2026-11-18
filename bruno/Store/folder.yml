@@ -1,0 +1,21 @@
+info:
+  name: Store
+  type: folder
+  seq: 3
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    /api/v1/store/* — file upload to local disk (store.route.ts, store.controller.ts, util/multer.util.ts).
+    See Document/store.md.
+
+    - Both routes are **public** (no `authorize()`), so there are no 401/403 cases; requests use `auth: none`
+      to show that ([KNOWN ISSUE] Document/store.md › Known issues #1).
+    - `?type=` must be a WellKnownUploadType value 1-9 (ProfileImage … MaintenanceInvoice), checked in the multer
+      `destination` callback (multer.util.ts:11-15) → 400 `Invalid upload type`.
+    - Upload folders are not created automatically. Only `src/uploads/MaintenanceInvoice/` exists in the repo, so
+      success requests use `type=9`. Other types return 500 ENOENT unless their folder exists.
+    - Fixture: `fixtures/sample.txt` (no MIME/size filter exists, any file is accepted).
+  type: text/markdown

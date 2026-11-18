@@ -1,0 +1,475 @@
+info:
+  name: Update Internal Trip
+  type: http
+  seq: 3
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/internalTrip/{{internalTripId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "startDate": "2090-01-10T00:00:00.000Z",
+        "endDate": "2090-01-12T00:00:00.000Z",
+        "dateCount": 3,
+        "vehicle": "{{internalTripVehicleId}}",
+        "meterReading": 1100,
+        "driver": "{{driverUserId}}",
+        "reason": "Updated by Bruno"
+      }
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Internal trip Updated successfully!
+    - expression: res.body.data.reason
+      operator: eq
+      value: Updated by Bruno
+    - expression: res.body.data.calcDistance
+      operator: eq
+      value: "100"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      Stored meterReading is 1100 (> 0), so the mileage block is skipped (internalTrip.controller.ts:102-193).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Update Internal Trip/Update Internal Trip - 200.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/{{internalTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "Updated by Bruno"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Internal trip Updated successfully!",
+            "data": {
+              "_id": "6654a1b2c3d4e5f6a7b8c9d0",
+              "startDate": "2090-01-10T00:00:00.000Z",
+              "endDate": "2090-01-12T00:00:00.000Z",
+              "dateCount": 3,
+              "vehicle": "6651a1b2c3d4e5f6a7b8c9d3",
+              "meterReading": 1100,
+              "calcDistance": 100,
+              "driver": "6650a1b2c3d4e5f6a7b8c9d1",
+              "isMonthEndDone": false,
+              "reason": "Updated by Bruno",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:46:00.000Z",
+              "updatedAt": "2026-11-18T08:47:00.000Z"
+            }
+          }
+  - name: 200 applies meterReading once
+    description: |-
+      [KNOWN BUG] Stored meterReading 0 + body 1200 → vehicle mileage 1100 → 1200, calcDistance 100, but `meterReading` itself is never
+      written (stays 0), so the next update re-applies it (internalTrip.controller.ts:140-172, Document/internalTrip.md › Known issues).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Update Internal Trip/Update Internal Trip - 200 applies meterReading once.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/{{internalTripNoMeterId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-02-10T00:00:00.000Z",
+            "endDate": "2090-02-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1200,
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Internal trip Updated successfully!",
+            "data": {
+              "_id": "6654a1b2c3d4e5f6a7b8c9d1",
+              "startDate": "2090-02-10T00:00:00.000Z",
+              "endDate": "2090-02-12T00:00:00.000Z",
+              "dateCount": 3,
+              "vehicle": "6651a1b2c3d4e5f6a7b8c9d3",
+              "meterReading": 0,
+              "calcDistance": 100,
+              "driver": "6650a1b2c3d4e5f6a7b8c9d1",
+              "isMonthEndDone": false,
+              "reason": "Bruno internal trip",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:46:01.000Z",
+              "updatedAt": "2026-11-18T08:47:01.000Z"
+            }
+          }
+  - name: 400 meterReading re-applied
+    description: |-
+      [KNOWN BUG] Same request again: stored meterReading is still 0, so the mileage block runs again and 1200 >= current 1200 fails.
+      A higher reading would add mileage a second time (internalTrip.controller.ts:147-161). Precondition: previous request.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Update Internal Trip/Update Internal Trip - 400 meterReading re-applied.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/{{internalTripNoMeterId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-02-10T00:00:00.000Z",
+            "endDate": "2090-02-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1200,
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle current mileage is greater than meter reading!",
+            "data": null
+          }
+  - name: 400 overlapping date range
+    description: |-
+      Moves the no-meter trip onto the dates of `{{internalTripId}}` (same vehicle) (internalTrip.controller.ts:121-133).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Update Internal Trip/Update Internal Trip - 400 overlapping date range.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/{{internalTripNoMeterId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-11T00:00:00.000Z",
+            "endDate": "2090-01-13T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle already has internal trip or an other trip for this date range!",
+            "data": null
+          }
+  - name: 400 vehicle not found
+    description: |-
+      Precondition: `Create Internal Trip - 201 non-existent vehicle accepted` (`{{internalTripOrphanId}}`, `{{orphanStart}}`).
+      Stored meterReading 0 + body 5000 → loads the stored (missing) vehicle (internalTrip.controller.ts:147-155).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Update Internal Trip/Update Internal Trip - 400 vehicle not found.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/{{internalTripOrphanId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{orphanStart}}",
+            "endDate": "{{orphanEnd}}",
+            "dateCount": 1,
+            "vehicle": "{{nonExistingId}}",
+            "meterReading": 5000,
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle not found!",
+            "data": null
+          }
+  - name: 400 not found
+    description: |-
+      internalTrip.controller.ts:112-119.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Update Internal Trip/Update Internal Trip - 400 not found.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "Updated by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Internal trip not found!",
+            "data": null
+          }
+  - name: 400 missing startDate
+    description: |-
+      Same Joi schema as create (all rules covered there) (internalTrip.validation.ts:5, internalTrip.controller.ts:107-110).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Update Internal Trip/Update Internal Trip - 400 missing startDate.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/{{internalTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "Updated by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Start Date is required!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Internal Trip/Update Internal Trip/Update Internal Trip - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/{{internalTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "Updated by Bruno"
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 driver role
+    description: |-
+      internalTrip.route.ts:37-46.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Internal Trip/Update Internal Trip/Update Internal Trip - 403 driver role.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/{{internalTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "Updated by Bruno"
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Body valid; malformed id → CastError → 404.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Update Internal Trip/Update Internal Trip - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/{{invalidId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "Updated by Bruno"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/internalTrip/:id`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | Internal trip Updated successfully! |
+  | 2 | 200 | 200 applies meterReading once | Internal trip Updated successfully! |
+  | 3 | 400 | 400 meterReading re-applied | Vehicle current mileage is greater than meter reading! |
+  | 4 | 400 | 400 overlapping date range | Vehicle already has internal trip or an other trip for this date range! |
+  | 5 | 400 | 400 vehicle not found | Vehicle not found! |
+  | 6 | 400 | 400 not found | Internal trip not found! |
+  | 7 | 400 | 400 missing startDate | Start Date is required! |
+  | 8 | 401 | 401 no token | Authentication invalid! |
+  | 9 | 403 | 403 driver role | You're unauthorized to access this resource! |
+  | 10 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  Stored meterReading is 1100 (> 0), so the mileage block is skipped (internalTrip.controller.ts:102-193).

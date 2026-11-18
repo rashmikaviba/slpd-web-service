@@ -1,0 +1,1177 @@
+info:
+  name: Save Trip Summary
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/tripSummary"
+  body:
+    type: json
+    data: |-
+      {
+        "tripId": "{{tripId}}",
+        "date": "{{summaryDate}}",
+        "startTime": "{{summaryStart}}",
+        "endTime": "{{summaryEnd}}",
+        "startingKm": 1000,
+        "endingKm": 1080,
+        "totalKm": 80,
+        "fuel": 12,
+        "description": "Kandy to Ella"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        // summary date = today, 08:00 -> 17:00 UTC
+        const d = new Date().toISOString().slice(0, 10);
+        bru.setVar("summaryDate", d + "T00:00:00.000Z");
+        bru.setVar("summaryStart", d + "T08:00:00.000Z");
+        bru.setVar("summaryEnd", d + "T17:00:00.000Z");
+    - type: after-response
+      code: if (res.status === 200) bru.setVar("deleteTripSummaryId", res.body.data._id);
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Trip summary saved successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 setup summary to delete
+    description: |-
+      Setup: throw-away summary on the START trip.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Delete Trip Summary/Save Trip Summary - 200 setup summary to delete.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip summary saved successfully!",
+            "data": {
+              "tripId": "6651b2c3d4e5f6a7b8c9d001",
+              "date": "2026-11-18T00:00:00.000Z",
+              "startingTime": "2026-11-18T08:00:00.000Z",
+              "endingTime": "2026-11-18T17:00:00.000Z",
+              "startingKm": 1000,
+              "endingKm": 1080,
+              "totalKm": 80,
+              "fuel": 12,
+              "description": "Kandy to Ella",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "_id": "6653d4e5f6a7b8c9d0e1a004",
+              "createdAt": "2026-11-18T08:31:03.105Z",
+              "updatedAt": "2026-11-18T08:31:03.105Z"
+            }
+          }
+  - name: 200 admin on started trip
+    description: |-
+      Super admin, START trip. Stores `{{tripSummaryId}}`. Response uses model field names (startingTime/endingTime) (src/modules/tripSummary/tripSummary.controller.ts:49-71).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 200 admin on started trip.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip summary saved successfully!",
+            "data": {
+              "tripId": "6651b2c3d4e5f6a7b8c9d001",
+              "date": "2026-11-18T00:00:00.000Z",
+              "startingTime": "2026-11-18T08:00:00.000Z",
+              "endingTime": "2026-11-18T17:00:00.000Z",
+              "startingKm": 1000,
+              "endingKm": 1080,
+              "totalKm": 80,
+              "fuel": 12,
+              "description": "Kandy to Ella",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "_id": "6653d4e5f6a7b8c9d0e1a001",
+              "createdAt": "2026-11-18T08:31:00.214Z",
+              "updatedAt": "2026-11-18T08:31:00.214Z"
+            }
+          }
+  - name: 200 driver on started trip
+    description: |-
+      DRIVER on a START trip (no ownership check, Document/tripSummary.md Known issue 10). Stores `{{driverTripSummaryId}}`. Response uses model field names (startingTime/endingTime) (src/modules/tripSummary/tripSummary.controller.ts:49-71).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 200 driver on started trip.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip summary saved successfully!",
+            "data": {
+              "tripId": "6651b2c3d4e5f6a7b8c9d001",
+              "date": "2026-11-18T00:00:00.000Z",
+              "startingTime": "2026-11-18T08:00:00.000Z",
+              "endingTime": "2026-11-18T17:00:00.000Z",
+              "startingKm": 1000,
+              "endingKm": 1080,
+              "totalKm": 80,
+              "fuel": 12,
+              "description": "Kandy to Ella",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c002",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c002",
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "_id": "6653d4e5f6a7b8c9d0e1a002",
+              "createdAt": "2026-11-18T08:31:00.502Z",
+              "updatedAt": "2026-11-18T08:31:00.502Z"
+            }
+          }
+  - name: 200 office role on finished trip
+    description: |-
+      Office roles (here FINANCEOFFICER) may write on FINISHED trips. Stores `{{finishedTripSummaryId}}`. Response uses model field names (startingTime/endingTime) (src/modules/tripSummary/tripSummary.controller.ts:49-71).
+
+      Auth: bearer {{financeOfficerToken}}
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 200 office role on finished trip.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{finishedTripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip summary saved successfully!",
+            "data": {
+              "tripId": "6651b2c3d4e5f6a7b8c9d002",
+              "date": "2026-11-18T00:00:00.000Z",
+              "startingTime": "2026-11-18T08:00:00.000Z",
+              "endingTime": "2026-11-18T17:00:00.000Z",
+              "startingKm": 1000,
+              "endingKm": 1080,
+              "totalKm": 80,
+              "fuel": 12,
+              "description": "Kandy to Ella",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c006",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c006",
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "_id": "6653d4e5f6a7b8c9d0e1a003",
+              "createdAt": "2026-11-18T08:31:00.788Z",
+              "updatedAt": "2026-11-18T08:31:00.788Z"
+            }
+          }
+  - name: 400 driver on finished trip
+    description: |-
+      src/modules/tripSummary/tripSummary.controller.ts:36-42.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 driver on finished trip.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{finishedTripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You can not save trip summary, because trip is already finished!",
+            "data": null
+          }
+  - name: 400 trip not found
+    description: |-
+      src/modules/tripSummary/tripSummary.controller.ts:27-34.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 trip not found.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{nonExistingId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No trip found!",
+            "data": null
+          }
+  - name: 400 canceled trip
+    description: |-
+      Only START/FINISHED trips (src/modules/tripSummary/tripSummary.controller.ts:27-34). PENDING trips give the same error.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 canceled trip.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{canceledTripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No trip found!",
+            "data": null
+          }
+  - name: 400 month end done
+    description: |-
+      PRECONDITION (manual): `monthEndStartedTripId` = START/FINISHED trip with isMonthEndDone=true. src/modules/tripSummary/tripSummary.controller.ts:43-47.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 month end done.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{monthEndStartedTripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You can not save trip summary, because month end is already done!",
+            "data": null
+          }
+  - name: 400 missing tripId
+    description: |-
+      Joi `tripSummarySchema` (tripSummary.validation.ts) → `BadRequestError(error.message)` (src/modules/tripSummary/tripSummary.controller.ts:21-24).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 missing tripId.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "tripId is required",
+            "data": null
+          }
+  - name: 400 tripId not string
+    description: |-
+      Joi `tripSummarySchema` (tripSummary.validation.ts) → `BadRequestError(error.message)` (src/modules/tripSummary/tripSummary.controller.ts:21-24).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 tripId not string.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": 123,
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "tripId is invalid",
+            "data": null
+          }
+  - name: 400 missing date
+    description: |-
+      Joi `tripSummarySchema` (tripSummary.validation.ts) → `BadRequestError(error.message)` (src/modules/tripSummary/tripSummary.controller.ts:21-24).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 missing date.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Date is required",
+            "data": null
+          }
+  - name: 400 invalid date
+    description: |-
+      Joi `tripSummarySchema` (tripSummary.validation.ts) → `BadRequestError(error.message)` (src/modules/tripSummary/tripSummary.controller.ts:21-24).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 invalid date.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "date": "not-a-date",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Date is invalid",
+            "data": null
+          }
+  - name: 400 missing startTime
+    description: |-
+      Joi `tripSummarySchema` (tripSummary.validation.ts) → `BadRequestError(error.message)` (src/modules/tripSummary/tripSummary.controller.ts:21-24).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 missing startTime.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "date": "{{summaryDate}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Start Time is required",
+            "data": null
+          }
+  - name: 400 invalid startTime
+    description: |-
+      Joi `tripSummarySchema` (tripSummary.validation.ts) → `BadRequestError(error.message)` (src/modules/tripSummary/tripSummary.controller.ts:21-24).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 invalid startTime.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "not-a-date",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Start Time is invalid",
+            "data": null
+          }
+  - name: 400 invalid endTime
+    description: |-
+      Joi `tripSummarySchema` (tripSummary.validation.ts) → `BadRequestError(error.message)` (src/modules/tripSummary/tripSummary.controller.ts:21-24).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 invalid endTime.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "not-a-date",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "End Time is invalid",
+            "data": null
+          }
+  - name: 400 missing startingKm
+    description: |-
+      Joi `tripSummarySchema` (tripSummary.validation.ts) → `BadRequestError(error.message)` (src/modules/tripSummary/tripSummary.controller.ts:21-24).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 missing startingKm.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Starting Km is required",
+            "data": null
+          }
+  - name: 400 startingKm not number
+    description: |-
+      Joi `tripSummarySchema` (tripSummary.validation.ts) → `BadRequestError(error.message)` (src/modules/tripSummary/tripSummary.controller.ts:21-24).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 startingKm not number.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": "abc",
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Starting Km is invalid",
+            "data": null
+          }
+  - name: 400 endingKm not number
+    description: |-
+      Joi `tripSummarySchema` (tripSummary.validation.ts) → `BadRequestError(error.message)` (src/modules/tripSummary/tripSummary.controller.ts:21-24).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 endingKm not number.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": "abc",
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Ending Km is invalid",
+            "data": null
+          }
+  - name: 400 totalKm not number
+    description: |-
+      Joi `tripSummarySchema` (tripSummary.validation.ts) → `BadRequestError(error.message)` (src/modules/tripSummary/tripSummary.controller.ts:21-24).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 totalKm not number.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": "abc",
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Total Km is invalid",
+            "data": null
+          }
+  - name: 400 fuel not number
+    description: |-
+      Joi `tripSummarySchema` (tripSummary.validation.ts) → `BadRequestError(error.message)` (src/modules/tripSummary/tripSummary.controller.ts:21-24).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 fuel not number.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": "abc",
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Fuel is invalid",
+            "data": null
+          }
+  - name: 400 description too long
+    description: |-
+      Joi `tripSummarySchema` (tripSummary.validation.ts) → `BadRequestError(error.message)` (src/modules/tripSummary/tripSummary.controller.ts:21-24).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 description too long.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Description should not be more than 500 characters",
+            "data": null
+          }
+  - name: 400 description not string
+    description: |-
+      Joi `tripSummarySchema` (tripSummary.validation.ts) → `BadRequestError(error.message)` (src/modules/tripSummary/tripSummary.controller.ts:21-24).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 description not string.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": 123
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Description is invalid",
+            "data": null
+          }
+  - name: 400 unknown field
+    description: |-
+      Joi `tripSummarySchema` (tripSummary.validation.ts) → `BadRequestError(error.message)` (src/modules/tripSummary/tripSummary.controller.ts:21-24).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 400 unknown field.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella",
+            "foo": "bar"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"foo\" is not allowed",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → UnauthorizedError (src/middleware/auth.middleware.ts:24-26).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows TRIPMANAGER, SUPERADMIN, ADMIN, FINANCEOFFICER, DRIVER (src/modules/tripSummary/tripSummary.route.ts:15-25); DRIVERASSISTANT is rejected (src/middleware/auth.middleware.ts:66-74).
+
+      Auth: bearer {{driverAssistantToken}}
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed ObjectId reaches findOne → CastError → 404 (error.middleware.ts CastError branch). tripService.findByIdAndStatusIn (src/modules/tripSummary/tripSummary.controller.ts:27).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Save Trip Summary/Save Trip Summary - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/tripSummary"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{invalidId}}",
+            "date": "{{summaryDate}}",
+            "startTime": "{{summaryStart}}",
+            "endTime": "{{summaryEnd}}",
+            "startingKm": 1000,
+            "endingKm": 1080,
+            "totalKm": 80,
+            "fuel": 12,
+            "description": "Kandy to Ella"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/tripSummary`**
+
+  This request runs the main scenario **200 setup summary to delete**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 setup summary to delete | Trip summary saved successfully! |
+  | 2 | 200 | 200 admin on started trip | Trip summary saved successfully! |
+  | 3 | 200 | 200 driver on started trip | Trip summary saved successfully! |
+  | 4 | 200 | 200 office role on finished trip | Trip summary saved successfully! |
+  | 5 | 400 | 400 driver on finished trip | You can not save trip summary, because trip is already finished! |
+  | 6 | 400 | 400 trip not found | No trip found! |
+  | 7 | 400 | 400 canceled trip | No trip found! |
+  | 8 | 400 | 400 month end done | You can not save trip summary, because month end is already done! |
+  | 9 | 400 | 400 missing tripId | tripId is required |
+  | 10 | 400 | 400 tripId not string | tripId is invalid |
+  | 11 | 400 | 400 missing date | Date is required |
+  | 12 | 400 | 400 invalid date | Date is invalid |
+  | 13 | 400 | 400 missing startTime | Start Time is required |
+  | 14 | 400 | 400 invalid startTime | Start Time is invalid |
+  | 15 | 400 | 400 invalid endTime | End Time is invalid |
+  | 16 | 400 | 400 missing startingKm | Starting Km is required |
+  | 17 | 400 | 400 startingKm not number | Starting Km is invalid |
+  | 18 | 400 | 400 endingKm not number | Ending Km is invalid |
+  | 19 | 400 | 400 totalKm not number | Total Km is invalid |
+  | 20 | 400 | 400 fuel not number | Fuel is invalid |
+  | 21 | 400 | 400 description too long | Description should not be more than 500 characters |
+  | 22 | 400 | 400 description not string | Description is invalid |
+  | 23 | 400 | 400 unknown field | "foo" is not allowed |
+  | 24 | 401 | 401 no token | Authentication invalid! |
+  | 25 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 26 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  Setup: throw-away summary on the START trip.

@@ -1,0 +1,839 @@
+info:
+  name: Create Product
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/inventory/product"
+  body:
+    type: json
+    data: |-
+      {
+        "productName": "{{productName}}",
+        "productShortCode": "{{productShortCode}}",
+        "measureUnit": 13,
+        "isReturnableProduct": false,
+        "unitPrice": 250,
+        "description": "Bruno main product (kg)"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const ts = Date.now();
+        bru.setVar("productName", "Bruno Rice " + ts);
+        bru.setVar("productShortCode", "BR" + ts);
+    - type: after-response
+      code: if (res.status === 201) bru.setVar("productId", res.body.data._id);
+    - type: tests
+      code: |-
+        test("stock starts at 0", function () {
+          expect(res.body.data.inventory).to.equal(0);
+          expect(res.body.data.status).to.equal(1);
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Product saved successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 201 kg product
+    description: |-
+      Creates the main product (measure unit 13 = kg, non-returnable, 250/kg). Stores `{{productId}}`, `{{productName}}`, `{{productShortCode}}`.
+      Used by GRN (stock in) and POS (stock out). Roles: SUPERADMIN, ADMIN. `src/modules/inventory/product/product.controller.ts:16` — responds 201 with the raw document.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Create Product - 201 kg product.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "{{productName}}",
+            "productShortCode": "{{productShortCode}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Bruno main product (kg)"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product saved successfully!",
+            "data": {
+              "_id": "6731f0a2b4c5d6e7f8a9b0c1",
+              "productName": "Bruno Rice 1794990600000",
+              "productShortCode": "BR1794990600000",
+              "measureUnit": 13,
+              "isReturnableProduct": false,
+              "unitPrice": 250,
+              "description": "Bruno main product (kg)",
+              "inventory": 0,
+              "inventoryLogs": [],
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:30:00.412Z",
+              "updatedAt": "2026-11-18T08:30:00.412Z"
+            }
+          }
+  - name: 201 temp pc product
+    description: |-
+      Creates a throw-away countable (pc) product stored as `{{tempProductId}}`; it is toggled active/inactive, used for duplicate checks and finally soft-deleted at the end of this folder.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Create Product - 201 temp pc product.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Temp {{$timestamp}}",
+            "productShortCode": "BT{{$timestamp}}",
+            "measureUnit": 1,
+            "isReturnableProduct": true,
+            "unitPrice": 100,
+            "description": ""
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product saved successfully!",
+            "data": {
+              "_id": "6731f0a2b4c5d6e7f8a9b0c2",
+              "productName": "Bruno Temp 1794990601",
+              "productShortCode": "BT1794990601",
+              "measureUnit": 1,
+              "isReturnableProduct": true,
+              "unitPrice": 100,
+              "description": "",
+              "inventory": 0,
+              "inventoryLogs": [],
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:30:01.230Z",
+              "updatedAt": "2026-11-18T08:30:01.230Z"
+            }
+          }
+  - name: 400 missing productName
+    description: |-
+      Joi `productSaveSchema` (any.required) -> `BadRequestError(error.message)`. `src/modules/inventory/product/product.validation.ts`, `src/modules/inventory/product/product.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Create Product - 400 missing productName.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productShortCode": "BP{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product Name is required",
+            "data": null
+          }
+  - name: 400 productName not a string
+    description: |-
+      Joi `productSaveSchema` (string.base) -> `BadRequestError(error.message)`. `src/modules/inventory/product/product.validation.ts`, `src/modules/inventory/product/product.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Create Product - 400 productName not a string.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": 123,
+            "productShortCode": "BP{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product Name is invalid",
+            "data": null
+          }
+  - name: 400 missing productShortCode
+    description: |-
+      Joi `productSaveSchema` (any.required) -> `BadRequestError(error.message)`. `src/modules/inventory/product/product.validation.ts`, `src/modules/inventory/product/product.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Create Product - 400 missing productShortCode.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product Short Code is required",
+            "data": null
+          }
+  - name: 400 productShortCode not a string
+    description: |-
+      Joi `productSaveSchema` (string.base) -> `BadRequestError(error.message)`. `src/modules/inventory/product/product.validation.ts`, `src/modules/inventory/product/product.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Create Product - 400 productShortCode not a string.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "productShortCode": 123,
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product Short Code is invalid",
+            "data": null
+          }
+  - name: 400 missing measureUnit
+    description: |-
+      Joi `productSaveSchema` (any.required) -> `BadRequestError(error.message)`. `src/modules/inventory/product/product.validation.ts`, `src/modules/inventory/product/product.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Create Product - 400 missing measureUnit.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "productShortCode": "BP{{$timestamp}}",
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Measure Unit is required",
+            "data": null
+          }
+  - name: 400 measureUnit not a number
+    description: |-
+      Joi `productSaveSchema` (number.base) -> `BadRequestError(error.message)`. `src/modules/inventory/product/product.validation.ts`, `src/modules/inventory/product/product.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Create Product - 400 measureUnit not a number.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "productShortCode": "BP{{$timestamp}}",
+            "measureUnit": "abc",
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Measure Unit is invalid",
+            "data": null
+          }
+  - name: 400 missing isReturnableProduct
+    description: |-
+      Joi `productSaveSchema` (any.required) -> `BadRequestError(error.message)`. `src/modules/inventory/product/product.validation.ts`, `src/modules/inventory/product/product.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Create Product - 400 missing isReturnableProduct.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "productShortCode": "BP{{$timestamp}}",
+            "measureUnit": 13,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Is Returnable Product is required",
+            "data": null
+          }
+  - name: 400 isReturnableProduct not boolean
+    description: |-
+      Joi `productSaveSchema` (boolean.base) -> `BadRequestError(error.message)`. `src/modules/inventory/product/product.validation.ts`, `src/modules/inventory/product/product.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Create Product - 400 isReturnableProduct not boolean.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "productShortCode": "BP{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": "maybe",
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Is Returnable Product is invalid",
+            "data": null
+          }
+  - name: 400 missing unitPrice
+    description: |-
+      Joi `productSaveSchema` (any.required) -> `BadRequestError(error.message)`. `src/modules/inventory/product/product.validation.ts`, `src/modules/inventory/product/product.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Create Product - 400 missing unitPrice.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "productShortCode": "BP{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Unit Price is required",
+            "data": null
+          }
+  - name: 400 unitPrice not a number
+    description: |-
+      Joi `productSaveSchema` (number.base) -> `BadRequestError(error.message)`. `src/modules/inventory/product/product.validation.ts`, `src/modules/inventory/product/product.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Create Product - 400 unitPrice not a number.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "productShortCode": "BP{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": "abc",
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Unit Price is invalid",
+            "data": null
+          }
+  - name: 400 description too long
+    description: |-
+      Joi `productSaveSchema` (string.max 500) -> `BadRequestError(error.message)`. `src/modules/inventory/product/product.validation.ts`, `src/modules/inventory/product/product.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Create Product - 400 description too long.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "productShortCode": "BP{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "{{longText501}}"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Description should not be more than 500 characters",
+            "data": null
+          }
+  - name: 400 description not a string
+    description: |-
+      Joi `productSaveSchema` (string.base) -> `BadRequestError(error.message)`. `src/modules/inventory/product/product.validation.ts`, `src/modules/inventory/product/product.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Create Product - 400 description not a string.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "productShortCode": "BP{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": 123
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Description is invalid",
+            "data": null
+          }
+  - name: 400 unknown field
+    description: |-
+      Joi rejects unknown keys by default. `src/modules/inventory/product/product.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Create Product - 400 unknown field.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "productShortCode": "BP{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno",
+            "foo": "bar"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"foo\" is not allowed",
+            "data": null
+          }
+  - name: 400 duplicate short code
+    description: |-
+      Short code of `{{productId}}` reused (case-insensitive check among non-DELETED). Short code is checked before name. `src/modules/inventory/product/product.controller.ts:39`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Create Product - 400 duplicate short code.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Dup {{$timestamp}}",
+            "productShortCode": "{{productShortCode}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product short code cannot be duplicate!",
+            "data": null
+          }
+  - name: 400 duplicate name
+    description: |-
+      Name of `{{productId}}` reused with a fresh short code. `src/modules/inventory/product/product.controller.ts:42`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Create Product - 400 duplicate name.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "{{productName}}",
+            "productShortCode": "BD{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product name cannot be duplicate!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Inventory/Product/Create Product - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "productShortCode": "BP{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN only; `{{driverToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Inventory/Product/Create Product - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "productShortCode": "BP{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 500 regex-unsafe name
+    description: |-
+      [KNOWN BUG] `product.service.ts:24,30` interpolates user input into `$regex` without escaping.
+      Name `(` makes MongoDB fail with an invalid-regex error -> no `statusCode` -> 500 (message is the raw Mongo error text, not asserted).
+      Names like `Coke (1L)` silently bypass the duplicate check. Fix: escape regex metacharacters (or use collation equality).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Create Product - 500 regex-unsafe name.yml
+    request:
+      url: "{{baseUrl}}/inventory/product"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "(",
+            "productShortCode": "RX{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Regular expression is invalid: missing closing parenthesis",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/inventory/product`**
+
+  This request runs the main scenario **201 kg product**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 kg product | Product saved successfully! |
+  | 2 | 201 | 201 temp pc product | Product saved successfully! |
+  | 3 | 400 | 400 missing productName | Product Name is required |
+  | 4 | 400 | 400 productName not a string | Product Name is invalid |
+  | 5 | 400 | 400 missing productShortCode | Product Short Code is required |
+  | 6 | 400 | 400 productShortCode not a string | Product Short Code is invalid |
+  | 7 | 400 | 400 missing measureUnit | Measure Unit is required |
+  | 8 | 400 | 400 measureUnit not a number | Measure Unit is invalid |
+  | 9 | 400 | 400 missing isReturnableProduct | Is Returnable Product is required |
+  | 10 | 400 | 400 isReturnableProduct not boolean | Is Returnable Product is invalid |
+  | 11 | 400 | 400 missing unitPrice | Unit Price is required |
+  | 12 | 400 | 400 unitPrice not a number | Unit Price is invalid |
+  | 13 | 400 | 400 description too long | Description should not be more than 500 characters |
+  | 14 | 400 | 400 description not a string | Description is invalid |
+  | 15 | 400 | 400 unknown field | "foo" is not allowed |
+  | 16 | 400 | 400 duplicate short code | Product short code cannot be duplicate! |
+  | 17 | 400 | 400 duplicate name | Product name cannot be duplicate! |
+  | 18 | 401 | 401 no token | Authentication invalid! |
+  | 19 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 20 | 500 | 500 regex-unsafe name | Regular expression is invalid: missing closing parenthesis |
+
+  ## Main scenario notes
+
+  Creates the main product (measure unit 13 = kg, non-returnable, 250/kg). Stores `{{productId}}`, `{{productName}}`, `{{productShortCode}}`.
+  Used by GRN (stock in) and POS (stock out). Roles: SUPERADMIN, ADMIN. `src/modules/inventory/product/product.controller.ts:16` — responds 201 with the raw document.

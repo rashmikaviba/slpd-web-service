@@ -1,0 +1,1858 @@
+info:
+  name: Monthly Trip Report
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/report/monthlyTripReport?date={{reportDate}}"
+  params:
+    - name: date
+      value: "{{reportDate}}"
+      type: query
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const d = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        // mid-month day avoids TZ edge cases (server builds month bounds in local time from a UTC-parsed date)
+        bru.setVar("reportDate", `${d.getFullYear()}-${pad(d.getMonth() + 1)}-15`);
+    - type: after-response
+      code: if (res.status === 200) bru.setVar("monthlyTripReportCount", res.body.data.length);
+    - type: tests
+      code: |-
+        const data = res.body.data;
+        test("every trip is PENDING/START/FINISHED and ends in the selected month", function () {
+          const sel = new Date(bru.getVar("reportDate"));
+          const from = new Date(sel.getFullYear(), sel.getMonth(), 1).getTime();
+          const to = new Date(sel.getFullYear(), sel.getMonth() + 1, 1).getTime();
+          data.forEach((t) => {
+            expect(t).to.include.all.keys("_id", "tripConfirmedNumber", "startDate", "endDate", "status", "expenses");
+            expect([1, 3, 4]).to.include(t.status);
+            const e = new Date(t.endDate).getTime();
+            expect(e).to.be.at.least(from);
+            expect(e).to.be.below(to);
+          });
+        });
+        test("expenses is null or the TripExpensesResponseDto", function () {
+          data.forEach((t) => {
+            if (t.expenses === null) return;
+            expect(t.expenses).to.have.all.keys("_id", "tripId", "expenses", "driverSalaries", "isMonthEndDone",
+              "tripExpensesAmount", "totalTripExpensesAmount", "remainingTripExpensesAmount");
+            expect(t.expenses.tripId).to.equal(t._id);
+            t.expenses.expenses.forEach((x) => expect(x.status).to.equal(1));
+            const total = t.expenses.expenses.reduce((s, x) => s + x.amount, 0);
+            expect(t.expenses.totalTripExpensesAmount).to.equal(total);
+            if (typeof t.expenses.tripExpensesAmount === "number") {
+              expect(t.expenses.remainingTripExpensesAmount).to.equal(t.expenses.tripExpensesAmount - total);
+            }
+          });
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.data
+      operator: isArray
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 current month
+    description: |-
+      Raw lean trips (status PENDING/START/FINISHED, endDate in month) each with `expenses` = TripExpensesResponseDto or null
+      (report.controller.ts:20-77, expenses.util.ts:3). Tests check the month window, statuses, expense DTO keys,
+      ACTIVE-only items and the totals formula. Rows exist only if trips ending this month were created earlier in the run.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Monthly Trip Report/Monthly Trip Report - 200 current month.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyTripReport?date={{reportDate}}"
+      method: GET
+      params:
+        - name: date
+          value: "{{reportDate}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6651b2c3d4e5f6a7b8c9d001",
+                "startDate": "2026-11-04T00:00:00.000Z",
+                "endDate": "2026-11-10T00:00:00.000Z",
+                "tripConfirmedNumber": "SLPD-2026-1104",
+                "isPaymentCollected": true,
+                "dateCount": 7,
+                "requestedVehicle": "Van",
+                "totalCost": 1250,
+                "totalCostLocalCurrency": 375000,
+                "estimatedExpense": 30000,
+                "specialRequirement": "Child seat required",
+                "paymentMode": "Cash",
+                "passengers": [
+                  {
+                    "name": "Emma Collins",
+                    "nationality": "British",
+                    "age": 34,
+                    "gender": "Female",
+                    "_id": "6651b2c3d4e5f6a7b8c9a001"
+                  }
+                ],
+                "arrivalInfo": {
+                  "arrivalDate": "2026-11-04T00:00:00.000Z",
+                  "arrivalTime": "2026-11-04T03:45:00.000Z",
+                  "arrivalFlightNumber": "UL504"
+                },
+                "departureInfo": {
+                  "departureDate": "2026-11-10T00:00:00.000Z",
+                  "departureTime": "2026-11-10T17:30:00.000Z",
+                  "departureFlightNumber": "UL503"
+                },
+                "pickUpInfo": {
+                  "pickupDate": "2026-11-04T00:00:00.000Z",
+                  "pickupTime": "2026-11-04T04:30:00.000Z",
+                  "pickupCity": "Katunayake",
+                  "pickupAddress": "Bandaranaike International Airport"
+                },
+                "dropOffInfo": {
+                  "dropOffDate": "2026-11-10T00:00:00.000Z",
+                  "dropOffTime": "2026-11-10T13:00:00.000Z",
+                  "dropOffCity": "Katunayake",
+                  "dropOffAddress": "Bandaranaike International Airport"
+                },
+                "activities": [
+                  {
+                    "date": "2026-11-04T00:00:00.000Z",
+                    "description": "Sigiriya Rock Fortress entry",
+                    "adultCount": 2,
+                    "childCount": 1,
+                    "totalCost": 21000,
+                    "isPaymentByCompany": true,
+                    "isPaymentDone": true,
+                    "paymentAmount": 21000,
+                    "paymentDate": "2026-11-04T00:00:00.000Z",
+                    "paymentRemark": "",
+                    "updatedBy": null,
+                    "paymentMode": "0",
+                    "receiptImageUrl": "",
+                    "_id": "6651b2c3d4e5f6a7b8c9a002"
+                  }
+                ],
+                "places": [
+                  {
+                    "description": "Sigiriya",
+                    "dates": [
+                      "2026-11-04T00:00:00.000Z"
+                    ],
+                    "isReached": true,
+                    "index": 0,
+                    "reachedDate": "2026-11-04T08:10:00.000Z",
+                    "calcDistance": 172,
+                    "startMilage": 45210,
+                    "endMilage": 45382,
+                    "location": {
+                      "latitude": 7.957,
+                      "longitude": 80.7603
+                    },
+                    "reachedBy": "6650a1b2c3d4e5f6a7b8c903",
+                    "updatedBy": "6650a1b2c3d4e5f6a7b8c903",
+                    "_id": "6651b2c3d4e5f6a7b8c9a003"
+                  }
+                ],
+                "hotels": [
+                  {
+                    "dates": "2026-11-04 - 2026-11-10",
+                    "hotelName": "Heritance Kandalama",
+                    "city": "Dambulla",
+                    "isPaymentByCompany": false,
+                    "isPaymentDone": false,
+                    "paymentAmount": 0,
+                    "paymentDate": null,
+                    "paymentRemark": "",
+                    "updatedBy": null,
+                    "paymentMode": "0",
+                    "receiptImageUrl": "",
+                    "_id": "6651b2c3d4e5f6a7b8c9a004"
+                  }
+                ],
+                "email": "guest.booking@example.com",
+                "phoneNumber": "+447700900123",
+                "contactPerson": "Emma Collins",
+                "drivers": [
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c903",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "isActive": true,
+                    "_id": "6651b2c3d4e5f6a7b8c9b001"
+                  },
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c904",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "isActive": true,
+                    "_id": "6651b2c3d4e5f6a7b8c9b002"
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6653d4e5f6a7b8c9d0e1f101",
+                    "isActive": true,
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "_id": "6651b2c3d4e5f6a7b8c9c001"
+                  }
+                ],
+                "checkListAnswers": {
+                  "1": 1,
+                  "2": 1,
+                  "3": 1,
+                  "4": 1,
+                  "5": 1
+                },
+                "checkListCheckBy": "6650a1b2c3d4e5f6a7b8c903",
+                "status": 4,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c901",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c901",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c903",
+                "endedBy": "6650a1b2c3d4e5f6a7b8c903",
+                "isMonthEndDone": false,
+                "batchId": 0,
+                "createdAt": "2026-10-20T05:00:00.000Z",
+                "updatedAt": "2026-11-10T15:00:00.000Z",
+                "expenses": {
+                  "_id": "6652c3d4e5f6a7b8c9d0e001",
+                  "tripId": "6651b2c3d4e5f6a7b8c9d001",
+                  "expenses": [
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f101",
+                      "typeId": 1,
+                      "typeName": "Fuel",
+                      "amount": 18500,
+                      "description": "Diesel refill at Dambulla",
+                      "date": "2026-11-05T00:00:00.000Z",
+                      "receiptUrl": "https://storage.example.com/receipts/fuel-1101.jpg",
+                      "status": 1,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c903",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c903",
+                      "createdAt": "2026-11-05T09:20:00.000Z",
+                      "updatedAt": "2026-11-05T09:20:00.000Z"
+                    },
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f102",
+                      "typeId": 2,
+                      "typeName": "Meals",
+                      "amount": 6500,
+                      "description": "Driver meals Kandy",
+                      "date": "2026-11-07T00:00:00.000Z",
+                      "receiptUrl": "https://storage.example.com/receipts/meals-1102.jpg",
+                      "status": 1,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c903",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c903",
+                      "createdAt": "2026-11-07T13:05:00.000Z",
+                      "updatedAt": "2026-11-07T13:05:00.000Z"
+                    }
+                  ],
+                  "driverSalaries": [
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f301",
+                      "driver": "6650a1b2c3d4e5f6a7b8c903",
+                      "salaryPerDay": 4500,
+                      "noOfDays": 7,
+                      "totalSalary": 28500,
+                      "totalAddition": 2000,
+                      "totalDeduction": 0,
+                      "remainingExpenses": 5000,
+                      "isRemainingToDriver": true,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c902",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c902",
+                      "createdAt": "2026-11-11T05:10:00.000Z",
+                      "updatedAt": "2026-11-11T05:10:00.000Z"
+                    },
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f302",
+                      "driver": "6650a1b2c3d4e5f6a7b8c904",
+                      "salaryPerDay": 4000,
+                      "noOfDays": 7,
+                      "totalSalary": 27000,
+                      "totalAddition": 0,
+                      "totalDeduction": 1000,
+                      "remainingExpenses": 5000,
+                      "isRemainingToDriver": false,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c902",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c902",
+                      "createdAt": "2026-11-11T05:10:00.000Z",
+                      "updatedAt": "2026-11-11T05:10:00.000Z"
+                    }
+                  ],
+                  "isMonthEndDone": false,
+                  "tripExpensesAmount": 30000,
+                  "totalTripExpensesAmount": 25000,
+                  "remainingTripExpensesAmount": 5000
+                }
+              },
+              {
+                "_id": "6651b2c3d4e5f6a7b8c9d002",
+                "startDate": "2026-11-16T00:00:00.000Z",
+                "endDate": "2026-11-22T00:00:00.000Z",
+                "tripConfirmedNumber": "SLPD-2026-1116",
+                "isPaymentCollected": false,
+                "dateCount": 7,
+                "requestedVehicle": "Van",
+                "totalCost": 980,
+                "totalCostLocalCurrency": 294000,
+                "estimatedExpense": 45000,
+                "specialRequirement": "Child seat required",
+                "paymentMode": "Cash",
+                "passengers": [
+                  {
+                    "name": "Emma Collins",
+                    "nationality": "British",
+                    "age": 34,
+                    "gender": "Female",
+                    "_id": "6651b2c3d4e5f6a7b8c9a001"
+                  }
+                ],
+                "arrivalInfo": {
+                  "arrivalDate": "2026-11-16T00:00:00.000Z",
+                  "arrivalTime": "2026-11-16T03:45:00.000Z",
+                  "arrivalFlightNumber": "UL504"
+                },
+                "departureInfo": {
+                  "departureDate": "2026-11-22T00:00:00.000Z",
+                  "departureTime": "2026-11-22T17:30:00.000Z",
+                  "departureFlightNumber": "UL503"
+                },
+                "pickUpInfo": {
+                  "pickupDate": "2026-11-16T00:00:00.000Z",
+                  "pickupTime": "2026-11-16T04:30:00.000Z",
+                  "pickupCity": "Katunayake",
+                  "pickupAddress": "Bandaranaike International Airport"
+                },
+                "dropOffInfo": {
+                  "dropOffDate": "2026-11-22T00:00:00.000Z",
+                  "dropOffTime": "2026-11-22T13:00:00.000Z",
+                  "dropOffCity": "Katunayake",
+                  "dropOffAddress": "Bandaranaike International Airport"
+                },
+                "activities": [
+                  {
+                    "date": "2026-11-16T00:00:00.000Z",
+                    "description": "Sigiriya Rock Fortress entry",
+                    "adultCount": 2,
+                    "childCount": 1,
+                    "totalCost": 21000,
+                    "isPaymentByCompany": true,
+                    "isPaymentDone": false,
+                    "paymentAmount": 0,
+                    "paymentDate": null,
+                    "paymentRemark": "",
+                    "updatedBy": null,
+                    "paymentMode": "0",
+                    "receiptImageUrl": "",
+                    "_id": "6651b2c3d4e5f6a7b8c9a002"
+                  }
+                ],
+                "places": [
+                  {
+                    "description": "Sigiriya",
+                    "dates": [
+                      "2026-11-16T00:00:00.000Z"
+                    ],
+                    "isReached": false,
+                    "index": 0,
+                    "reachedDate": null,
+                    "calcDistance": 0,
+                    "startMilage": 0,
+                    "endMilage": 0,
+                    "location": null,
+                    "reachedBy": null,
+                    "updatedBy": null,
+                    "_id": "6651b2c3d4e5f6a7b8c9a003"
+                  }
+                ],
+                "hotels": [
+                  {
+                    "dates": "2026-11-16 - 2026-11-22",
+                    "hotelName": "Heritance Kandalama",
+                    "city": "Dambulla",
+                    "isPaymentByCompany": false,
+                    "isPaymentDone": false,
+                    "paymentAmount": 0,
+                    "paymentDate": null,
+                    "paymentRemark": "",
+                    "updatedBy": null,
+                    "paymentMode": "0",
+                    "receiptImageUrl": "",
+                    "_id": "6651b2c3d4e5f6a7b8c9a004"
+                  }
+                ],
+                "email": "guest.booking@example.com",
+                "phoneNumber": "+447700900123",
+                "contactPerson": "Emma Collins",
+                "drivers": [
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c904",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "isActive": true,
+                    "_id": "6651b2c3d4e5f6a7b8c9b001"
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6653d4e5f6a7b8c9d0e1f101",
+                    "isActive": true,
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "_id": "6651b2c3d4e5f6a7b8c9c001"
+                  }
+                ],
+                "checkListAnswers": {
+                  "1": 1,
+                  "2": 1,
+                  "3": 1,
+                  "4": 1,
+                  "5": 1
+                },
+                "checkListCheckBy": "6650a1b2c3d4e5f6a7b8c904",
+                "status": 3,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c901",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c901",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c904",
+                "endedBy": null,
+                "isMonthEndDone": false,
+                "batchId": 0,
+                "createdAt": "2026-10-20T05:00:00.000Z",
+                "updatedAt": "2026-11-16T04:30:00.000Z",
+                "expenses": {
+                  "_id": "6652c3d4e5f6a7b8c9d0e002",
+                  "tripId": "6651b2c3d4e5f6a7b8c9d002",
+                  "expenses": [
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f201",
+                      "typeId": 1,
+                      "typeName": "Fuel",
+                      "amount": 12000,
+                      "description": "Diesel refill at Nuwara Eliya",
+                      "date": "2026-11-17T00:00:00.000Z",
+                      "receiptUrl": "https://storage.example.com/receipts/fuel-1201.jpg",
+                      "status": 1,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c904",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c904",
+                      "createdAt": "2026-11-17T08:40:00.000Z",
+                      "updatedAt": "2026-11-17T08:40:00.000Z"
+                    }
+                  ],
+                  "driverSalaries": [],
+                  "isMonthEndDone": false,
+                  "tripExpensesAmount": 45000,
+                  "totalTripExpensesAmount": 12000,
+                  "remainingTripExpensesAmount": 33000
+                }
+              }
+            ]
+          }
+  - name: 200 Finance Officer
+    description: |-
+      FINANCEOFFICER is allowed (report.route.ts). Same payload as Super Admin.
+
+      Auth: bearer {{financeOfficerToken}}
+
+      Source scenario: Report/Monthly Trip Report/Monthly Trip Report - 200 Finance Officer.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyTripReport?date={{reportDate}}"
+      method: GET
+      params:
+        - name: date
+          value: "{{reportDate}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6651b2c3d4e5f6a7b8c9d001",
+                "startDate": "2026-11-04T00:00:00.000Z",
+                "endDate": "2026-11-10T00:00:00.000Z",
+                "tripConfirmedNumber": "SLPD-2026-1104",
+                "isPaymentCollected": true,
+                "dateCount": 7,
+                "requestedVehicle": "Van",
+                "totalCost": 1250,
+                "totalCostLocalCurrency": 375000,
+                "estimatedExpense": 30000,
+                "specialRequirement": "Child seat required",
+                "paymentMode": "Cash",
+                "passengers": [
+                  {
+                    "name": "Emma Collins",
+                    "nationality": "British",
+                    "age": 34,
+                    "gender": "Female",
+                    "_id": "6651b2c3d4e5f6a7b8c9a001"
+                  }
+                ],
+                "arrivalInfo": {
+                  "arrivalDate": "2026-11-04T00:00:00.000Z",
+                  "arrivalTime": "2026-11-04T03:45:00.000Z",
+                  "arrivalFlightNumber": "UL504"
+                },
+                "departureInfo": {
+                  "departureDate": "2026-11-10T00:00:00.000Z",
+                  "departureTime": "2026-11-10T17:30:00.000Z",
+                  "departureFlightNumber": "UL503"
+                },
+                "pickUpInfo": {
+                  "pickupDate": "2026-11-04T00:00:00.000Z",
+                  "pickupTime": "2026-11-04T04:30:00.000Z",
+                  "pickupCity": "Katunayake",
+                  "pickupAddress": "Bandaranaike International Airport"
+                },
+                "dropOffInfo": {
+                  "dropOffDate": "2026-11-10T00:00:00.000Z",
+                  "dropOffTime": "2026-11-10T13:00:00.000Z",
+                  "dropOffCity": "Katunayake",
+                  "dropOffAddress": "Bandaranaike International Airport"
+                },
+                "activities": [
+                  {
+                    "date": "2026-11-04T00:00:00.000Z",
+                    "description": "Sigiriya Rock Fortress entry",
+                    "adultCount": 2,
+                    "childCount": 1,
+                    "totalCost": 21000,
+                    "isPaymentByCompany": true,
+                    "isPaymentDone": true,
+                    "paymentAmount": 21000,
+                    "paymentDate": "2026-11-04T00:00:00.000Z",
+                    "paymentRemark": "",
+                    "updatedBy": null,
+                    "paymentMode": "0",
+                    "receiptImageUrl": "",
+                    "_id": "6651b2c3d4e5f6a7b8c9a002"
+                  }
+                ],
+                "places": [
+                  {
+                    "description": "Sigiriya",
+                    "dates": [
+                      "2026-11-04T00:00:00.000Z"
+                    ],
+                    "isReached": true,
+                    "index": 0,
+                    "reachedDate": "2026-11-04T08:10:00.000Z",
+                    "calcDistance": 172,
+                    "startMilage": 45210,
+                    "endMilage": 45382,
+                    "location": {
+                      "latitude": 7.957,
+                      "longitude": 80.7603
+                    },
+                    "reachedBy": "6650a1b2c3d4e5f6a7b8c903",
+                    "updatedBy": "6650a1b2c3d4e5f6a7b8c903",
+                    "_id": "6651b2c3d4e5f6a7b8c9a003"
+                  }
+                ],
+                "hotels": [
+                  {
+                    "dates": "2026-11-04 - 2026-11-10",
+                    "hotelName": "Heritance Kandalama",
+                    "city": "Dambulla",
+                    "isPaymentByCompany": false,
+                    "isPaymentDone": false,
+                    "paymentAmount": 0,
+                    "paymentDate": null,
+                    "paymentRemark": "",
+                    "updatedBy": null,
+                    "paymentMode": "0",
+                    "receiptImageUrl": "",
+                    "_id": "6651b2c3d4e5f6a7b8c9a004"
+                  }
+                ],
+                "email": "guest.booking@example.com",
+                "phoneNumber": "+447700900123",
+                "contactPerson": "Emma Collins",
+                "drivers": [
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c903",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "isActive": true,
+                    "_id": "6651b2c3d4e5f6a7b8c9b001"
+                  },
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c904",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "isActive": true,
+                    "_id": "6651b2c3d4e5f6a7b8c9b002"
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6653d4e5f6a7b8c9d0e1f101",
+                    "isActive": true,
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "_id": "6651b2c3d4e5f6a7b8c9c001"
+                  }
+                ],
+                "checkListAnswers": {
+                  "1": 1,
+                  "2": 1,
+                  "3": 1,
+                  "4": 1,
+                  "5": 1
+                },
+                "checkListCheckBy": "6650a1b2c3d4e5f6a7b8c903",
+                "status": 4,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c901",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c901",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c903",
+                "endedBy": "6650a1b2c3d4e5f6a7b8c903",
+                "isMonthEndDone": false,
+                "batchId": 0,
+                "createdAt": "2026-10-20T05:00:00.000Z",
+                "updatedAt": "2026-11-10T15:00:00.000Z",
+                "expenses": {
+                  "_id": "6652c3d4e5f6a7b8c9d0e001",
+                  "tripId": "6651b2c3d4e5f6a7b8c9d001",
+                  "expenses": [
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f101",
+                      "typeId": 1,
+                      "typeName": "Fuel",
+                      "amount": 18500,
+                      "description": "Diesel refill at Dambulla",
+                      "date": "2026-11-05T00:00:00.000Z",
+                      "receiptUrl": "https://storage.example.com/receipts/fuel-1101.jpg",
+                      "status": 1,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c903",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c903",
+                      "createdAt": "2026-11-05T09:20:00.000Z",
+                      "updatedAt": "2026-11-05T09:20:00.000Z"
+                    },
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f102",
+                      "typeId": 2,
+                      "typeName": "Meals",
+                      "amount": 6500,
+                      "description": "Driver meals Kandy",
+                      "date": "2026-11-07T00:00:00.000Z",
+                      "receiptUrl": "https://storage.example.com/receipts/meals-1102.jpg",
+                      "status": 1,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c903",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c903",
+                      "createdAt": "2026-11-07T13:05:00.000Z",
+                      "updatedAt": "2026-11-07T13:05:00.000Z"
+                    }
+                  ],
+                  "driverSalaries": [
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f301",
+                      "driver": "6650a1b2c3d4e5f6a7b8c903",
+                      "salaryPerDay": 4500,
+                      "noOfDays": 7,
+                      "totalSalary": 28500,
+                      "totalAddition": 2000,
+                      "totalDeduction": 0,
+                      "remainingExpenses": 5000,
+                      "isRemainingToDriver": true,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c902",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c902",
+                      "createdAt": "2026-11-11T05:10:00.000Z",
+                      "updatedAt": "2026-11-11T05:10:00.000Z"
+                    },
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f302",
+                      "driver": "6650a1b2c3d4e5f6a7b8c904",
+                      "salaryPerDay": 4000,
+                      "noOfDays": 7,
+                      "totalSalary": 27000,
+                      "totalAddition": 0,
+                      "totalDeduction": 1000,
+                      "remainingExpenses": 5000,
+                      "isRemainingToDriver": false,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c902",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c902",
+                      "createdAt": "2026-11-11T05:10:00.000Z",
+                      "updatedAt": "2026-11-11T05:10:00.000Z"
+                    }
+                  ],
+                  "isMonthEndDone": false,
+                  "tripExpensesAmount": 30000,
+                  "totalTripExpensesAmount": 25000,
+                  "remainingTripExpensesAmount": 5000
+                }
+              },
+              {
+                "_id": "6651b2c3d4e5f6a7b8c9d002",
+                "startDate": "2026-11-16T00:00:00.000Z",
+                "endDate": "2026-11-22T00:00:00.000Z",
+                "tripConfirmedNumber": "SLPD-2026-1116",
+                "isPaymentCollected": false,
+                "dateCount": 7,
+                "requestedVehicle": "Van",
+                "totalCost": 980,
+                "totalCostLocalCurrency": 294000,
+                "estimatedExpense": 45000,
+                "specialRequirement": "Child seat required",
+                "paymentMode": "Cash",
+                "passengers": [
+                  {
+                    "name": "Emma Collins",
+                    "nationality": "British",
+                    "age": 34,
+                    "gender": "Female",
+                    "_id": "6651b2c3d4e5f6a7b8c9a001"
+                  }
+                ],
+                "arrivalInfo": {
+                  "arrivalDate": "2026-11-16T00:00:00.000Z",
+                  "arrivalTime": "2026-11-16T03:45:00.000Z",
+                  "arrivalFlightNumber": "UL504"
+                },
+                "departureInfo": {
+                  "departureDate": "2026-11-22T00:00:00.000Z",
+                  "departureTime": "2026-11-22T17:30:00.000Z",
+                  "departureFlightNumber": "UL503"
+                },
+                "pickUpInfo": {
+                  "pickupDate": "2026-11-16T00:00:00.000Z",
+                  "pickupTime": "2026-11-16T04:30:00.000Z",
+                  "pickupCity": "Katunayake",
+                  "pickupAddress": "Bandaranaike International Airport"
+                },
+                "dropOffInfo": {
+                  "dropOffDate": "2026-11-22T00:00:00.000Z",
+                  "dropOffTime": "2026-11-22T13:00:00.000Z",
+                  "dropOffCity": "Katunayake",
+                  "dropOffAddress": "Bandaranaike International Airport"
+                },
+                "activities": [
+                  {
+                    "date": "2026-11-16T00:00:00.000Z",
+                    "description": "Sigiriya Rock Fortress entry",
+                    "adultCount": 2,
+                    "childCount": 1,
+                    "totalCost": 21000,
+                    "isPaymentByCompany": true,
+                    "isPaymentDone": false,
+                    "paymentAmount": 0,
+                    "paymentDate": null,
+                    "paymentRemark": "",
+                    "updatedBy": null,
+                    "paymentMode": "0",
+                    "receiptImageUrl": "",
+                    "_id": "6651b2c3d4e5f6a7b8c9a002"
+                  }
+                ],
+                "places": [
+                  {
+                    "description": "Sigiriya",
+                    "dates": [
+                      "2026-11-16T00:00:00.000Z"
+                    ],
+                    "isReached": false,
+                    "index": 0,
+                    "reachedDate": null,
+                    "calcDistance": 0,
+                    "startMilage": 0,
+                    "endMilage": 0,
+                    "location": null,
+                    "reachedBy": null,
+                    "updatedBy": null,
+                    "_id": "6651b2c3d4e5f6a7b8c9a003"
+                  }
+                ],
+                "hotels": [
+                  {
+                    "dates": "2026-11-16 - 2026-11-22",
+                    "hotelName": "Heritance Kandalama",
+                    "city": "Dambulla",
+                    "isPaymentByCompany": false,
+                    "isPaymentDone": false,
+                    "paymentAmount": 0,
+                    "paymentDate": null,
+                    "paymentRemark": "",
+                    "updatedBy": null,
+                    "paymentMode": "0",
+                    "receiptImageUrl": "",
+                    "_id": "6651b2c3d4e5f6a7b8c9a004"
+                  }
+                ],
+                "email": "guest.booking@example.com",
+                "phoneNumber": "+447700900123",
+                "contactPerson": "Emma Collins",
+                "drivers": [
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c904",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "isActive": true,
+                    "_id": "6651b2c3d4e5f6a7b8c9b001"
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6653d4e5f6a7b8c9d0e1f101",
+                    "isActive": true,
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "_id": "6651b2c3d4e5f6a7b8c9c001"
+                  }
+                ],
+                "checkListAnswers": {
+                  "1": 1,
+                  "2": 1,
+                  "3": 1,
+                  "4": 1,
+                  "5": 1
+                },
+                "checkListCheckBy": "6650a1b2c3d4e5f6a7b8c904",
+                "status": 3,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c901",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c901",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c904",
+                "endedBy": null,
+                "isMonthEndDone": false,
+                "batchId": 0,
+                "createdAt": "2026-10-20T05:00:00.000Z",
+                "updatedAt": "2026-11-16T04:30:00.000Z",
+                "expenses": {
+                  "_id": "6652c3d4e5f6a7b8c9d0e002",
+                  "tripId": "6651b2c3d4e5f6a7b8c9d002",
+                  "expenses": [
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f201",
+                      "typeId": 1,
+                      "typeName": "Fuel",
+                      "amount": 12000,
+                      "description": "Diesel refill at Nuwara Eliya",
+                      "date": "2026-11-17T00:00:00.000Z",
+                      "receiptUrl": "https://storage.example.com/receipts/fuel-1201.jpg",
+                      "status": 1,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c904",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c904",
+                      "createdAt": "2026-11-17T08:40:00.000Z",
+                      "updatedAt": "2026-11-17T08:40:00.000Z"
+                    }
+                  ],
+                  "driverSalaries": [],
+                  "isMonthEndDone": false,
+                  "tripExpensesAmount": 45000,
+                  "totalTripExpensesAmount": 12000,
+                  "remainingTripExpensesAmount": 33000
+                }
+              }
+            ]
+          }
+  - name: 200 Trip Manager
+    description: |-
+      TRIPMANAGER is allowed (report.route.ts). Same payload as Super Admin.
+
+      Auth: bearer {{tripManagerToken}}
+
+      Source scenario: Report/Monthly Trip Report/Monthly Trip Report - 200 Trip Manager.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyTripReport?date={{reportDate}}"
+      method: GET
+      params:
+        - name: date
+          value: "{{reportDate}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6651b2c3d4e5f6a7b8c9d001",
+                "startDate": "2026-11-04T00:00:00.000Z",
+                "endDate": "2026-11-10T00:00:00.000Z",
+                "tripConfirmedNumber": "SLPD-2026-1104",
+                "isPaymentCollected": true,
+                "dateCount": 7,
+                "requestedVehicle": "Van",
+                "totalCost": 1250,
+                "totalCostLocalCurrency": 375000,
+                "estimatedExpense": 30000,
+                "specialRequirement": "Child seat required",
+                "paymentMode": "Cash",
+                "passengers": [
+                  {
+                    "name": "Emma Collins",
+                    "nationality": "British",
+                    "age": 34,
+                    "gender": "Female",
+                    "_id": "6651b2c3d4e5f6a7b8c9a001"
+                  }
+                ],
+                "arrivalInfo": {
+                  "arrivalDate": "2026-11-04T00:00:00.000Z",
+                  "arrivalTime": "2026-11-04T03:45:00.000Z",
+                  "arrivalFlightNumber": "UL504"
+                },
+                "departureInfo": {
+                  "departureDate": "2026-11-10T00:00:00.000Z",
+                  "departureTime": "2026-11-10T17:30:00.000Z",
+                  "departureFlightNumber": "UL503"
+                },
+                "pickUpInfo": {
+                  "pickupDate": "2026-11-04T00:00:00.000Z",
+                  "pickupTime": "2026-11-04T04:30:00.000Z",
+                  "pickupCity": "Katunayake",
+                  "pickupAddress": "Bandaranaike International Airport"
+                },
+                "dropOffInfo": {
+                  "dropOffDate": "2026-11-10T00:00:00.000Z",
+                  "dropOffTime": "2026-11-10T13:00:00.000Z",
+                  "dropOffCity": "Katunayake",
+                  "dropOffAddress": "Bandaranaike International Airport"
+                },
+                "activities": [
+                  {
+                    "date": "2026-11-04T00:00:00.000Z",
+                    "description": "Sigiriya Rock Fortress entry",
+                    "adultCount": 2,
+                    "childCount": 1,
+                    "totalCost": 21000,
+                    "isPaymentByCompany": true,
+                    "isPaymentDone": true,
+                    "paymentAmount": 21000,
+                    "paymentDate": "2026-11-04T00:00:00.000Z",
+                    "paymentRemark": "",
+                    "updatedBy": null,
+                    "paymentMode": "0",
+                    "receiptImageUrl": "",
+                    "_id": "6651b2c3d4e5f6a7b8c9a002"
+                  }
+                ],
+                "places": [
+                  {
+                    "description": "Sigiriya",
+                    "dates": [
+                      "2026-11-04T00:00:00.000Z"
+                    ],
+                    "isReached": true,
+                    "index": 0,
+                    "reachedDate": "2026-11-04T08:10:00.000Z",
+                    "calcDistance": 172,
+                    "startMilage": 45210,
+                    "endMilage": 45382,
+                    "location": {
+                      "latitude": 7.957,
+                      "longitude": 80.7603
+                    },
+                    "reachedBy": "6650a1b2c3d4e5f6a7b8c903",
+                    "updatedBy": "6650a1b2c3d4e5f6a7b8c903",
+                    "_id": "6651b2c3d4e5f6a7b8c9a003"
+                  }
+                ],
+                "hotels": [
+                  {
+                    "dates": "2026-11-04 - 2026-11-10",
+                    "hotelName": "Heritance Kandalama",
+                    "city": "Dambulla",
+                    "isPaymentByCompany": false,
+                    "isPaymentDone": false,
+                    "paymentAmount": 0,
+                    "paymentDate": null,
+                    "paymentRemark": "",
+                    "updatedBy": null,
+                    "paymentMode": "0",
+                    "receiptImageUrl": "",
+                    "_id": "6651b2c3d4e5f6a7b8c9a004"
+                  }
+                ],
+                "email": "guest.booking@example.com",
+                "phoneNumber": "+447700900123",
+                "contactPerson": "Emma Collins",
+                "drivers": [
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c903",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "isActive": true,
+                    "_id": "6651b2c3d4e5f6a7b8c9b001"
+                  },
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c904",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "isActive": true,
+                    "_id": "6651b2c3d4e5f6a7b8c9b002"
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6653d4e5f6a7b8c9d0e1f101",
+                    "isActive": true,
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "_id": "6651b2c3d4e5f6a7b8c9c001"
+                  }
+                ],
+                "checkListAnswers": {
+                  "1": 1,
+                  "2": 1,
+                  "3": 1,
+                  "4": 1,
+                  "5": 1
+                },
+                "checkListCheckBy": "6650a1b2c3d4e5f6a7b8c903",
+                "status": 4,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c901",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c901",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c903",
+                "endedBy": "6650a1b2c3d4e5f6a7b8c903",
+                "isMonthEndDone": false,
+                "batchId": 0,
+                "createdAt": "2026-10-20T05:00:00.000Z",
+                "updatedAt": "2026-11-10T15:00:00.000Z",
+                "expenses": {
+                  "_id": "6652c3d4e5f6a7b8c9d0e001",
+                  "tripId": "6651b2c3d4e5f6a7b8c9d001",
+                  "expenses": [
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f101",
+                      "typeId": 1,
+                      "typeName": "Fuel",
+                      "amount": 18500,
+                      "description": "Diesel refill at Dambulla",
+                      "date": "2026-11-05T00:00:00.000Z",
+                      "receiptUrl": "https://storage.example.com/receipts/fuel-1101.jpg",
+                      "status": 1,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c903",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c903",
+                      "createdAt": "2026-11-05T09:20:00.000Z",
+                      "updatedAt": "2026-11-05T09:20:00.000Z"
+                    },
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f102",
+                      "typeId": 2,
+                      "typeName": "Meals",
+                      "amount": 6500,
+                      "description": "Driver meals Kandy",
+                      "date": "2026-11-07T00:00:00.000Z",
+                      "receiptUrl": "https://storage.example.com/receipts/meals-1102.jpg",
+                      "status": 1,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c903",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c903",
+                      "createdAt": "2026-11-07T13:05:00.000Z",
+                      "updatedAt": "2026-11-07T13:05:00.000Z"
+                    }
+                  ],
+                  "driverSalaries": [
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f301",
+                      "driver": "6650a1b2c3d4e5f6a7b8c903",
+                      "salaryPerDay": 4500,
+                      "noOfDays": 7,
+                      "totalSalary": 28500,
+                      "totalAddition": 2000,
+                      "totalDeduction": 0,
+                      "remainingExpenses": 5000,
+                      "isRemainingToDriver": true,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c902",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c902",
+                      "createdAt": "2026-11-11T05:10:00.000Z",
+                      "updatedAt": "2026-11-11T05:10:00.000Z"
+                    },
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f302",
+                      "driver": "6650a1b2c3d4e5f6a7b8c904",
+                      "salaryPerDay": 4000,
+                      "noOfDays": 7,
+                      "totalSalary": 27000,
+                      "totalAddition": 0,
+                      "totalDeduction": 1000,
+                      "remainingExpenses": 5000,
+                      "isRemainingToDriver": false,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c902",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c902",
+                      "createdAt": "2026-11-11T05:10:00.000Z",
+                      "updatedAt": "2026-11-11T05:10:00.000Z"
+                    }
+                  ],
+                  "isMonthEndDone": false,
+                  "tripExpensesAmount": 30000,
+                  "totalTripExpensesAmount": 25000,
+                  "remainingTripExpensesAmount": 5000
+                }
+              },
+              {
+                "_id": "6651b2c3d4e5f6a7b8c9d002",
+                "startDate": "2026-11-16T00:00:00.000Z",
+                "endDate": "2026-11-22T00:00:00.000Z",
+                "tripConfirmedNumber": "SLPD-2026-1116",
+                "isPaymentCollected": false,
+                "dateCount": 7,
+                "requestedVehicle": "Van",
+                "totalCost": 980,
+                "totalCostLocalCurrency": 294000,
+                "estimatedExpense": 45000,
+                "specialRequirement": "Child seat required",
+                "paymentMode": "Cash",
+                "passengers": [
+                  {
+                    "name": "Emma Collins",
+                    "nationality": "British",
+                    "age": 34,
+                    "gender": "Female",
+                    "_id": "6651b2c3d4e5f6a7b8c9a001"
+                  }
+                ],
+                "arrivalInfo": {
+                  "arrivalDate": "2026-11-16T00:00:00.000Z",
+                  "arrivalTime": "2026-11-16T03:45:00.000Z",
+                  "arrivalFlightNumber": "UL504"
+                },
+                "departureInfo": {
+                  "departureDate": "2026-11-22T00:00:00.000Z",
+                  "departureTime": "2026-11-22T17:30:00.000Z",
+                  "departureFlightNumber": "UL503"
+                },
+                "pickUpInfo": {
+                  "pickupDate": "2026-11-16T00:00:00.000Z",
+                  "pickupTime": "2026-11-16T04:30:00.000Z",
+                  "pickupCity": "Katunayake",
+                  "pickupAddress": "Bandaranaike International Airport"
+                },
+                "dropOffInfo": {
+                  "dropOffDate": "2026-11-22T00:00:00.000Z",
+                  "dropOffTime": "2026-11-22T13:00:00.000Z",
+                  "dropOffCity": "Katunayake",
+                  "dropOffAddress": "Bandaranaike International Airport"
+                },
+                "activities": [
+                  {
+                    "date": "2026-11-16T00:00:00.000Z",
+                    "description": "Sigiriya Rock Fortress entry",
+                    "adultCount": 2,
+                    "childCount": 1,
+                    "totalCost": 21000,
+                    "isPaymentByCompany": true,
+                    "isPaymentDone": false,
+                    "paymentAmount": 0,
+                    "paymentDate": null,
+                    "paymentRemark": "",
+                    "updatedBy": null,
+                    "paymentMode": "0",
+                    "receiptImageUrl": "",
+                    "_id": "6651b2c3d4e5f6a7b8c9a002"
+                  }
+                ],
+                "places": [
+                  {
+                    "description": "Sigiriya",
+                    "dates": [
+                      "2026-11-16T00:00:00.000Z"
+                    ],
+                    "isReached": false,
+                    "index": 0,
+                    "reachedDate": null,
+                    "calcDistance": 0,
+                    "startMilage": 0,
+                    "endMilage": 0,
+                    "location": null,
+                    "reachedBy": null,
+                    "updatedBy": null,
+                    "_id": "6651b2c3d4e5f6a7b8c9a003"
+                  }
+                ],
+                "hotels": [
+                  {
+                    "dates": "2026-11-16 - 2026-11-22",
+                    "hotelName": "Heritance Kandalama",
+                    "city": "Dambulla",
+                    "isPaymentByCompany": false,
+                    "isPaymentDone": false,
+                    "paymentAmount": 0,
+                    "paymentDate": null,
+                    "paymentRemark": "",
+                    "updatedBy": null,
+                    "paymentMode": "0",
+                    "receiptImageUrl": "",
+                    "_id": "6651b2c3d4e5f6a7b8c9a004"
+                  }
+                ],
+                "email": "guest.booking@example.com",
+                "phoneNumber": "+447700900123",
+                "contactPerson": "Emma Collins",
+                "drivers": [
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c904",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "isActive": true,
+                    "_id": "6651b2c3d4e5f6a7b8c9b001"
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6653d4e5f6a7b8c9d0e1f101",
+                    "isActive": true,
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "_id": "6651b2c3d4e5f6a7b8c9c001"
+                  }
+                ],
+                "checkListAnswers": {
+                  "1": 1,
+                  "2": 1,
+                  "3": 1,
+                  "4": 1,
+                  "5": 1
+                },
+                "checkListCheckBy": "6650a1b2c3d4e5f6a7b8c904",
+                "status": 3,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c901",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c901",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c904",
+                "endedBy": null,
+                "isMonthEndDone": false,
+                "batchId": 0,
+                "createdAt": "2026-10-20T05:00:00.000Z",
+                "updatedAt": "2026-11-16T04:30:00.000Z",
+                "expenses": {
+                  "_id": "6652c3d4e5f6a7b8c9d0e002",
+                  "tripId": "6651b2c3d4e5f6a7b8c9d002",
+                  "expenses": [
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f201",
+                      "typeId": 1,
+                      "typeName": "Fuel",
+                      "amount": 12000,
+                      "description": "Diesel refill at Nuwara Eliya",
+                      "date": "2026-11-17T00:00:00.000Z",
+                      "receiptUrl": "https://storage.example.com/receipts/fuel-1201.jpg",
+                      "status": 1,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c904",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c904",
+                      "createdAt": "2026-11-17T08:40:00.000Z",
+                      "updatedAt": "2026-11-17T08:40:00.000Z"
+                    }
+                  ],
+                  "driverSalaries": [],
+                  "isMonthEndDone": false,
+                  "tripExpensesAmount": 45000,
+                  "totalTripExpensesAmount": 12000,
+                  "remainingTripExpensesAmount": 33000
+                }
+              }
+            ]
+          }
+  - name: 200 no date defaults to current month
+    description: |-
+      `date` omitted → `selectedDate = new Date()` (current month). Compared against the 'current month' request run just before.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Monthly Trip Report/Monthly Trip Report - 200 no date defaults to current month.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyTripReport"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6651b2c3d4e5f6a7b8c9d001",
+                "startDate": "2026-11-04T00:00:00.000Z",
+                "endDate": "2026-11-10T00:00:00.000Z",
+                "tripConfirmedNumber": "SLPD-2026-1104",
+                "isPaymentCollected": true,
+                "dateCount": 7,
+                "requestedVehicle": "Van",
+                "totalCost": 1250,
+                "totalCostLocalCurrency": 375000,
+                "estimatedExpense": 30000,
+                "specialRequirement": "Child seat required",
+                "paymentMode": "Cash",
+                "passengers": [
+                  {
+                    "name": "Emma Collins",
+                    "nationality": "British",
+                    "age": 34,
+                    "gender": "Female",
+                    "_id": "6651b2c3d4e5f6a7b8c9a001"
+                  }
+                ],
+                "arrivalInfo": {
+                  "arrivalDate": "2026-11-04T00:00:00.000Z",
+                  "arrivalTime": "2026-11-04T03:45:00.000Z",
+                  "arrivalFlightNumber": "UL504"
+                },
+                "departureInfo": {
+                  "departureDate": "2026-11-10T00:00:00.000Z",
+                  "departureTime": "2026-11-10T17:30:00.000Z",
+                  "departureFlightNumber": "UL503"
+                },
+                "pickUpInfo": {
+                  "pickupDate": "2026-11-04T00:00:00.000Z",
+                  "pickupTime": "2026-11-04T04:30:00.000Z",
+                  "pickupCity": "Katunayake",
+                  "pickupAddress": "Bandaranaike International Airport"
+                },
+                "dropOffInfo": {
+                  "dropOffDate": "2026-11-10T00:00:00.000Z",
+                  "dropOffTime": "2026-11-10T13:00:00.000Z",
+                  "dropOffCity": "Katunayake",
+                  "dropOffAddress": "Bandaranaike International Airport"
+                },
+                "activities": [
+                  {
+                    "date": "2026-11-04T00:00:00.000Z",
+                    "description": "Sigiriya Rock Fortress entry",
+                    "adultCount": 2,
+                    "childCount": 1,
+                    "totalCost": 21000,
+                    "isPaymentByCompany": true,
+                    "isPaymentDone": true,
+                    "paymentAmount": 21000,
+                    "paymentDate": "2026-11-04T00:00:00.000Z",
+                    "paymentRemark": "",
+                    "updatedBy": null,
+                    "paymentMode": "0",
+                    "receiptImageUrl": "",
+                    "_id": "6651b2c3d4e5f6a7b8c9a002"
+                  }
+                ],
+                "places": [
+                  {
+                    "description": "Sigiriya",
+                    "dates": [
+                      "2026-11-04T00:00:00.000Z"
+                    ],
+                    "isReached": true,
+                    "index": 0,
+                    "reachedDate": "2026-11-04T08:10:00.000Z",
+                    "calcDistance": 172,
+                    "startMilage": 45210,
+                    "endMilage": 45382,
+                    "location": {
+                      "latitude": 7.957,
+                      "longitude": 80.7603
+                    },
+                    "reachedBy": "6650a1b2c3d4e5f6a7b8c903",
+                    "updatedBy": "6650a1b2c3d4e5f6a7b8c903",
+                    "_id": "6651b2c3d4e5f6a7b8c9a003"
+                  }
+                ],
+                "hotels": [
+                  {
+                    "dates": "2026-11-04 - 2026-11-10",
+                    "hotelName": "Heritance Kandalama",
+                    "city": "Dambulla",
+                    "isPaymentByCompany": false,
+                    "isPaymentDone": false,
+                    "paymentAmount": 0,
+                    "paymentDate": null,
+                    "paymentRemark": "",
+                    "updatedBy": null,
+                    "paymentMode": "0",
+                    "receiptImageUrl": "",
+                    "_id": "6651b2c3d4e5f6a7b8c9a004"
+                  }
+                ],
+                "email": "guest.booking@example.com",
+                "phoneNumber": "+447700900123",
+                "contactPerson": "Emma Collins",
+                "drivers": [
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c903",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "isActive": true,
+                    "_id": "6651b2c3d4e5f6a7b8c9b001"
+                  },
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c904",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "isActive": true,
+                    "_id": "6651b2c3d4e5f6a7b8c9b002"
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6653d4e5f6a7b8c9d0e1f101",
+                    "isActive": true,
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "_id": "6651b2c3d4e5f6a7b8c9c001"
+                  }
+                ],
+                "checkListAnswers": {
+                  "1": 1,
+                  "2": 1,
+                  "3": 1,
+                  "4": 1,
+                  "5": 1
+                },
+                "checkListCheckBy": "6650a1b2c3d4e5f6a7b8c903",
+                "status": 4,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c901",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c901",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c903",
+                "endedBy": "6650a1b2c3d4e5f6a7b8c903",
+                "isMonthEndDone": false,
+                "batchId": 0,
+                "createdAt": "2026-10-20T05:00:00.000Z",
+                "updatedAt": "2026-11-10T15:00:00.000Z",
+                "expenses": {
+                  "_id": "6652c3d4e5f6a7b8c9d0e001",
+                  "tripId": "6651b2c3d4e5f6a7b8c9d001",
+                  "expenses": [
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f101",
+                      "typeId": 1,
+                      "typeName": "Fuel",
+                      "amount": 18500,
+                      "description": "Diesel refill at Dambulla",
+                      "date": "2026-11-05T00:00:00.000Z",
+                      "receiptUrl": "https://storage.example.com/receipts/fuel-1101.jpg",
+                      "status": 1,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c903",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c903",
+                      "createdAt": "2026-11-05T09:20:00.000Z",
+                      "updatedAt": "2026-11-05T09:20:00.000Z"
+                    },
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f102",
+                      "typeId": 2,
+                      "typeName": "Meals",
+                      "amount": 6500,
+                      "description": "Driver meals Kandy",
+                      "date": "2026-11-07T00:00:00.000Z",
+                      "receiptUrl": "https://storage.example.com/receipts/meals-1102.jpg",
+                      "status": 1,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c903",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c903",
+                      "createdAt": "2026-11-07T13:05:00.000Z",
+                      "updatedAt": "2026-11-07T13:05:00.000Z"
+                    }
+                  ],
+                  "driverSalaries": [
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f301",
+                      "driver": "6650a1b2c3d4e5f6a7b8c903",
+                      "salaryPerDay": 4500,
+                      "noOfDays": 7,
+                      "totalSalary": 28500,
+                      "totalAddition": 2000,
+                      "totalDeduction": 0,
+                      "remainingExpenses": 5000,
+                      "isRemainingToDriver": true,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c902",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c902",
+                      "createdAt": "2026-11-11T05:10:00.000Z",
+                      "updatedAt": "2026-11-11T05:10:00.000Z"
+                    },
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f302",
+                      "driver": "6650a1b2c3d4e5f6a7b8c904",
+                      "salaryPerDay": 4000,
+                      "noOfDays": 7,
+                      "totalSalary": 27000,
+                      "totalAddition": 0,
+                      "totalDeduction": 1000,
+                      "remainingExpenses": 5000,
+                      "isRemainingToDriver": false,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c902",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c902",
+                      "createdAt": "2026-11-11T05:10:00.000Z",
+                      "updatedAt": "2026-11-11T05:10:00.000Z"
+                    }
+                  ],
+                  "isMonthEndDone": false,
+                  "tripExpensesAmount": 30000,
+                  "totalTripExpensesAmount": 25000,
+                  "remainingTripExpensesAmount": 5000
+                }
+              },
+              {
+                "_id": "6651b2c3d4e5f6a7b8c9d002",
+                "startDate": "2026-11-16T00:00:00.000Z",
+                "endDate": "2026-11-22T00:00:00.000Z",
+                "tripConfirmedNumber": "SLPD-2026-1116",
+                "isPaymentCollected": false,
+                "dateCount": 7,
+                "requestedVehicle": "Van",
+                "totalCost": 980,
+                "totalCostLocalCurrency": 294000,
+                "estimatedExpense": 45000,
+                "specialRequirement": "Child seat required",
+                "paymentMode": "Cash",
+                "passengers": [
+                  {
+                    "name": "Emma Collins",
+                    "nationality": "British",
+                    "age": 34,
+                    "gender": "Female",
+                    "_id": "6651b2c3d4e5f6a7b8c9a001"
+                  }
+                ],
+                "arrivalInfo": {
+                  "arrivalDate": "2026-11-16T00:00:00.000Z",
+                  "arrivalTime": "2026-11-16T03:45:00.000Z",
+                  "arrivalFlightNumber": "UL504"
+                },
+                "departureInfo": {
+                  "departureDate": "2026-11-22T00:00:00.000Z",
+                  "departureTime": "2026-11-22T17:30:00.000Z",
+                  "departureFlightNumber": "UL503"
+                },
+                "pickUpInfo": {
+                  "pickupDate": "2026-11-16T00:00:00.000Z",
+                  "pickupTime": "2026-11-16T04:30:00.000Z",
+                  "pickupCity": "Katunayake",
+                  "pickupAddress": "Bandaranaike International Airport"
+                },
+                "dropOffInfo": {
+                  "dropOffDate": "2026-11-22T00:00:00.000Z",
+                  "dropOffTime": "2026-11-22T13:00:00.000Z",
+                  "dropOffCity": "Katunayake",
+                  "dropOffAddress": "Bandaranaike International Airport"
+                },
+                "activities": [
+                  {
+                    "date": "2026-11-16T00:00:00.000Z",
+                    "description": "Sigiriya Rock Fortress entry",
+                    "adultCount": 2,
+                    "childCount": 1,
+                    "totalCost": 21000,
+                    "isPaymentByCompany": true,
+                    "isPaymentDone": false,
+                    "paymentAmount": 0,
+                    "paymentDate": null,
+                    "paymentRemark": "",
+                    "updatedBy": null,
+                    "paymentMode": "0",
+                    "receiptImageUrl": "",
+                    "_id": "6651b2c3d4e5f6a7b8c9a002"
+                  }
+                ],
+                "places": [
+                  {
+                    "description": "Sigiriya",
+                    "dates": [
+                      "2026-11-16T00:00:00.000Z"
+                    ],
+                    "isReached": false,
+                    "index": 0,
+                    "reachedDate": null,
+                    "calcDistance": 0,
+                    "startMilage": 0,
+                    "endMilage": 0,
+                    "location": null,
+                    "reachedBy": null,
+                    "updatedBy": null,
+                    "_id": "6651b2c3d4e5f6a7b8c9a003"
+                  }
+                ],
+                "hotels": [
+                  {
+                    "dates": "2026-11-16 - 2026-11-22",
+                    "hotelName": "Heritance Kandalama",
+                    "city": "Dambulla",
+                    "isPaymentByCompany": false,
+                    "isPaymentDone": false,
+                    "paymentAmount": 0,
+                    "paymentDate": null,
+                    "paymentRemark": "",
+                    "updatedBy": null,
+                    "paymentMode": "0",
+                    "receiptImageUrl": "",
+                    "_id": "6651b2c3d4e5f6a7b8c9a004"
+                  }
+                ],
+                "email": "guest.booking@example.com",
+                "phoneNumber": "+447700900123",
+                "contactPerson": "Emma Collins",
+                "drivers": [
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c904",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "isActive": true,
+                    "_id": "6651b2c3d4e5f6a7b8c9b001"
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6653d4e5f6a7b8c9d0e1f101",
+                    "isActive": true,
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "_id": "6651b2c3d4e5f6a7b8c9c001"
+                  }
+                ],
+                "checkListAnswers": {
+                  "1": 1,
+                  "2": 1,
+                  "3": 1,
+                  "4": 1,
+                  "5": 1
+                },
+                "checkListCheckBy": "6650a1b2c3d4e5f6a7b8c904",
+                "status": 3,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c901",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c901",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c904",
+                "endedBy": null,
+                "isMonthEndDone": false,
+                "batchId": 0,
+                "createdAt": "2026-10-20T05:00:00.000Z",
+                "updatedAt": "2026-11-16T04:30:00.000Z",
+                "expenses": {
+                  "_id": "6652c3d4e5f6a7b8c9d0e002",
+                  "tripId": "6651b2c3d4e5f6a7b8c9d002",
+                  "expenses": [
+                    {
+                      "_id": "6652c3d4e5f6a7b8c9d0f201",
+                      "typeId": 1,
+                      "typeName": "Fuel",
+                      "amount": 12000,
+                      "description": "Diesel refill at Nuwara Eliya",
+                      "date": "2026-11-17T00:00:00.000Z",
+                      "receiptUrl": "https://storage.example.com/receipts/fuel-1201.jpg",
+                      "status": 1,
+                      "createdBy": "6650a1b2c3d4e5f6a7b8c904",
+                      "updatedBy": "6650a1b2c3d4e5f6a7b8c904",
+                      "createdAt": "2026-11-17T08:40:00.000Z",
+                      "updatedAt": "2026-11-17T08:40:00.000Z"
+                    }
+                  ],
+                  "driverSalaries": [],
+                  "isMonthEndDone": false,
+                  "tripExpensesAmount": 45000,
+                  "totalTripExpensesAmount": 12000,
+                  "remainingTripExpensesAmount": 33000
+                }
+              }
+            ]
+          }
+  - name: 200 month with no data
+    description: |-
+      A month with no trips/expenses returns 200 and `[]` (no 404).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Monthly Trip Report/Monthly Trip Report - 200 month with no data.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyTripReport?date=1990-01-15"
+      method: GET
+      params:
+        - name: date
+          value: 1990-01-15
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": []
+          }
+  - name: 401 no token
+    description: |-
+      auth.middleware.ts:25-26 — no `Authorization: Bearer` header → UnauthorizedError.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Report/Monthly Trip Report/Monthly Trip Report - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyTripReport"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 Driver
+    description: |-
+      DRIVER is not in [SUPERADMIN, ADMIN, FINANCEOFFICER, TRIPMANAGER] (report.route.ts). auth.middleware.ts:68-79 — role not in the route's roles array → ForbiddenError.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Report/Monthly Trip Report/Monthly Trip Report - 403 Driver.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyTripReport"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 403 Driver Assistant
+    description: |-
+      DRIVER ASSISTANT is not in [SUPERADMIN, ADMIN, FINANCEOFFICER, TRIPMANAGER] (report.route.ts). auth.middleware.ts:68-79 — role not in the route's roles array → ForbiddenError.
+
+      Auth: bearer {{driverAssistantToken}}
+
+      Source scenario: Report/Monthly Trip Report/Monthly Trip Report - 403 Driver Assistant.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyTripReport"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 403 Trip Assistant
+    description: |-
+      TRIP ASSISTANT is not in [SUPERADMIN, ADMIN, FINANCEOFFICER, TRIPMANAGER] (report.route.ts). auth.middleware.ts:68-79 — role not in the route's roles array → ForbiddenError.
+
+      Auth: bearer {{tripAssistantToken}}
+
+      Source scenario: Report/Monthly Trip Report/Monthly Trip Report - 403 Trip Assistant.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyTripReport"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid date
+    description: |-
+      `new Date("not-a-date")` → Invalid Date month bounds → Mongoose CastError in report.service.ts:7-15
+      (findAllTripsByDateAndStatusIn) → error.middleware.ts:56-60 → 404 `No item found with ID "Invalid Date"!`.
+      No 400 validation exists for `date` (report.md › Known issues 11). Note: report.md says 500; verified the cast
+      error is a `CastError`, which the middleware maps to 404.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Monthly Trip Report/Monthly Trip Report - 404 invalid date.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyTripReport?date=not-a-date"
+      method: GET
+      params:
+        - name: date
+          value: not-a-date
+          type: query
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"Invalid Date\"!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/report/monthlyTripReport`**
+
+  This request runs the main scenario **200 current month**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 current month | (empty) |
+  | 2 | 200 | 200 Finance Officer | (empty) |
+  | 3 | 200 | 200 Trip Manager | (empty) |
+  | 4 | 200 | 200 no date defaults to current month | (empty) |
+  | 5 | 200 | 200 month with no data | (empty) |
+  | 6 | 401 | 401 no token | Authentication invalid! |
+  | 7 | 403 | 403 Driver | You're unauthorized to access this resource! |
+  | 8 | 403 | 403 Driver Assistant | You're unauthorized to access this resource! |
+  | 9 | 403 | 403 Trip Assistant | You're unauthorized to access this resource! |
+  | 10 | 404 | 404 invalid date | No item found with ID "Invalid Date"! |
+
+  ## Main scenario notes
+
+  Raw lean trips (status PENDING/START/FINISHED, endDate in month) each with `expenses` = TripExpensesResponseDto or null
+  (report.controller.ts:20-77, expenses.util.ts:3). Tests check the month window, statuses, expense DTO keys,
+  ACTIVE-only items and the totals formula. Rows exist only if trips ending this month were created earlier in the run.

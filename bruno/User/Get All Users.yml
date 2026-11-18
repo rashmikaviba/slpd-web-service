@@ -1,0 +1,337 @@
+info:
+  name: Get All Users
+  type: http
+  seq: 7
+
+http:
+  method: GET
+  url: "{{baseUrl}}/user"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("UserResponseDto list without the caller", function () {
+          const ids = res.body.data.map((u) => u._id);
+          expect(ids).to.include(bru.getVar("createdUserId"));
+          expect(ids).to.not.include(bru.getVar("superAdminUserId"));
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      Cached `user-findAllWithGenderRole`; caller removed (user.controller.ts:346-361). `isBlackListed` comes from Auth.
+      [KNOWN ISSUE] cache is not cleared by block/unblock, so `isBlackListed` can be stale (Document/user.md #3).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Get All Users/Get All Users - 200.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6650a1b2c3d4e5f6a7b8c010",
+                "fullName": "Bruno Test User",
+                "userName": "bru_user_1794990600482",
+                "gender": 1,
+                "genderName": "Male",
+                "dateOfBirth": "1990-01-15T00:00:00.000Z",
+                "address": "1 Test Street, Colombo",
+                "phoneNumber1": "0771234567",
+                "phoneNumber2": "",
+                "email": "bru1794990600482@example.com",
+                "profileImageUrl": "",
+                "nic": "BRU1794990600482",
+                "bankName": "Test Bank",
+                "bankId": 1,
+                "branch": "Colombo",
+                "accountNumber": "000111222333",
+                "accountHolderName": "Bruno Test User",
+                "accountHolderAddress": "1 Test Street, Colombo",
+                "basicSalary": 50000,
+                "leaveCount": 14,
+                "languages": [
+                  "English",
+                  "Sinhala"
+                ],
+                "isBlackListed": false,
+                "role": 3,
+                "isFreelanceDriver": false,
+                "roleName": "Driver (Permanent)",
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "createdUser": "Kasun Perera",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedUser": "Kasun Perera",
+                "createdAt": "2026-11-18T08:30:00.512Z",
+                "updatedAt": "2026-11-18T08:30:00.512Z"
+              },
+              {
+                "_id": "6650a1b2c3d4e5f6a7b8c002",
+                "fullName": "Nadeesha Fernando",
+                "userName": "nadeesha.f",
+                "gender": 2,
+                "genderName": "Female",
+                "dateOfBirth": "1990-07-24T00:00:00.000Z",
+                "address": "12 Temple Road, Nugegoda",
+                "phoneNumber1": "0712345602",
+                "phoneNumber2": "",
+                "email": "nadeesha.fernando@example.com",
+                "profileImageUrl": "",
+                "nic": "199070601234",
+                "bankName": "Sampath Bank PLC",
+                "bankId": 16,
+                "branch": "Nugegoda",
+                "accountNumber": "1029384756",
+                "accountHolderName": "Nadeesha Fernando",
+                "accountHolderAddress": "12 Temple Road, Nugegoda",
+                "basicSalary": 120000,
+                "leaveCount": 14,
+                "languages": [
+                  "Sinhala",
+                  "English"
+                ],
+                "isBlackListed": false,
+                "role": 2,
+                "isFreelanceDriver": false,
+                "roleName": "Admin",
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "createdUser": "Kasun Perera",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedUser": "Kasun Perera",
+                "createdAt": "2026-01-06T05:00:00.000Z",
+                "updatedAt": "2026-03-10T06:20:00.000Z"
+              }
+            ]
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. user.router.ts:60-64.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: User/Get All Users/Get All Users - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 admin
+    description: |-
+      Route allows SUPERADMIN only; `{{adminToken}}` is rejected by auth.middleware.ts:73-77. user.router.ts:60-64.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: User/Get All Users/Get All Users - 403 admin.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: No token - 401 (Auth setup)
+    description: |-
+      No Authorization header.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Auth/Middleware Errors/No token - 401.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: Header without Bearer prefix - 401 (Auth setup)
+    description: |-
+      Header must start with `Bearer `.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Auth/Middleware Errors/Header without Bearer prefix - 401.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: GET
+      headers:
+        - name: Authorization
+          value: "{{superAdminToken}}"
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: Expired token - 401 (Auth setup)
+    description: |-
+      Set env `expiredToken` to a token older than 2 days signed with the server secret.
+
+      Auth: bearer {{expiredToken}}
+
+      Source scenario: Auth/Middleware Errors/Expired token - 401.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Your session is expired!",
+            "data": null
+          }
+  - name: Malformed token - 403 (Auth setup)
+    description: |-
+      jwt.verify fails for any reason other than expiry → ForbiddenError.
+
+      Auth: bearer {{malformedToken}}
+
+      Source scenario: Auth/Middleware Errors/Malformed token - 403.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: Wrong role - 403 (Auth setup)
+    description: |-
+      GET /user allows SUPERADMIN, ADMIN only; DRIVER is rejected.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Auth/Middleware Errors/Wrong role - 403.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/user`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | (empty) |
+  | 2 | 401 | 401 no token | Authentication invalid! |
+  | 3 | 403 | 403 admin | You're unauthorized to access this resource! |
+  | 4 | 401 | No token - 401 (Auth setup) | Authentication invalid! |
+  | 5 | 401 | Header without Bearer prefix - 401 (Auth setup) | Authentication invalid! |
+  | 6 | 401 | Expired token - 401 (Auth setup) | Your session is expired! |
+  | 7 | 403 | Malformed token - 403 (Auth setup) | You're unauthorized to access this resource! |
+  | 8 | 403 | Wrong role - 403 (Auth setup) | You're unauthorized to access this resource! |
+
+  ## Main scenario notes
+
+  Cached `user-findAllWithGenderRole`; caller removed (user.controller.ts:346-361). `isBlackListed` comes from Auth.
+  [KNOWN ISSUE] cache is not cleared by block/unblock, so `isBlackListed` can be stale (Document/user.md #3).

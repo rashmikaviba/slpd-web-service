@@ -1,0 +1,492 @@
+info:
+  name: Monthly Income Report
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{baseUrl}}/report/monthlyIncomeReport?date={{reportDate}}"
+  params:
+    - name: date
+      value: "{{reportDate}}"
+      type: query
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const d = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        // mid-month day avoids TZ edge cases (server builds month bounds in local time from a UTC-parsed date)
+        bru.setVar("reportDate", `${d.getFullYear()}-${pad(d.getMonth() + 1)}-15`);
+    - type: after-response
+      code: if (res.status === 200) bru.setVar("monthlyIncomeReportCount", res.body.data.length);
+    - type: tests
+      code: |-
+        const data = res.body.data;
+        test("every row has the MonthlyIncomeReportResponseDto fields", function () {
+          data.forEach((r) => {
+            expect(r).to.have.all.keys("tripId", "confirmationNumber", "startDate", "endDate", "expenseId", "totalCost",
+              "totalCostLocalCurrency", "estimatedExpense", "remainingExpenses", "totalExpense", "totalDriverSalary",
+              "isRemainingToDriver", "tripIncome");
+            expect(r.isRemainingToDriver).to.be.a("boolean");
+          });
+        });
+        test("tripIncome = totalCostLocalCurrency - totalDriverSalary - totalExpense", function () {
+          data.forEach((r) => expect(r.tripIncome).to.equal(r.totalCostLocalCurrency - r.totalDriverSalary - r.totalExpense));
+        });
+        test("remainingExpenses = estimatedExpense - totalExpense", function () {
+          data.filter((r) => typeof r.estimatedExpense === "number").forEach((r) =>
+            expect(r.remainingExpenses).to.equal(r.estimatedExpense - r.totalExpense));
+        });
+        test("[KNOWN BUG] totalIncomeLocalCurrency is always undefined (missing from JSON)", function () {
+          data.forEach((r) => expect(r).to.not.have.property("totalIncomeLocalCurrency"));
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.data
+      operator: isArray
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 current month
+    description: |-
+      One row per Expenses doc of START/FINISHED trips ending this month (report.controller.ts:206-305).
+      [KNOWN BUG] report.controller.ts:237-238 sets `totalIncomeLocalCurrency: calcTotals.totalIncomeLocalCurrency`, but
+      `calculateIncome` never returns that key → always undefined and dropped from the JSON; the real value is `tripIncome`
+      (report.md › Known issues 1). The test asserts the field is absent; it is vacuous when there are no rows.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Monthly Income Report/Monthly Income Report - 200 current month.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyIncomeReport?date={{reportDate}}"
+      method: GET
+      params:
+        - name: date
+          value: "{{reportDate}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "tripId": "6651b2c3d4e5f6a7b8c9d001",
+                "confirmationNumber": "SLPD-2026-1104",
+                "startDate": "2026-11-04T00:00:00.000Z",
+                "endDate": "2026-11-10T00:00:00.000Z",
+                "expenseId": "6652c3d4e5f6a7b8c9d0e001",
+                "totalCost": 1250,
+                "totalCostLocalCurrency": 375000,
+                "estimatedExpense": 30000,
+                "remainingExpenses": 5000,
+                "totalExpense": 25000,
+                "totalDriverSalary": 55500,
+                "isRemainingToDriver": true,
+                "tripIncome": 294500
+              },
+              {
+                "tripId": "6651b2c3d4e5f6a7b8c9d002",
+                "confirmationNumber": "SLPD-2026-1116",
+                "startDate": "2026-11-16T00:00:00.000Z",
+                "endDate": "2026-11-22T00:00:00.000Z",
+                "expenseId": "6652c3d4e5f6a7b8c9d0e002",
+                "totalCost": 980,
+                "totalCostLocalCurrency": 294000,
+                "estimatedExpense": 45000,
+                "remainingExpenses": 33000,
+                "totalExpense": 12000,
+                "totalDriverSalary": 0,
+                "isRemainingToDriver": false,
+                "tripIncome": 282000
+              }
+            ]
+          }
+  - name: 200 Finance Officer
+    description: |-
+      FINANCEOFFICER is allowed (report.route.ts). Same payload as Super Admin.
+
+      Auth: bearer {{financeOfficerToken}}
+
+      Source scenario: Report/Monthly Income Report/Monthly Income Report - 200 Finance Officer.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyIncomeReport?date={{reportDate}}"
+      method: GET
+      params:
+        - name: date
+          value: "{{reportDate}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "tripId": "6651b2c3d4e5f6a7b8c9d001",
+                "confirmationNumber": "SLPD-2026-1104",
+                "startDate": "2026-11-04T00:00:00.000Z",
+                "endDate": "2026-11-10T00:00:00.000Z",
+                "expenseId": "6652c3d4e5f6a7b8c9d0e001",
+                "totalCost": 1250,
+                "totalCostLocalCurrency": 375000,
+                "estimatedExpense": 30000,
+                "remainingExpenses": 5000,
+                "totalExpense": 25000,
+                "totalDriverSalary": 55500,
+                "isRemainingToDriver": true,
+                "tripIncome": 294500
+              },
+              {
+                "tripId": "6651b2c3d4e5f6a7b8c9d002",
+                "confirmationNumber": "SLPD-2026-1116",
+                "startDate": "2026-11-16T00:00:00.000Z",
+                "endDate": "2026-11-22T00:00:00.000Z",
+                "expenseId": "6652c3d4e5f6a7b8c9d0e002",
+                "totalCost": 980,
+                "totalCostLocalCurrency": 294000,
+                "estimatedExpense": 45000,
+                "remainingExpenses": 33000,
+                "totalExpense": 12000,
+                "totalDriverSalary": 0,
+                "isRemainingToDriver": false,
+                "tripIncome": 282000
+              }
+            ]
+          }
+  - name: 200 Trip Manager
+    description: |-
+      TRIPMANAGER is allowed (report.route.ts). Same payload as Super Admin.
+
+      Auth: bearer {{tripManagerToken}}
+
+      Source scenario: Report/Monthly Income Report/Monthly Income Report - 200 Trip Manager.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyIncomeReport?date={{reportDate}}"
+      method: GET
+      params:
+        - name: date
+          value: "{{reportDate}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "tripId": "6651b2c3d4e5f6a7b8c9d001",
+                "confirmationNumber": "SLPD-2026-1104",
+                "startDate": "2026-11-04T00:00:00.000Z",
+                "endDate": "2026-11-10T00:00:00.000Z",
+                "expenseId": "6652c3d4e5f6a7b8c9d0e001",
+                "totalCost": 1250,
+                "totalCostLocalCurrency": 375000,
+                "estimatedExpense": 30000,
+                "remainingExpenses": 5000,
+                "totalExpense": 25000,
+                "totalDriverSalary": 55500,
+                "isRemainingToDriver": true,
+                "tripIncome": 294500
+              },
+              {
+                "tripId": "6651b2c3d4e5f6a7b8c9d002",
+                "confirmationNumber": "SLPD-2026-1116",
+                "startDate": "2026-11-16T00:00:00.000Z",
+                "endDate": "2026-11-22T00:00:00.000Z",
+                "expenseId": "6652c3d4e5f6a7b8c9d0e002",
+                "totalCost": 980,
+                "totalCostLocalCurrency": 294000,
+                "estimatedExpense": 45000,
+                "remainingExpenses": 33000,
+                "totalExpense": 12000,
+                "totalDriverSalary": 0,
+                "isRemainingToDriver": false,
+                "tripIncome": 282000
+              }
+            ]
+          }
+  - name: 200 no date defaults to current month
+    description: |-
+      `date` omitted → `selectedDate = new Date()` (current month). Compared against the 'current month' request run just before.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Monthly Income Report/Monthly Income Report - 200 no date defaults to current month.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyIncomeReport"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "tripId": "6651b2c3d4e5f6a7b8c9d001",
+                "confirmationNumber": "SLPD-2026-1104",
+                "startDate": "2026-11-04T00:00:00.000Z",
+                "endDate": "2026-11-10T00:00:00.000Z",
+                "expenseId": "6652c3d4e5f6a7b8c9d0e001",
+                "totalCost": 1250,
+                "totalCostLocalCurrency": 375000,
+                "estimatedExpense": 30000,
+                "remainingExpenses": 5000,
+                "totalExpense": 25000,
+                "totalDriverSalary": 55500,
+                "isRemainingToDriver": true,
+                "tripIncome": 294500
+              },
+              {
+                "tripId": "6651b2c3d4e5f6a7b8c9d002",
+                "confirmationNumber": "SLPD-2026-1116",
+                "startDate": "2026-11-16T00:00:00.000Z",
+                "endDate": "2026-11-22T00:00:00.000Z",
+                "expenseId": "6652c3d4e5f6a7b8c9d0e002",
+                "totalCost": 980,
+                "totalCostLocalCurrency": 294000,
+                "estimatedExpense": 45000,
+                "remainingExpenses": 33000,
+                "totalExpense": 12000,
+                "totalDriverSalary": 0,
+                "isRemainingToDriver": false,
+                "tripIncome": 282000
+              }
+            ]
+          }
+  - name: 200 month with no data
+    description: |-
+      A month with no trips/expenses returns 200 and `[]` (no 404).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Monthly Income Report/Monthly Income Report - 200 month with no data.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyIncomeReport?date=1990-01-15"
+      method: GET
+      params:
+        - name: date
+          value: 1990-01-15
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": []
+          }
+  - name: 401 no token
+    description: |-
+      auth.middleware.ts:25-26 — no `Authorization: Bearer` header → UnauthorizedError.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Report/Monthly Income Report/Monthly Income Report - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyIncomeReport"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 Driver
+    description: |-
+      DRIVER is not in [SUPERADMIN, ADMIN, FINANCEOFFICER, TRIPMANAGER] (report.route.ts). auth.middleware.ts:68-79 — role not in the route's roles array → ForbiddenError.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Report/Monthly Income Report/Monthly Income Report - 403 Driver.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyIncomeReport"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 403 Driver Assistant
+    description: |-
+      DRIVER ASSISTANT is not in [SUPERADMIN, ADMIN, FINANCEOFFICER, TRIPMANAGER] (report.route.ts). auth.middleware.ts:68-79 — role not in the route's roles array → ForbiddenError.
+
+      Auth: bearer {{driverAssistantToken}}
+
+      Source scenario: Report/Monthly Income Report/Monthly Income Report - 403 Driver Assistant.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyIncomeReport"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 403 Trip Assistant
+    description: |-
+      TRIP ASSISTANT is not in [SUPERADMIN, ADMIN, FINANCEOFFICER, TRIPMANAGER] (report.route.ts). auth.middleware.ts:68-79 — role not in the route's roles array → ForbiddenError.
+
+      Auth: bearer {{tripAssistantToken}}
+
+      Source scenario: Report/Monthly Income Report/Monthly Income Report - 403 Trip Assistant.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyIncomeReport"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid date
+    description: |-
+      `new Date("not-a-date")` → Invalid Date month bounds → Mongoose CastError in report.service.ts:7-15
+      (findAllTripsByDateAndStatusIn) → error.middleware.ts:56-60 → 404 `No item found with ID "Invalid Date"!`.
+      No 400 validation exists for `date` (report.md › Known issues 11). Note: report.md says 500; verified the cast
+      error is a `CastError`, which the middleware maps to 404.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Monthly Income Report/Monthly Income Report - 404 invalid date.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyIncomeReport?date=not-a-date"
+      method: GET
+      params:
+        - name: date
+          value: not-a-date
+          type: query
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"Invalid Date\"!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/report/monthlyIncomeReport`**
+
+  This request runs the main scenario **200 current month**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 current month | (empty) |
+  | 2 | 200 | 200 Finance Officer | (empty) |
+  | 3 | 200 | 200 Trip Manager | (empty) |
+  | 4 | 200 | 200 no date defaults to current month | (empty) |
+  | 5 | 200 | 200 month with no data | (empty) |
+  | 6 | 401 | 401 no token | Authentication invalid! |
+  | 7 | 403 | 403 Driver | You're unauthorized to access this resource! |
+  | 8 | 403 | 403 Driver Assistant | You're unauthorized to access this resource! |
+  | 9 | 403 | 403 Trip Assistant | You're unauthorized to access this resource! |
+  | 10 | 404 | 404 invalid date | No item found with ID "Invalid Date"! |
+
+  ## Main scenario notes
+
+  One row per Expenses doc of START/FINISHED trips ending this month (report.controller.ts:206-305).
+  [KNOWN BUG] report.controller.ts:237-238 sets `totalIncomeLocalCurrency: calcTotals.totalIncomeLocalCurrency`, but
+  `calculateIncome` never returns that key → always undefined and dropped from the JSON; the real value is `tripIncome`
+  (report.md › Known issues 1). The test asserts the field is absent; it is vacuous when there are no rows.

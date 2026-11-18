@@ -1,0 +1,434 @@
+info:
+  name: GRN Advance Search
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{baseUrl}}/inventory/grn/advanceSearch"
+  body:
+    type: json
+    data: |-
+      {
+        "startDate": "{{today}}",
+        "endDate": "{{today}}",
+        "status": -1
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const d = new Date();
+        const p = (n) => String(n).padStart(2, "0");
+        bru.setVar("today", d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()));
+    - type: tests
+      code: |-
+        test("contains approved and rejected GRNs", function () {
+          const ids = res.body.data.map((g) => g._id);
+          expect(ids).to.include(bru.getVar("grnId"));
+          expect(ids).to.include(bru.getVar("rejectGrnId"));
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 all statuses
+    description: |-
+      `status: -1` = PENDING+APPROVED+REJECTED (CANCELLED excluded). Day range uses server local time; `{{today}}` set in pre-request. Cached under `grn-`. `src/modules/inventory/grn/grn.controller.ts:350`, `grn.service.ts:30`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/GRN Advance Search - 200 all statuses.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/advanceSearch"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{today}}",
+            "endDate": "{{today}}",
+            "status": -1
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6731f1a2b4c5d6e7f8a9b0d1",
+                "grnNumberWithPrefix": "GRN-024",
+                "grnDate": "2026-11-18T08:31:00.120Z",
+                "grnRemarks": "Bruno GRN to approve",
+                "productsNames": "Bruno Rice 1794990600000",
+                "status": 2,
+                "statusName": "APPROVED",
+                "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "createdByName": "superadmin",
+                "approvedOrRejectedDate": "2026-11-18T08:31:01.602Z",
+                "approvedOrRejectedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "approvedOrRejectedByName": "superadmin",
+                "approvedRejectedRemarks": "Approved by Bruno"
+              },
+              {
+                "_id": "6731f1a2b4c5d6e7f8a9b0d3",
+                "grnNumberWithPrefix": "GRN-025",
+                "grnDate": "2026-11-18T08:31:02.300Z",
+                "grnRemarks": "Bruno GRN to reject",
+                "productsNames": "Bruno Rice 1794990600000",
+                "status": 3,
+                "statusName": "REJECTED",
+                "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "createdByName": "superadmin",
+                "approvedOrRejectedDate": "2026-11-18T08:31:02.910Z",
+                "approvedOrRejectedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "approvedOrRejectedByName": "superadmin",
+                "approvedRejectedRemarks": "Rejected by Bruno"
+              }
+            ]
+          }
+  - name: 200 string status matches nothing
+    description: |-
+      [KNOWN BUG] `"-1"` passes Joi (converted for validation only) but the service compares the raw body value
+      `status === -1` (`grn.service.ts:37`), so it searches status `"-1"` and returns `[]` even though today's GRNs exist.
+      Precondition: GRNs created today by earlier requests; `grn-` cache cleared by the last GRN save.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/GRN Advance Search - 200 string status matches nothing.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/advanceSearch"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{today}}",
+            "endDate": "{{today}}",
+            "status": "-1"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": []
+          }
+  - name: 400 missing startDate
+    description: |-
+      Joi `advanceSearchSchema`. `src/modules/inventory/grn/grn.validation.ts:28-41`, `src/modules/inventory/grn/grn.controller.ts:356`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/GRN Advance Search - 400 missing startDate.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/advanceSearch"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "endDate": "2026-01-31",
+            "status": -1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Start Date is required!",
+            "data": null
+          }
+  - name: 400 invalid startDate
+    description: |-
+      Joi `advanceSearchSchema`. `src/modules/inventory/grn/grn.validation.ts:28-41`, `src/modules/inventory/grn/grn.controller.ts:356`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/GRN Advance Search - 400 invalid startDate.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/advanceSearch"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "not-a-date",
+            "endDate": "2026-01-31",
+            "status": -1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Start Date is invalid!",
+            "data": null
+          }
+  - name: 400 missing endDate
+    description: |-
+      Joi `advanceSearchSchema`. `src/modules/inventory/grn/grn.validation.ts:28-41`, `src/modules/inventory/grn/grn.controller.ts:356`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/GRN Advance Search - 400 missing endDate.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/advanceSearch"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2026-01-01",
+            "status": -1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "End Date is required",
+            "data": null
+          }
+  - name: 400 invalid endDate
+    description: |-
+      Joi `advanceSearchSchema`. `src/modules/inventory/grn/grn.validation.ts:28-41`, `src/modules/inventory/grn/grn.controller.ts:356`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/GRN Advance Search - 400 invalid endDate.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/advanceSearch"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2026-01-01",
+            "endDate": "not-a-date",
+            "status": -1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "End Date is invalid",
+            "data": null
+          }
+  - name: 400 missing status
+    description: |-
+      Joi `advanceSearchSchema`. `src/modules/inventory/grn/grn.validation.ts:28-41`, `src/modules/inventory/grn/grn.controller.ts:356`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/GRN Advance Search - 400 missing status.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/advanceSearch"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2026-01-01",
+            "endDate": "2026-01-31"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Status is required",
+            "data": null
+          }
+  - name: 400 status not a number
+    description: |-
+      Joi `advanceSearchSchema`. `src/modules/inventory/grn/grn.validation.ts:28-41`, `src/modules/inventory/grn/grn.controller.ts:356`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/GRN Advance Search - 400 status not a number.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/advanceSearch"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2026-01-01",
+            "endDate": "2026-01-31",
+            "status": "abc"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Status is invalid",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Inventory/GRN/GRN Advance Search - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/advanceSearch"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2026-01-01",
+            "endDate": "2026-01-31",
+            "status": -1
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN, FINANCEOFFICER, TRIPMANAGER only; `{{driverToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Inventory/GRN/GRN Advance Search - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/advanceSearch"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2026-01-01",
+            "endDate": "2026-01-31",
+            "status": -1
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/inventory/grn/advanceSearch`**
+
+  This request runs the main scenario **200 all statuses**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 all statuses | (empty) |
+  | 2 | 200 | 200 string status matches nothing | (empty) |
+  | 3 | 400 | 400 missing startDate | Start Date is required! |
+  | 4 | 400 | 400 invalid startDate | Start Date is invalid! |
+  | 5 | 400 | 400 missing endDate | End Date is required |
+  | 6 | 400 | 400 invalid endDate | End Date is invalid |
+  | 7 | 400 | 400 missing status | Status is required |
+  | 8 | 400 | 400 status not a number | Status is invalid |
+  | 9 | 401 | 401 no token | Authentication invalid! |
+  | 10 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+
+  ## Main scenario notes
+
+  `status: -1` = PENDING+APPROVED+REJECTED (CANCELLED excluded). Day range uses server local time; `{{today}}` set in pre-request. Cached under `grn-`. `src/modules/inventory/grn/grn.controller.ts:350`, `grn.service.ts:30`

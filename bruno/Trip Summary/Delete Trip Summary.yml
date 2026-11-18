@@ -1,0 +1,613 @@
+info:
+  name: Delete Trip Summary
+  type: http
+  seq: 5
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/tripSummary/{{deleteTripSummaryId}}"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Trip summary deleted successfully!
+    - expression: res.body.data.status
+      operator: eq
+      value: "3"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 admin
+    description: |-
+      [DESTRUCTIVE] Soft delete: status = DELETED (src/modules/tripSummary/tripSummary.controller.ts:225-235). updatedBy not set (Known issue 6).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Delete Trip Summary/Delete Trip Summary - 200 admin.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/{{deleteTripSummaryId}}"
+      method: DELETE
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip summary deleted successfully!",
+            "data": {
+              "tripId": {
+                "startDate": "2026-11-18T00:00:00.000Z",
+                "endDate": "2026-11-21T00:00:00.000Z",
+                "tripConfirmedNumber": "BRUNO-MAIN-1794990601118",
+                "isPaymentCollected": false,
+                "dateCount": 4,
+                "requestedVehicle": "Van",
+                "totalCost": 1500,
+                "totalCostLocalCurrency": 450000,
+                "estimatedExpense": 60000,
+                "specialRequirement": "Child seat",
+                "paymentMode": "Cash",
+                "passengers": [
+                  {
+                    "name": "John Doe",
+                    "nationality": "British",
+                    "age": 35,
+                    "gender": "Male",
+                    "_id": "6651b2c3d4e5f6a7b8c9e126"
+                  }
+                ],
+                "arrivalInfo": {
+                  "arrivalDate": "2026-11-18T00:00:00.000Z",
+                  "arrivalTime": "2026-11-18T00:00:00.000Z",
+                  "arrivalFlightNumber": "UL504"
+                },
+                "departureInfo": {
+                  "departureDate": "2026-11-21T00:00:00.000Z",
+                  "departureTime": "2026-11-21T00:00:00.000Z",
+                  "departureFlightNumber": "UL503"
+                },
+                "pickUpInfo": {
+                  "pickupDate": "2026-11-18T00:00:00.000Z",
+                  "pickupTime": "2026-11-18T00:00:00.000Z",
+                  "pickupCity": "Colombo",
+                  "pickupAddress": "BIA Arrival Lounge"
+                },
+                "dropOffInfo": {
+                  "dropOffDate": "2026-11-21T00:00:00.000Z",
+                  "dropOffTime": "2026-11-21T00:00:00.000Z",
+                  "dropOffCity": "Colombo",
+                  "dropOffAddress": "BIA Departure"
+                },
+                "activities": [],
+                "places": [
+                  {
+                    "description": "Kandy",
+                    "dates": [
+                      "2026-11-18T00:00:00.000Z"
+                    ],
+                    "isReached": true,
+                    "index": 1,
+                    "reachedDate": "2026-11-18T08:30:14.512Z",
+                    "calcDistance": 10,
+                    "startMilage": 45230,
+                    "endMilage": 45240,
+                    "location": {
+                      "lat": 7.2906,
+                      "lng": 80.6337
+                    },
+                    "reachedBy": "6650a1b2c3d4e5f6a7b8c002",
+                    "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "_id": "6651b2c3d4e5f6a7b8c9e101"
+                  },
+                  {
+                    "description": "Ella",
+                    "dates": [
+                      "2026-11-19T00:00:00.000Z"
+                    ],
+                    "isReached": false,
+                    "index": 2,
+                    "reachedDate": null,
+                    "calcDistance": 0,
+                    "startMilage": 0,
+                    "endMilage": 0,
+                    "location": null,
+                    "reachedBy": null,
+                    "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "_id": "6651b2c3d4e5f6a7b8c9e102"
+                  },
+                  {
+                    "description": "Galle",
+                    "dates": [
+                      "2026-11-20T00:00:00.000Z"
+                    ],
+                    "isReached": false,
+                    "index": 3,
+                    "reachedDate": null,
+                    "calcDistance": 0,
+                    "startMilage": 0,
+                    "endMilage": 0,
+                    "location": null,
+                    "reachedBy": null,
+                    "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "_id": "6651b2c3d4e5f6a7b8c9e103"
+                  }
+                ],
+                "hotels": [],
+                "email": "guest@example.com",
+                "phoneNumber": "+94770000000",
+                "contactPerson": "Bruno Updated",
+                "drivers": [
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c002",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "isActive": true,
+                    "_id": "6651b2c3d4e5f6a7b8c9e124"
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6650a1b2c3d4e5f6a7b8d001",
+                    "isActive": true,
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "_id": "6651b2c3d4e5f6a7b8c9e125"
+                  }
+                ],
+                "checkListAnswers": {
+                  "1": 1,
+                  "2": 1,
+                  "3": 1,
+                  "4": 1,
+                  "5": 1,
+                  "6": 1,
+                  "7": 1,
+                  "8": 1,
+                  "9": 1,
+                  "10": 1,
+                  "11": 1,
+                  "12": 1,
+                  "13": 1,
+                  "14": 1,
+                  "umbrellaCount": 2,
+                  "isTermsConditionsChecked1": true,
+                  "isTermsConditionsChecked2": true,
+                  "vehicleDamageImages": []
+                },
+                "checkListCheckBy": "6650a1b2c3d4e5f6a7b8c002",
+                "status": 3,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c002",
+                "endedBy": null,
+                "isMonthEndDone": false,
+                "batchId": 0,
+                "_id": "6651b2c3d4e5f6a7b8c9d001",
+                "createdAt": "2026-11-18T08:30:01.125Z",
+                "updatedAt": "2026-11-18T08:30:20.347Z"
+              },
+              "date": "2026-11-18T00:00:00.000Z",
+              "startingTime": "2026-11-18T08:00:00.000Z",
+              "endingTime": "2026-11-18T17:00:00.000Z",
+              "startingKm": 1000,
+              "endingKm": 1080,
+              "totalKm": 80,
+              "fuel": 12,
+              "description": "Kandy to Ella",
+              "status": 3,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "_id": "6653d4e5f6a7b8c9d0e1a004",
+              "createdAt": "2026-11-18T08:31:03.105Z",
+              "updatedAt": "2026-11-18T08:31:03.390Z"
+            }
+          }
+  - name: 200 driver on started trip
+    description: |-
+      [DESTRUCTIVE] DRIVER may delete while the trip is START (any driver, no ownership check).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip Summary/Delete Trip Summary/Delete Trip Summary - 200 driver on started trip.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/{{driverTripSummaryId}}"
+      method: DELETE
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip summary deleted successfully!",
+            "data": {
+              "tripId": {
+                "startDate": "2026-11-18T00:00:00.000Z",
+                "endDate": "2026-11-21T00:00:00.000Z",
+                "tripConfirmedNumber": "BRUNO-MAIN-1794990601118",
+                "isPaymentCollected": false,
+                "dateCount": 4,
+                "requestedVehicle": "Van",
+                "totalCost": 1500,
+                "totalCostLocalCurrency": 450000,
+                "estimatedExpense": 60000,
+                "specialRequirement": "Child seat",
+                "paymentMode": "Cash",
+                "passengers": [
+                  {
+                    "name": "John Doe",
+                    "nationality": "British",
+                    "age": 35,
+                    "gender": "Male",
+                    "_id": "6651b2c3d4e5f6a7b8c9e126"
+                  }
+                ],
+                "arrivalInfo": {
+                  "arrivalDate": "2026-11-18T00:00:00.000Z",
+                  "arrivalTime": "2026-11-18T00:00:00.000Z",
+                  "arrivalFlightNumber": "UL504"
+                },
+                "departureInfo": {
+                  "departureDate": "2026-11-21T00:00:00.000Z",
+                  "departureTime": "2026-11-21T00:00:00.000Z",
+                  "departureFlightNumber": "UL503"
+                },
+                "pickUpInfo": {
+                  "pickupDate": "2026-11-18T00:00:00.000Z",
+                  "pickupTime": "2026-11-18T00:00:00.000Z",
+                  "pickupCity": "Colombo",
+                  "pickupAddress": "BIA Arrival Lounge"
+                },
+                "dropOffInfo": {
+                  "dropOffDate": "2026-11-21T00:00:00.000Z",
+                  "dropOffTime": "2026-11-21T00:00:00.000Z",
+                  "dropOffCity": "Colombo",
+                  "dropOffAddress": "BIA Departure"
+                },
+                "activities": [],
+                "places": [
+                  {
+                    "description": "Kandy",
+                    "dates": [
+                      "2026-11-18T00:00:00.000Z"
+                    ],
+                    "isReached": true,
+                    "index": 1,
+                    "reachedDate": "2026-11-18T08:30:14.512Z",
+                    "calcDistance": 10,
+                    "startMilage": 45230,
+                    "endMilage": 45240,
+                    "location": {
+                      "lat": 7.2906,
+                      "lng": 80.6337
+                    },
+                    "reachedBy": "6650a1b2c3d4e5f6a7b8c002",
+                    "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "_id": "6651b2c3d4e5f6a7b8c9e101"
+                  },
+                  {
+                    "description": "Ella",
+                    "dates": [
+                      "2026-11-19T00:00:00.000Z"
+                    ],
+                    "isReached": false,
+                    "index": 2,
+                    "reachedDate": null,
+                    "calcDistance": 0,
+                    "startMilage": 0,
+                    "endMilage": 0,
+                    "location": null,
+                    "reachedBy": null,
+                    "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "_id": "6651b2c3d4e5f6a7b8c9e102"
+                  },
+                  {
+                    "description": "Galle",
+                    "dates": [
+                      "2026-11-20T00:00:00.000Z"
+                    ],
+                    "isReached": false,
+                    "index": 3,
+                    "reachedDate": null,
+                    "calcDistance": 0,
+                    "startMilage": 0,
+                    "endMilage": 0,
+                    "location": null,
+                    "reachedBy": null,
+                    "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "_id": "6651b2c3d4e5f6a7b8c9e103"
+                  }
+                ],
+                "hotels": [],
+                "email": "guest@example.com",
+                "phoneNumber": "+94770000000",
+                "contactPerson": "Bruno Updated",
+                "drivers": [
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c002",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "isActive": true,
+                    "_id": "6651b2c3d4e5f6a7b8c9e124"
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6650a1b2c3d4e5f6a7b8d001",
+                    "isActive": true,
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "_id": "6651b2c3d4e5f6a7b8c9e125"
+                  }
+                ],
+                "checkListAnswers": {
+                  "1": 1,
+                  "2": 1,
+                  "3": 1,
+                  "4": 1,
+                  "5": 1,
+                  "6": 1,
+                  "7": 1,
+                  "8": 1,
+                  "9": 1,
+                  "10": 1,
+                  "11": 1,
+                  "12": 1,
+                  "13": 1,
+                  "14": 1,
+                  "umbrellaCount": 2,
+                  "isTermsConditionsChecked1": true,
+                  "isTermsConditionsChecked2": true,
+                  "vehicleDamageImages": []
+                },
+                "checkListCheckBy": "6650a1b2c3d4e5f6a7b8c002",
+                "status": 3,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c002",
+                "endedBy": null,
+                "isMonthEndDone": false,
+                "batchId": 0,
+                "_id": "6651b2c3d4e5f6a7b8c9d001",
+                "createdAt": "2026-11-18T08:30:01.125Z",
+                "updatedAt": "2026-11-18T08:30:20.347Z"
+              },
+              "date": "2026-11-18T00:00:00.000Z",
+              "startingTime": "2026-11-18T08:00:00.000Z",
+              "endingTime": "2026-11-18T17:00:00.000Z",
+              "startingKm": 1000,
+              "endingKm": 1080,
+              "totalKm": 80,
+              "fuel": 15,
+              "description": "Kandy to Ella",
+              "status": 3,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c002",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c002",
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "_id": "6653d4e5f6a7b8c9d0e1a002",
+              "createdAt": "2026-11-18T08:31:00.502Z",
+              "updatedAt": "2026-11-18T08:31:03.802Z"
+            }
+          }
+  - name: 400 already deleted
+    description: |-
+      Only ACTIVE summaries are found (src/modules/tripSummary/tripSummary.controller.ts:201-209).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Delete Trip Summary/Delete Trip Summary - 400 already deleted.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/{{deleteTripSummaryId}}"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No trip summary found!",
+            "data": null
+          }
+  - name: 400 driver on finished trip
+    description: |-
+      src/modules/tripSummary/tripSummary.controller.ts:211-218.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip Summary/Delete Trip Summary/Delete Trip Summary - 400 driver on finished trip.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/{{finishedTripSummaryId}}"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You can not delete trip summary, because trip is already finished!",
+            "data": null
+          }
+  - name: 400 not found
+    description: |-
+      src/modules/tripSummary/tripSummary.controller.ts:207-209.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Delete Trip Summary/Delete Trip Summary - 400 not found.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/{{nonExistingId}}"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No trip summary found!",
+            "data": null
+          }
+  - name: 400 month end done
+    description: |-
+      PRECONDITION (manual): `monthEndTripSummaryId`. src/modules/tripSummary/tripSummary.controller.ts:219-223.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Delete Trip Summary/Delete Trip Summary - 400 month end done.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/{{monthEndTripSummaryId}}"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You can not delete trip summary, because month end is already done!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → UnauthorizedError (src/middleware/auth.middleware.ts:24-26).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Trip Summary/Delete Trip Summary/Delete Trip Summary - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/{{tripSummaryId}}"
+      method: DELETE
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows TRIPMANAGER, SUPERADMIN, ADMIN, FINANCEOFFICER, DRIVER (src/modules/tripSummary/tripSummary.route.ts:51-61); DRIVERASSISTANT is rejected (src/middleware/auth.middleware.ts:66-74).
+
+      Auth: bearer {{driverAssistantToken}}
+
+      Source scenario: Trip Summary/Delete Trip Summary/Delete Trip Summary - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/{{tripSummaryId}}"
+      method: DELETE
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed ObjectId reaches findOne → CastError → 404 (error.middleware.ts CastError branch). src/modules/tripSummary/tripSummary.controller.ts:201.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Delete Trip Summary/Delete Trip Summary - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/{{invalidId}}"
+      method: DELETE
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **DELETE `/api/v1/tripSummary/:id`**
+
+  This request runs the main scenario **200 admin**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 admin | Trip summary deleted successfully! |
+  | 2 | 200 | 200 driver on started trip | Trip summary deleted successfully! |
+  | 3 | 400 | 400 already deleted | No trip summary found! |
+  | 4 | 400 | 400 driver on finished trip | You can not delete trip summary, because trip is already finished! |
+  | 5 | 400 | 400 not found | No trip summary found! |
+  | 6 | 400 | 400 month end done | You can not delete trip summary, because month end is already done! |
+  | 7 | 401 | 401 no token | Authentication invalid! |
+  | 8 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 9 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  [DESTRUCTIVE] Soft delete: status = DELETED (src/modules/tripSummary/tripSummary.controller.ts:225-235). updatedBy not set (Known issue 6).

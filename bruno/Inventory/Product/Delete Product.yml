@@ -1,0 +1,222 @@
+info:
+  name: Delete Product
+  type: http
+  seq: 5
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/inventory/product/{{tempProductId}}"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Product deleted successfully!
+    - expression: res.body.data.status
+      operator: eq
+      value: "3"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 temp product
+    description: |-
+      [DESTRUCTIVE] Soft-deletes `{{tempProductId}}` (status 3). Placed after the error cases because they still need the product alive.
+      No stock / pending GRN / open POS checks. `src/modules/inventory/product/product.controller.ts:206`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Delete Product - 200 temp product.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{tempProductId}}"
+      method: DELETE
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product deleted successfully!",
+            "data": {
+              "_id": "6731f0a2b4c5d6e7f8a9b0c2",
+              "productName": "Bruno Temp 1794990601",
+              "productShortCode": "BT1794990601",
+              "measureUnit": 1,
+              "isReturnableProduct": true,
+              "unitPrice": 100,
+              "description": "",
+              "inventory": 0,
+              "inventoryLogs": [],
+              "status": 3,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:30:01.230Z",
+              "updatedAt": "2026-11-18T08:30:09.940Z"
+            }
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Inventory/Product/Delete Product - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{tempProductId}}"
+      method: DELETE
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN only; `{{driverToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Inventory/Product/Delete Product - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{tempProductId}}"
+      method: DELETE
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 not found
+    description: |-
+      `src/modules/inventory/product/product.controller.ts:213`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Delete Product - 404 not found.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{nonExistingId}}"
+      method: DELETE
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product not found for update!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      `src/modules/inventory/product/product.controller.ts:210`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Delete Product - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{invalidId}}"
+      method: DELETE
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+  - name: 404 already deleted
+    description: |-
+      Only ACTIVE/INACTIVE products are found; DELETED is terminal. Precondition: previous request. `src/modules/inventory/product/product.controller.ts:213`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Delete Product - 404 already deleted.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{tempProductId}}"
+      method: DELETE
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product not found for update!",
+            "data": null
+          }
+
+docs: |-
+  **DELETE `/api/v1/inventory/product/:id`**
+
+  This request runs the main scenario **200 temp product**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 temp product | Product deleted successfully! |
+  | 2 | 401 | 401 no token | Authentication invalid! |
+  | 3 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 4 | 404 | 404 not found | Product not found for update! |
+  | 5 | 404 | 404 invalid id | No item found with ID " |
+  | 6 | 404 | 404 already deleted | Product not found for update! |
+
+  ## Main scenario notes
+
+  [DESTRUCTIVE] Soft-deletes `{{tempProductId}}` (status 3). Placed after the error cases because they still need the product alive.
+  No stock / pending GRN / open POS checks. `src/modules/inventory/product/product.controller.ts:206`

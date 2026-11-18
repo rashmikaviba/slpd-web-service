@@ -1,0 +1,54 @@
+info:
+  name: Unknown route
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: "{{baseUrl}}/user/this/route/does/not/exist"
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "404"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "false"
+    - expression: res.body.message
+      operator: eq
+      value: Can't find /api/v1/user/this/route/does/not/exist on this server!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 404 Not Found
+    description: Expected error response
+    request:
+      url: "{{baseUrl}}/user/this/route/does/not/exist"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Can't find /api/v1/user/this/route/does/not/exist on this server!",
+            "data": null
+          }
+
+docs: |-
+  Catch-all route in app.ts.
+
+  **Expected response:** `404 Not Found` — `Can't find /api/v1/user/this/route/does/not/exist on this server!`

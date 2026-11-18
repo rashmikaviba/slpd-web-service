@@ -1,0 +1,781 @@
+info:
+  name: Save Monthly Expense
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/monthlyExpenses/save/{{monthlyExpensesId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "expenseType": 1,
+        "expenseTypeName": "Electricity",
+        "date": "{{monthlyExpensesMonth}}",
+        "description": "Bruno monthly expense",
+        "amount": 2500
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.status === 200 || res.status === 201) {
+          const lines = res.body.data.expenses;
+          bru.setVar("monthlyExpenseLineId", lines[lines.length - 1]._id);
+        }
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Monthly expense saved successfully!
+    - expression: res.body.data._id
+      operator: eq
+      value: '"{{monthlyExpensesId}}"'
+    - expression: res.body.data.totalExpenses
+      operator: isNumber
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "201"
+    description: |-
+      Precondition: Advance Search setup found an open header. Pushes a line, recomputes totalExpenses in a transaction (monthlyExpenses.controller.ts:14-89).
+      Stores the new line `_id` as `{{monthlyExpenseLineId}}`.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Save Monthly Expense/Save Monthly Expense - 201.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/save/{{monthlyExpensesId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Bruno monthly expense",
+            "amount": 2500
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Monthly expense saved successfully!",
+            "data": {
+              "_id": "6655a1b2c3d4e5f6a7b8c9d0",
+              "month": "2026-11-01T00:00:00.000Z",
+              "year": 2026,
+              "monthName": 11,
+              "expenses": [
+                {
+                  "expenseType": "1",
+                  "expenseTypeName": "Electricity",
+                  "date": "2026-11-01T00:00:00.000Z",
+                  "description": "Bruno monthly expense",
+                  "amount": 2500,
+                  "status": 1,
+                  "createdAt": "2026-11-18T08:50:00.000Z",
+                  "updatedAt": "2026-11-18T08:50:00.000Z",
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "_id": "6655b1b2c3d4e5f6a7b8c9d0"
+                }
+              ],
+              "totalExpenses": 2500,
+              "status": 1,
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-01T02:00:00.000Z",
+              "updatedAt": "2026-11-18T08:50:00.000Z"
+            }
+          }
+  - name: 201 second line for delete
+    description: |-
+      Stores `{{monthlyExpenseLineToDeleteId}}` for the Delete folder.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Save Monthly Expense/Save Monthly Expense - 201 second line for delete.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/save/{{monthlyExpensesId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 2,
+            "expenseTypeName": "Water",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Bruno line to delete",
+            "amount": 750
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Monthly expense saved successfully!",
+            "data": {
+              "_id": "6655a1b2c3d4e5f6a7b8c9d0",
+              "month": "2026-11-01T00:00:00.000Z",
+              "year": 2026,
+              "monthName": 11,
+              "expenses": [
+                {
+                  "expenseType": "1",
+                  "expenseTypeName": "Electricity",
+                  "date": "2026-11-01T00:00:00.000Z",
+                  "description": "Bruno monthly expense",
+                  "amount": 2500,
+                  "status": 1,
+                  "createdAt": "2026-11-18T08:50:00.000Z",
+                  "updatedAt": "2026-11-18T08:50:00.000Z",
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "_id": "6655b1b2c3d4e5f6a7b8c9d0"
+                },
+                {
+                  "expenseType": "2",
+                  "expenseTypeName": "Water",
+                  "date": "2026-11-01T00:00:00.000Z",
+                  "description": "Bruno line to delete",
+                  "amount": 750,
+                  "status": 1,
+                  "createdAt": "2026-11-18T08:50:05.000Z",
+                  "updatedAt": "2026-11-18T08:50:05.000Z",
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "_id": "6655b1b2c3d4e5f6a7b8c9d1"
+                }
+              ],
+              "totalExpenses": 3250,
+              "status": 1,
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-01T02:00:00.000Z",
+              "updatedAt": "2026-11-18T08:50:05.000Z"
+            }
+          }
+  - name: 400 missing expenseType
+    description: |-
+      Joi `createNewExpensesSchema` → BadRequestError(error.message) (monthlyExpenses.validation.ts:6, monthlyExpenses.controller.ts:26-30).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Save Monthly Expense/Save Monthly Expense - 400 missing expenseType.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/save/{{monthlyExpensesId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Bruno monthly expense",
+            "amount": 2500
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense type is required",
+            "data": null
+          }
+  - name: 400 invalid expenseType
+    description: |-
+      Joi `createNewExpensesSchema` → BadRequestError(error.message) (monthlyExpenses.validation.ts:7, monthlyExpenses.controller.ts:26-30).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Save Monthly Expense/Save Monthly Expense - 400 invalid expenseType.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/save/{{monthlyExpensesId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": "abc",
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Bruno monthly expense",
+            "amount": 2500
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense type is invalid",
+            "data": null
+          }
+  - name: 400 missing date
+    description: |-
+      Joi `createNewExpensesSchema` → BadRequestError(error.message) (monthlyExpenses.validation.ts:10, monthlyExpenses.controller.ts:26-30).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Save Monthly Expense/Save Monthly Expense - 400 missing date.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/save/{{monthlyExpensesId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "description": "Bruno monthly expense",
+            "amount": 2500
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Date is required",
+            "data": null
+          }
+  - name: 400 invalid date
+    description: |-
+      Joi `createNewExpensesSchema` → BadRequestError(error.message) (monthlyExpenses.validation.ts:11, monthlyExpenses.controller.ts:26-30).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Save Monthly Expense/Save Monthly Expense - 400 invalid date.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/save/{{monthlyExpensesId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "not-a-date",
+            "description": "Bruno monthly expense",
+            "amount": 2500
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Date is invalid",
+            "data": null
+          }
+  - name: 400 missing expenseTypeName
+    description: |-
+      Joi `createNewExpensesSchema` → BadRequestError(error.message) (monthlyExpenses.validation.ts:14, monthlyExpenses.controller.ts:26-30).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Save Monthly Expense/Save Monthly Expense - 400 missing expenseTypeName.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/save/{{monthlyExpensesId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Bruno monthly expense",
+            "amount": 2500
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense type name is required",
+            "data": null
+          }
+  - name: 400 invalid expenseTypeName
+    description: |-
+      Joi `createNewExpensesSchema` → BadRequestError(error.message) (monthlyExpenses.validation.ts:15, monthlyExpenses.controller.ts:26-30).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Save Monthly Expense/Save Monthly Expense - 400 invalid expenseTypeName.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/save/{{monthlyExpensesId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": 123,
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Bruno monthly expense",
+            "amount": 2500
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense type name is invalid",
+            "data": null
+          }
+  - name: 400 missing description
+    description: |-
+      Joi `createNewExpensesSchema` → BadRequestError(error.message) (monthlyExpenses.validation.ts:18, monthlyExpenses.controller.ts:26-30).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Save Monthly Expense/Save Monthly Expense - 400 missing description.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/save/{{monthlyExpensesId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "amount": 2500
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Description is required",
+            "data": null
+          }
+  - name: 400 invalid description
+    description: |-
+      Joi `createNewExpensesSchema` → BadRequestError(error.message) (monthlyExpenses.validation.ts:19, monthlyExpenses.controller.ts:26-30).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Save Monthly Expense/Save Monthly Expense - 400 invalid description.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/save/{{monthlyExpensesId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": 123,
+            "amount": 2500
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Description is invalid",
+            "data": null
+          }
+  - name: 400 missing amount
+    description: |-
+      Joi `createNewExpensesSchema` → BadRequestError(error.message) (monthlyExpenses.validation.ts:22, monthlyExpenses.controller.ts:26-30).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Save Monthly Expense/Save Monthly Expense - 400 missing amount.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/save/{{monthlyExpensesId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Bruno monthly expense"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Amount is required",
+            "data": null
+          }
+  - name: 400 invalid amount
+    description: |-
+      Joi `createNewExpensesSchema` → BadRequestError(error.message) (monthlyExpenses.validation.ts:23, monthlyExpenses.controller.ts:26-30).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Save Monthly Expense/Save Monthly Expense - 400 invalid amount.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/save/{{monthlyExpensesId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Bruno monthly expense",
+            "amount": "abc"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Amount is invalid",
+            "data": null
+          }
+  - name: 400 description too long
+    description: |-
+      Joi has no max; the model maxlength (monthlyExpenses.model.ts:40) fails on save → Mongoose ValidationError → 400 (error.middleware.ts:37-45).
+      Transaction aborted, nothing saved.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Save Monthly Expense/Save Monthly Expense - 400 description too long.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/save/{{monthlyExpensesId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "{{long501}}",
+            "amount": 2500
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Description cannot exceed 500 characters",
+            "data": null
+          }
+  - name: 400 month end done
+    description: |-
+      Precondition: `{{closedMonthlyExpensesId}}` set by Advance Search setup (needs at least one closed month) (monthlyExpenses.controller.ts:36-38).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Save Monthly Expense/Save Monthly Expense - 400 month end done.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/save/{{closedMonthlyExpensesId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Bruno monthly expense",
+            "amount": 2500
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Cannot update monthly expense after month end!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Monthly Expenses/Save Monthly Expense/Save Monthly Expense - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/save/{{monthlyExpensesId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Bruno monthly expense",
+            "amount": 2500
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 driver role
+    description: |-
+      monthlyExpenses.route.ts:22-31.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Monthly Expenses/Save Monthly Expense/Save Monthly Expense - 403 driver role.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/save/{{monthlyExpensesId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Bruno monthly expense",
+            "amount": 2500
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 monthly expense not found
+    description: |-
+      NotFoundError (monthlyExpenses.controller.ts:32-35).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Save Monthly Expense/Save Monthly Expense - 404 monthly expense not found.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/save/{{nonExistingId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Bruno monthly expense",
+            "amount": 2500
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Monthly expense not found!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed id → CastError → 404.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Save Monthly Expense/Save Monthly Expense - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/save/{{invalidId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Bruno monthly expense",
+            "amount": 2500
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/monthlyExpenses/save/:id`**
+
+  This request runs the main scenario **201**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 | Monthly expense saved successfully! |
+  | 2 | 201 | 201 second line for delete | Monthly expense saved successfully! |
+  | 3 | 400 | 400 missing expenseType | Expense type is required |
+  | 4 | 400 | 400 invalid expenseType | Expense type is invalid |
+  | 5 | 400 | 400 missing date | Date is required |
+  | 6 | 400 | 400 invalid date | Date is invalid |
+  | 7 | 400 | 400 missing expenseTypeName | Expense type name is required |
+  | 8 | 400 | 400 invalid expenseTypeName | Expense type name is invalid |
+  | 9 | 400 | 400 missing description | Description is required |
+  | 10 | 400 | 400 invalid description | Description is invalid |
+  | 11 | 400 | 400 missing amount | Amount is required |
+  | 12 | 400 | 400 invalid amount | Amount is invalid |
+  | 13 | 400 | 400 description too long | Description cannot exceed 500 characters |
+  | 14 | 400 | 400 month end done | Cannot update monthly expense after month end! |
+  | 15 | 401 | 401 no token | Authentication invalid! |
+  | 16 | 403 | 403 driver role | You're unauthorized to access this resource! |
+  | 17 | 404 | 404 monthly expense not found | Monthly expense not found! |
+  | 18 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  Precondition: Advance Search setup found an open header. Pushes a line, recomputes totalExpenses in a transaction (monthlyExpenses.controller.ts:14-89).
+  Stores the new line `_id` as `{{monthlyExpenseLineId}}`.

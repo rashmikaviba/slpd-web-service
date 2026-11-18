@@ -1,0 +1,282 @@
+info:
+  name: Get POS By Trip
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{baseUrl}}/pos/getPosByTrip/{{tripId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("lines before audit", function () {
+          expect(res.body.data.isTripEndAuditDone).to.equal(false);
+          expect(res.body.data.products.map((p) => p.id)).to.include(bru.getVar("posProductId"));
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      ACTIVE lines as `PosGetByIdReponseDto` (audit fields 0 before audit). `src/modules/pos/pos.controller.ts:488`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Get POS By Trip - 200.yml
+    request:
+      url: "{{baseUrl}}/pos/getPosByTrip/{{tripId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "_id": "6731f5a2b4c5d6e7f8a9b201",
+              "tripId": "6731e5a2b4c5d6e7f8a9b0a1",
+              "tripConfirmedNumber": "BRUNO-MAIN-1794990790000",
+              "products": [
+                {
+                  "id": "6731f5a2b4c5d6e7f8a9b202",
+                  "productName": "Bruno Rice 1794990600000",
+                  "product": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "isReturnableProduct": false,
+                  "unitPrice": 300,
+                  "productUnitOfMeasure": 13,
+                  "enteredUnitOfMeasure": 13,
+                  "enteredQuantity": 2,
+                  "quantityWithSiUnitOfMeasure": 2000,
+                  "status": 1,
+                  "productUnitOfMeasureCode": "kg",
+                  "enteredUnitOfMeasureCode": "kg",
+                  "productMeasureUnitDetails": {
+                    "unitId": 13,
+                    "code": "kg",
+                    "name": "Kilogram",
+                    "conversionToSi": 1000,
+                    "isSaveWithSiUnit": true,
+                    "isSiUnit": false,
+                    "isAllowDecimal": true,
+                    "categoryId": 2
+                  },
+                  "returnedQuantity": 0,
+                  "returnedUnitOfMeasure": 0,
+                  "returnedUnitOfMeasureCode": "",
+                  "returnedQuantityWithSiUnitOfMeasure": 0,
+                  "consiumedQuantity": 0,
+                  "notReturnedReason": "",
+                  "createdAt": "2026-11-18T08:45:00.210Z"
+                },
+                {
+                  "id": "6731f5a2b4c5d6e7f8a9b203",
+                  "productName": "Bruno Rice 1794990600000",
+                  "product": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "isReturnableProduct": false,
+                  "unitPrice": 300,
+                  "productUnitOfMeasure": 13,
+                  "enteredUnitOfMeasure": 12,
+                  "enteredQuantity": 500,
+                  "quantityWithSiUnitOfMeasure": 500,
+                  "status": 1,
+                  "productUnitOfMeasureCode": "kg",
+                  "enteredUnitOfMeasureCode": "g",
+                  "productMeasureUnitDetails": {
+                    "unitId": 13,
+                    "code": "kg",
+                    "name": "Kilogram",
+                    "conversionToSi": 1000,
+                    "isSaveWithSiUnit": true,
+                    "isSiUnit": false,
+                    "isAllowDecimal": true,
+                    "categoryId": 2
+                  },
+                  "returnedQuantity": 0,
+                  "returnedUnitOfMeasure": 0,
+                  "returnedUnitOfMeasureCode": "",
+                  "returnedQuantityWithSiUnitOfMeasure": 0,
+                  "consiumedQuantity": 0,
+                  "notReturnedReason": "",
+                  "createdAt": "2026-11-18T08:45:01.330Z"
+                }
+              ],
+              "totalAmount": 750,
+              "isTripEndAuditDone": false,
+              "endAuditProducts": [],
+              "status": 1
+            }
+          }
+  - name: 400 invalid conversion after partial audit
+    description: |-
+      [KNOWN BUG] Audit done but an ACTIVE line (`{{negativePosProductId}}`) has no audit entry -> `siUnitId` stays 0 in
+      `pos.utils.ts:13-26` and `helperUtil.fromSiMeasureUnitToOtherMeasureUnit(0, …)` throws (`util/helper.util.ts:62-63`). The POS view is broken for this trip.
+      Expected: 200. Precondition: `Trip End POS Audit - 200` with a line left out.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Get POS By Trip - 400 invalid conversion after partial audit.yml
+    request:
+      url: "{{baseUrl}}/pos/getPosByTrip/{{tripId}}"
+      method: GET
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid Measure Unit Conversion!",
+            "data": null
+          }
+  - name: 400 trip not found
+    description: |-
+      No POS and no PENDING/START/FINISHED trip. `src/modules/pos/pos.controller.ts:504`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Get POS By Trip - 400 trip not found.yml
+    request:
+      url: "{{baseUrl}}/pos/getPosByTrip/{{nonExistingId}}"
+      method: GET
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip not found!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: POS/Get POS By Trip - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/pos/getPosByTrip/{{tripId}}"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN, TRIPMANAGER, FINANCEOFFICER only; `{{driverToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: POS/Get POS By Trip - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/pos/getPosByTrip/{{tripId}}"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid trip id
+    description: |-
+      `src/modules/pos/pos.controller.ts:492`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Get POS By Trip - 404 invalid trip id.yml
+    request:
+      url: "{{baseUrl}}/pos/getPosByTrip/{{invalidId}}"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/pos/getPosByTrip/:tripId`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | (empty) |
+  | 2 | 400 | 400 invalid conversion after partial audit | Invalid Measure Unit Conversion! |
+  | 3 | 400 | 400 trip not found | Trip not found! |
+  | 4 | 401 | 401 no token | Authentication invalid! |
+  | 5 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 6 | 404 | 404 invalid trip id | No item found with ID " |
+
+  ## Main scenario notes
+
+  ACTIVE lines as `PosGetByIdReponseDto` (audit fields 0 before audit). `src/modules/pos/pos.controller.ts:488`

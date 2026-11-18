@@ -1,0 +1,1023 @@
+info:
+  name: Vehicle Monthly Payment
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+  body:
+    type: json
+    data: |-
+      {
+        "month": "{{reportDate}}",
+        "vehicle": "{{reportFreelanceVehicleId}}",
+        "rentalFor30Days": 90000,
+        "workedDaysCount": 20
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const d = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        // mid-month day avoids TZ edge cases (server builds month bounds in local time from a UTC-parsed date)
+        bru.setVar("reportDate", `${d.getFullYear()}-${pad(d.getMonth() + 1)}-15`);
+    - type: tests
+      code: |-
+        const d = res.body.data;
+        test("exactly the payment report fields", function () {
+          expect(d).to.have.all.keys("vehicleMaintenances", "vehicle", "rentalFor30Days", "workedDaysCount", "valuePerDay",
+            "totalVehicleMaintenance", "effectiveMaintenanceCost", "netTotal", "grossTotal", "selectedDate");
+        });
+        test("vehicle is the populated freelance vehicle", function () {
+          expect(d.vehicle.isFreelanceVehicle).to.equal(true);
+          expect(d.vehicle.createdBy).to.be.an("object");
+        });
+        test("maintenance totals (freelance: every cost is deducted)", function () {
+          const total = d.vehicleMaintenances.reduce((s, m) => s + m.cost, 0);
+          expect(d.totalVehicleMaintenance).to.equal(total);
+          expect(d.effectiveMaintenanceCost).to.equal(total);
+        });
+        test("[KNOWN BUG] netTotal / grossTotal present (names are swapped)", function () {
+          expect(d).to.have.property("netTotal");
+          expect(d).to.have.property("grossTotal");
+          expect(d.netTotal).to.be.a("number");
+          expect(d.grossTotal).to.be.a("number");
+        });
+        test("selectedDate is the parsed month", function () {
+          expect(new Date(d.selectedDate).toISOString().slice(0, 10)).to.equal(bru.getVar("reportDate"));
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.data.rentalFor30Days
+      operator: eq
+      value: "90000"
+    - expression: res.body.data.workedDaysCount
+      operator: eq
+      value: "20"
+    - expression: res.body.data.valuePerDay
+      operator: eq
+      value: "3000"
+    - expression: res.body.data.vehicle._id
+      operator: eq
+      value: "{{reportFreelanceVehicleId}}"
+    - expression: res.body.data.vehicleMaintenances
+      operator: isArray
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 freelance vehicle
+    description: |-
+      valuePerDay = rentalFor30Days / 30 = 3000; freelance → effectiveMaintenanceCost = Σ all maintenance costs this month
+      (report.controller.ts:307-371). New vehicle → normally no maintenance → totals 0.
+      [KNOWN BUG] report.controller.ts:365-366: `netTotal` is the amount BEFORE deductions and `grossTotal` the amount AFTER
+      (names inverted, report.md › Known issues 3). Only presence/type is asserted so the test survives a rename fix.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 200 freelance vehicle.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": "{{reportDate}}",
+            "vehicle": "{{reportFreelanceVehicleId}}",
+            "rentalFor30Days": 90000,
+            "workedDaysCount": 20
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "vehicleMaintenances": [
+                {
+                  "_id": "6657b8c9d0e1f2a3b4c5d101",
+                  "vehicle": {
+                    "_id": "6653d4e5f6a7b8c9d0e1f201",
+                    "vehicleType": 1,
+                    "vehicleOwner": "Bruno Report Test",
+                    "registrationNumber": "RPT-FL-1795509000",
+                    "gpsTracker": "GPS-RPT-FL-1795509000",
+                    "capacity": 4,
+                    "availableSeats": 3,
+                    "initialMileage": 0,
+                    "currentMileage": 0,
+                    "isFreelanceVehicle": true,
+                    "rentalFor30Days": 90000,
+                    "isRentalVehicle": false,
+                    "status": 1,
+                    "createdBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "updatedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "createdAt": "2026-11-18T08:00:00.000Z",
+                    "updatedAt": "2026-11-18T08:00:00.000Z"
+                  },
+                  "maintenancePart": "Oil Change",
+                  "garage": {
+                    "_id": "6656a7b8c9d0e1f2a3b4c001",
+                    "name": "Lanka Auto Care",
+                    "address": "No. 112, Kandy Road, Kadawatha",
+                    "city": "Kadawatha",
+                    "contactNumber1": "0112925555",
+                    "googleMapUrl": null,
+                    "specializations": [
+                      {
+                        "id": 1,
+                        "name": "Brake Service",
+                        "_id": "6656a7b8c9d0e1f2a3b4c0a1"
+                      }
+                    ],
+                    "description": "Authorised service centre",
+                    "status": 1,
+                    "createdBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "updatedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "createdAt": "2026-02-10T06:00:00.000Z",
+                    "updatedAt": "2026-02-10T06:00:00.000Z"
+                  },
+                  "maintenanceDate": "2026-11-14T00:00:00.000Z",
+                  "cost": 7500,
+                  "note": "Engine oil and oil filter",
+                  "isMonthEndDone": false,
+                  "billImageUrls": [
+                    "https://storage.example.com/bills/oil-1101.jpg"
+                  ],
+                  "batchId": 0,
+                  "status": 1,
+                  "createdBy": {
+                    "_id": "6650a1b2c3d4e5f6a7b8c902",
+                    "fullName": "Nimali Fernando",
+                    "userName": "nimali.fo",
+                    "gender": "6650a1b2c3d4e5f6a7b8c9a1",
+                    "dateOfBirth": "1988-04-12T00:00:00.000Z",
+                    "address": "No. 25, Galle Road, Colombo 03",
+                    "phoneNumber1": "+94771234567",
+                    "email": "nimalifo@example.com",
+                    "isFreelanceDriver": false,
+                    "nic": "880000000V",
+                    "bankName": "Bank of Ceylon",
+                    "bankId": 7010,
+                    "branch": "Colombo Fort",
+                    "basicSalary": 85000,
+                    "leaveCount": 14,
+                    "languages": [
+                      "Sinhala",
+                      "English"
+                    ],
+                    "role": "6650a1b2c3d4e5f6a7b8c9b1",
+                    "status": 1,
+                    "createdBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "updatedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "createdAt": "2026-01-05T04:30:00.000Z",
+                    "updatedAt": "2026-01-05T04:30:00.000Z"
+                  },
+                  "updatedBy": {
+                    "_id": "6650a1b2c3d4e5f6a7b8c902",
+                    "fullName": "Nimali Fernando",
+                    "userName": "nimali.fo",
+                    "gender": "6650a1b2c3d4e5f6a7b8c9a1",
+                    "dateOfBirth": "1988-04-12T00:00:00.000Z",
+                    "address": "No. 25, Galle Road, Colombo 03",
+                    "phoneNumber1": "+94771234567",
+                    "email": "nimalifo@example.com",
+                    "isFreelanceDriver": false,
+                    "nic": "880000000V",
+                    "bankName": "Bank of Ceylon",
+                    "bankId": 7010,
+                    "branch": "Colombo Fort",
+                    "basicSalary": 85000,
+                    "leaveCount": 14,
+                    "languages": [
+                      "Sinhala",
+                      "English"
+                    ],
+                    "role": "6650a1b2c3d4e5f6a7b8c9b1",
+                    "status": 1,
+                    "createdBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "updatedBy": "6650a1b2c3d4e5f6a7b8c901",
+                    "createdAt": "2026-01-05T04:30:00.000Z",
+                    "updatedAt": "2026-01-05T04:30:00.000Z"
+                  },
+                  "createdAt": "2026-11-14T10:00:00.000Z",
+                  "updatedAt": "2026-11-14T10:00:00.000Z"
+                }
+              ],
+              "vehicle": {
+                "_id": "6653d4e5f6a7b8c9d0e1f201",
+                "vehicleType": 1,
+                "vehicleOwner": "Bruno Report Test",
+                "registrationNumber": "RPT-FL-1795509000",
+                "gpsTracker": "GPS-RPT-FL-1795509000",
+                "capacity": 4,
+                "availableSeats": 3,
+                "initialMileage": 0,
+                "currentMileage": 0,
+                "isFreelanceVehicle": true,
+                "rentalFor30Days": 90000,
+                "isRentalVehicle": false,
+                "status": 1,
+                "createdBy": {
+                  "_id": "6650a1b2c3d4e5f6a7b8c901",
+                  "fullName": "Kasun Perera",
+                  "userName": "superadmin",
+                  "gender": "6650a1b2c3d4e5f6a7b8c9a1",
+                  "dateOfBirth": "1988-04-12T00:00:00.000Z",
+                  "address": "No. 25, Galle Road, Colombo 03",
+                  "phoneNumber1": "+94771234567",
+                  "email": "superadmin@example.com",
+                  "isFreelanceDriver": false,
+                  "nic": "880000000V",
+                  "bankName": "Bank of Ceylon",
+                  "bankId": 7010,
+                  "branch": "Colombo Fort",
+                  "basicSalary": 85000,
+                  "leaveCount": 14,
+                  "languages": [
+                    "Sinhala",
+                    "English"
+                  ],
+                  "role": "6650a1b2c3d4e5f6a7b8c9b1",
+                  "status": 1,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c901",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c901",
+                  "createdAt": "2026-01-05T04:30:00.000Z",
+                  "updatedAt": "2026-01-05T04:30:00.000Z"
+                },
+                "updatedBy": {
+                  "_id": "6650a1b2c3d4e5f6a7b8c901",
+                  "fullName": "Kasun Perera",
+                  "userName": "superadmin",
+                  "gender": "6650a1b2c3d4e5f6a7b8c9a1",
+                  "dateOfBirth": "1988-04-12T00:00:00.000Z",
+                  "address": "No. 25, Galle Road, Colombo 03",
+                  "phoneNumber1": "+94771234567",
+                  "email": "superadmin@example.com",
+                  "isFreelanceDriver": false,
+                  "nic": "880000000V",
+                  "bankName": "Bank of Ceylon",
+                  "bankId": 7010,
+                  "branch": "Colombo Fort",
+                  "basicSalary": 85000,
+                  "leaveCount": 14,
+                  "languages": [
+                    "Sinhala",
+                    "English"
+                  ],
+                  "role": "6650a1b2c3d4e5f6a7b8c9b1",
+                  "status": 1,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c901",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c901",
+                  "createdAt": "2026-01-05T04:30:00.000Z",
+                  "updatedAt": "2026-01-05T04:30:00.000Z"
+                },
+                "createdAt": "2026-11-18T08:00:00.000Z",
+                "updatedAt": "2026-11-18T08:00:00.000Z"
+              },
+              "rentalFor30Days": 90000,
+              "workedDaysCount": 20,
+              "valuePerDay": 3000,
+              "totalVehicleMaintenance": 7500,
+              "effectiveMaintenanceCost": 7500,
+              "netTotal": 60000,
+              "grossTotal": 52500,
+              "selectedDate": "2026-11-15T00:00:00.000Z"
+            }
+          }
+  - name: 400 missing month
+    description: |-
+      missing month: Joi → 400 `Month is required`. report.validation.ts:3-21 (Joi, thrown as BadRequestError(error.message) at report.controller.ts:318-321).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 400 missing month.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicle": "{{reportFreelanceVehicleId}}",
+            "rentalFor30Days": 90000,
+            "workedDaysCount": 20
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Month is required",
+            "data": null
+          }
+  - name: 400 month not a string
+    description: |-
+      month not a string: Joi → 400 `Month is invalid`. report.validation.ts:3-21 (Joi, thrown as BadRequestError(error.message) at report.controller.ts:318-321).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 400 month not a string.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": 202601,
+            "vehicle": "{{reportFreelanceVehicleId}}",
+            "rentalFor30Days": 90000,
+            "workedDaysCount": 20
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Month is invalid",
+            "data": null
+          }
+  - name: 400 empty month
+    description: |-
+      empty month: Joi → 400 `"month" is not allowed to be empty`. report.validation.ts:3-21 (Joi, thrown as BadRequestError(error.message) at report.controller.ts:318-321). Joi default message (no custom text for string.empty / object.unknown).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 400 empty month.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": "",
+            "vehicle": "{{reportFreelanceVehicleId}}",
+            "rentalFor30Days": 90000,
+            "workedDaysCount": 20
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"month\" is not allowed to be empty",
+            "data": null
+          }
+  - name: 400 missing vehicle
+    description: |-
+      missing vehicle: Joi → 400 `Vehicle is required`. report.validation.ts:3-21 (Joi, thrown as BadRequestError(error.message) at report.controller.ts:318-321).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 400 missing vehicle.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": "{{reportDate}}",
+            "rentalFor30Days": 90000,
+            "workedDaysCount": 20
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle is required",
+            "data": null
+          }
+  - name: 400 vehicle not a string
+    description: |-
+      vehicle not a string: Joi → 400 `Vehicle is invalid`. report.validation.ts:3-21 (Joi, thrown as BadRequestError(error.message) at report.controller.ts:318-321).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 400 vehicle not a string.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": "{{reportDate}}",
+            "vehicle": 12345,
+            "rentalFor30Days": 90000,
+            "workedDaysCount": 20
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle is invalid",
+            "data": null
+          }
+  - name: 400 empty vehicle
+    description: |-
+      empty vehicle: Joi → 400 `"vehicle" is not allowed to be empty`. report.validation.ts:3-21 (Joi, thrown as BadRequestError(error.message) at report.controller.ts:318-321). Joi default message (no custom text for string.empty / object.unknown).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 400 empty vehicle.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": "{{reportDate}}",
+            "vehicle": "",
+            "rentalFor30Days": 90000,
+            "workedDaysCount": 20
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"vehicle\" is not allowed to be empty",
+            "data": null
+          }
+  - name: 400 missing rentalFor30Days
+    description: |-
+      missing rentalFor30Days: Joi → 400 `Rental For 30 Days is required`. report.validation.ts:3-21 (Joi, thrown as BadRequestError(error.message) at report.controller.ts:318-321).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 400 missing rentalFor30Days.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": "{{reportDate}}",
+            "vehicle": "{{reportFreelanceVehicleId}}",
+            "workedDaysCount": 20
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Rental For 30 Days is required",
+            "data": null
+          }
+  - name: 400 invalid rentalFor30Days
+    description: |-
+      invalid rentalFor30Days: Joi → 400 `Rental For 30 Days is invalid`. report.validation.ts:3-21 (Joi, thrown as BadRequestError(error.message) at report.controller.ts:318-321).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 400 invalid rentalFor30Days.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": "{{reportDate}}",
+            "vehicle": "{{reportFreelanceVehicleId}}",
+            "rentalFor30Days": "abc",
+            "workedDaysCount": 20
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Rental For 30 Days is invalid",
+            "data": null
+          }
+  - name: 400 missing workedDaysCount
+    description: |-
+      missing workedDaysCount: Joi → 400 `Worked Days Count is required`. report.validation.ts:3-21 (Joi, thrown as BadRequestError(error.message) at report.controller.ts:318-321).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 400 missing workedDaysCount.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": "{{reportDate}}",
+            "vehicle": "{{reportFreelanceVehicleId}}",
+            "rentalFor30Days": 90000
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Worked Days Count is required",
+            "data": null
+          }
+  - name: 400 invalid workedDaysCount
+    description: |-
+      invalid workedDaysCount: Joi → 400 `Worked Days Count is invalid`. report.validation.ts:3-21 (Joi, thrown as BadRequestError(error.message) at report.controller.ts:318-321).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 400 invalid workedDaysCount.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": "{{reportDate}}",
+            "vehicle": "{{reportFreelanceVehicleId}}",
+            "rentalFor30Days": 90000,
+            "workedDaysCount": "abc"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Worked Days Count is invalid",
+            "data": null
+          }
+  - name: 400 unknown field
+    description: |-
+      unknown field: Joi → 400 `"foo" is not allowed`. report.validation.ts:3-21 (Joi, thrown as BadRequestError(error.message) at report.controller.ts:318-321). Joi default message (no custom text for string.empty / object.unknown).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 400 unknown field.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": "{{reportDate}}",
+            "vehicle": "{{reportFreelanceVehicleId}}",
+            "rentalFor30Days": 90000,
+            "workedDaysCount": 20,
+            "foo": "bar"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"foo\" is not allowed",
+            "data": null
+          }
+  - name: 400 empty body
+    description: |-
+      empty body: Joi → 400 `Month is required`. report.validation.ts:3-21 (Joi, thrown as BadRequestError(error.message) at report.controller.ts:318-321). abortEarly: month is the first key checked.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 400 empty body.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: "{}"
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Month is required",
+            "data": null
+          }
+  - name: 400 vehicle not found
+    description: |-
+      No ACTIVE/INACTIVE vehicle with that id → report.controller.ts:323-327 'Invalid vehicle!'. Also returned for a deleted vehicle.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 400 vehicle not found.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": "{{reportDate}}",
+            "vehicle": "{{nonExistingId}}",
+            "rentalFor30Days": 90000,
+            "workedDaysCount": 20
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid vehicle!",
+            "data": null
+          }
+  - name: 400 company vehicle
+    description: |-
+      Precondition: seq 2. Company vehicle → report.controller.ts:329-331.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 400 company vehicle.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": "{{reportDate}}",
+            "vehicle": "{{reportCompanyVehicleId}}",
+            "rentalFor30Days": 90000,
+            "workedDaysCount": 20
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "This vehicle is not freelance or rental vehicle!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      auth.middleware.ts:25-26 — no `Authorization: Bearer` header → UnauthorizedError.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": "{{reportDate}}",
+            "vehicle": "{{reportFreelanceVehicleId}}",
+            "rentalFor30Days": 90000,
+            "workedDaysCount": 20
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 Driver
+    description: |-
+      DRIVER not allowed (report.route.ts:53-62). auth.middleware.ts:68-79 — role not in the route's roles array → ForbiddenError.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 403 Driver.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": "{{reportDate}}",
+            "vehicle": "{{reportFreelanceVehicleId}}",
+            "rentalFor30Days": 90000,
+            "workedDaysCount": 20
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 403 Driver Assistant
+    description: |-
+      DRIVER ASSISTANT not allowed (report.route.ts:53-62). auth.middleware.ts:68-79 — role not in the route's roles array → ForbiddenError.
+
+      Auth: bearer {{driverAssistantToken}}
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 403 Driver Assistant.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": "{{reportDate}}",
+            "vehicle": "{{reportFreelanceVehicleId}}",
+            "rentalFor30Days": 90000,
+            "workedDaysCount": 20
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 403 Trip Assistant
+    description: |-
+      TRIP ASSISTANT not allowed (report.route.ts:53-62). auth.middleware.ts:68-79 — role not in the route's roles array → ForbiddenError.
+
+      Auth: bearer {{tripAssistantToken}}
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 403 Trip Assistant.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": "{{reportDate}}",
+            "vehicle": "{{reportFreelanceVehicleId}}",
+            "rentalFor30Days": 90000,
+            "workedDaysCount": 20
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 malformed vehicle id
+    description: |-
+      Malformed ObjectId passes Joi (any string) → `Vehicle.findOne({_id})` CastError (vehicle.service.ts:44) → error.middleware.ts:56-60 → 404. (report.md says 500; the middleware maps CastError to 404.)
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 404 malformed vehicle id.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": "{{reportDate}}",
+            "vehicle": "{{invalidId}}",
+            "rentalFor30Days": 90000,
+            "workedDaysCount": 20
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+  - name: 404 invalid month string
+    description: |-
+      Precondition: seq 1 (freelance vehicle passes the vehicle checks). `month` is only validated as a string;
+      `new Date("not-a-month")` is Invalid Date → CastError in report.service.ts:92 (maintenance query) →
+      404 `No item found with ID "Invalid Date"!` (report.controller.ts:332-334, error.middleware.ts:56-60). Should be a 400.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Vehicle Monthly Payment - 404 invalid month string.yml
+    request:
+      url: "{{baseUrl}}/report/vehicleMonthlyPaymentMaintance"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": "not-a-month",
+            "vehicle": "{{reportFreelanceVehicleId}}",
+            "rentalFor30Days": 90000,
+            "workedDaysCount": 20
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"Invalid Date\"!",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/report/vehicleMonthlyPaymentMaintance`**
+
+  This request runs the main scenario **200 freelance vehicle**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 freelance vehicle | (empty) |
+  | 2 | 400 | 400 missing month | Month is required |
+  | 3 | 400 | 400 month not a string | Month is invalid |
+  | 4 | 400 | 400 empty month | "month" is not allowed to be empty |
+  | 5 | 400 | 400 missing vehicle | Vehicle is required |
+  | 6 | 400 | 400 vehicle not a string | Vehicle is invalid |
+  | 7 | 400 | 400 empty vehicle | "vehicle" is not allowed to be empty |
+  | 8 | 400 | 400 missing rentalFor30Days | Rental For 30 Days is required |
+  | 9 | 400 | 400 invalid rentalFor30Days | Rental For 30 Days is invalid |
+  | 10 | 400 | 400 missing workedDaysCount | Worked Days Count is required |
+  | 11 | 400 | 400 invalid workedDaysCount | Worked Days Count is invalid |
+  | 12 | 400 | 400 unknown field | "foo" is not allowed |
+  | 13 | 400 | 400 empty body | Month is required |
+  | 14 | 400 | 400 vehicle not found | Invalid vehicle! |
+  | 15 | 400 | 400 company vehicle | This vehicle is not freelance or rental vehicle! |
+  | 16 | 401 | 401 no token | Authentication invalid! |
+  | 17 | 403 | 403 Driver | You're unauthorized to access this resource! |
+  | 18 | 403 | 403 Driver Assistant | You're unauthorized to access this resource! |
+  | 19 | 403 | 403 Trip Assistant | You're unauthorized to access this resource! |
+  | 20 | 404 | 404 malformed vehicle id | No item found with ID "not-an-object-id"! |
+  | 21 | 404 | 404 invalid month string | No item found with ID "Invalid Date"! |
+
+  ## Main scenario notes
+
+  valuePerDay = rentalFor30Days / 30 = 3000; freelance → effectiveMaintenanceCost = Σ all maintenance costs this month
+  (report.controller.ts:307-371). New vehicle → normally no maintenance → totals 0.
+  [KNOWN BUG] report.controller.ts:365-366: `netTotal` is the amount BEFORE deductions and `grossTotal` the amount AFTER
+  (names inverted, report.md › Known issues 3). Only presence/type is asserted so the test survives a rename fix.

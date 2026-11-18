@@ -1,0 +1,18 @@
+info:
+  name: POS
+  type: folder
+  seq: 15
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    `/pos` — `src/modules/pos/`. See `Document/pos.md`.
+
+    **Preconditions:** `{{tripId}}` in **START** status; `{{productId}}` (kg, non-returnable, ACTIVE) has >= 50 kg stock from `Inventory › GRN › Approve GRN - 201`;
+    `{{productName}}` set by `Inventory › Product › Create Product - 201 kg product`.
+    Runtime vars set here: `posProductId` (2 kg line, audited), `voidPosProductId` (500 g line, voided), `negativePosProductId`, `posStockBefore`.
+    Order matters: issue -> void -> negative issue (bug) -> audit only the first line -> getPosByTrip breaks (bug) -> audit again (bug).
+    Roles for every endpoint: SUPERADMIN, ADMIN, TRIPMANAGER, FINANCEOFFICER.
+  type: text/markdown

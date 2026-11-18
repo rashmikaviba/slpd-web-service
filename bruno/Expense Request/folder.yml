@@ -1,0 +1,17 @@
+info:
+  name: Expense Request
+  type: folder
+  seq: 14
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    `/expenseRequest` — `src/modules/expenseRequest/`. See `Document/expenseRequest.md`.
+
+    **Precondition:** `{{tripId}}` in **START** status with no PENDING expense request.
+    Create responds `data: null`, so the new id is read from `GET /notification` (pending expense-extension items) and stored as
+    `{{expenseRequestId}}` (approved -> adds to trip.estimatedExpense) and `{{rejectedExpenseRequestId}}`.
+    Only DRIVER can create; SUPERADMIN, ADMIN, TRIPMANAGER, FINANCEOFFICER approve/reject.
+  type: text/markdown

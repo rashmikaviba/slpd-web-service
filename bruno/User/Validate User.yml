@@ -1,0 +1,385 @@
+info:
+  name: Validate User
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: "{{baseUrl}}/user/validateUser?userName=free_{{$timestamp}}{{$randomInt}}&email=free{{$timestamp}}{{$randomInt}}@example.com&nic=FREE{{$timestamp}}{{$randomInt}}"
+  params:
+    - name: userName
+      value: free_{{$timestamp}}{{$randomInt}}
+      type: query
+    - name: email
+      value: free{{$timestamp}}{{$randomInt}}@example.com
+      type: query
+    - name: nic
+      value: FREE{{$timestamp}}{{$randomInt}}
+      type: query
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("empty message", function () {
+          expect(res.body.message).to.equal("");
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.data
+      operator: eq
+      value: "true"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 all values free
+    description: |-
+      No ACTIVE user has these values (user.controller.ts:415-432).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Validate User/Validate User - 200 all values free.yml
+    request:
+      url: "{{baseUrl}}/user/validateUser?userName=free_{{$timestamp}}{{$randomInt}}&email=free{{$timestamp}}{{$randomInt}}@example.com&nic=FREE{{$timestamp}}{{$randomInt}}"
+      method: GET
+      params:
+        - name: userName
+          value: free_{{$timestamp}}{{$randomInt}}
+          type: query
+        - name: email
+          value: free{{$timestamp}}{{$randomInt}}@example.com
+          type: query
+        - name: nic
+          value: FREE{{$timestamp}}{{$randomInt}}
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": true
+          }
+  - name: 200 username taken
+    description: |-
+      user.controller.ts:420-422.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Validate User/Validate User - 200 username taken.yml
+    request:
+      url: "{{baseUrl}}/user/validateUser?userName={{createdUserName}}&email=free{{$timestamp}}{{$randomInt}}@example.com&nic=FREE{{$timestamp}}{{$randomInt}}"
+      method: GET
+      params:
+        - name: userName
+          value: "{{createdUserName}}"
+          type: query
+        - name: email
+          value: free{{$timestamp}}{{$randomInt}}@example.com
+          type: query
+        - name: nic
+          value: FREE{{$timestamp}}{{$randomInt}}
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Username already exists, please try another username!",
+            "data": false
+          }
+  - name: 200 email taken
+    description: |-
+      user.controller.ts:423-425.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Validate User/Validate User - 200 email taken.yml
+    request:
+      url: "{{baseUrl}}/user/validateUser?userName=free_{{$timestamp}}{{$randomInt}}&email={{createdUserEmail}}&nic=FREE{{$timestamp}}{{$randomInt}}"
+      method: GET
+      params:
+        - name: userName
+          value: free_{{$timestamp}}{{$randomInt}}
+          type: query
+        - name: email
+          value: "{{createdUserEmail}}"
+          type: query
+        - name: nic
+          value: FREE{{$timestamp}}{{$randomInt}}
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Email already exists, please try another email!",
+            "data": false
+          }
+  - name: 200 nic taken
+    description: |-
+      user.controller.ts:426-428.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Validate User/Validate User - 200 nic taken.yml
+    request:
+      url: "{{baseUrl}}/user/validateUser?userName=free_{{$timestamp}}{{$randomInt}}&email=free{{$timestamp}}{{$randomInt}}@example.com&nic={{createdUserNic}}"
+      method: GET
+      params:
+        - name: userName
+          value: free_{{$timestamp}}{{$randomInt}}
+          type: query
+        - name: email
+          value: free{{$timestamp}}{{$randomInt}}@example.com
+          type: query
+        - name: nic
+          value: "{{createdUserNic}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "NIC already exists, please try another NIC!",
+            "data": false
+          }
+  - name: 200 edit mode own values
+    description: |-
+      With `id`, the user itself is excluded (`_id $ne id`) → own values are free (user.controller.ts:388-413).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Validate User/Validate User - 200 edit mode own values.yml
+    request:
+      url: "{{baseUrl}}/user/validateUser?id={{createdUserId}}&userName={{createdUserName}}&email={{createdUserEmail}}&nic={{createdUserNic}}"
+      method: GET
+      params:
+        - name: id
+          value: "{{createdUserId}}"
+          type: query
+        - name: userName
+          value: "{{createdUserName}}"
+          type: query
+        - name: email
+          value: "{{createdUserEmail}}"
+          type: query
+        - name: nic
+          value: "{{createdUserNic}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": true
+          }
+  - name: 200 [KNOWN BUG] only userName sent
+    description: |-
+      [KNOWN BUG] Missing `email` → `User.find({ email: undefined, status: ACTIVE })` matches any active user → false
+      "Email already exists" although only the username was checked (user.controller.ts:416-424, Document/user.md #8).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Validate User/Validate User - 200 [KNOWN BUG] only userName sent.yml
+    request:
+      url: "{{baseUrl}}/user/validateUser?userName=free_{{$timestamp}}{{$randomInt}}"
+      method: GET
+      params:
+        - name: userName
+          value: free_{{$timestamp}}{{$randomInt}}
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Email already exists, please try another email!",
+            "data": false
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. user.router.ts:54-58.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: User/Validate User/Validate User - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/user/validateUser?userName=free_{{$timestamp}}{{$randomInt}}&email=free{{$timestamp}}{{$randomInt}}@example.com&nic=FREE{{$timestamp}}{{$randomInt}}"
+      method: GET
+      params:
+        - name: userName
+          value: free_{{$timestamp}}{{$randomInt}}
+          type: query
+        - name: email
+          value: free{{$timestamp}}{{$randomInt}}@example.com
+          type: query
+        - name: nic
+          value: FREE{{$timestamp}}{{$randomInt}}
+          type: query
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 admin
+    description: |-
+      Route allows SUPERADMIN only; `{{adminToken}}` is rejected by auth.middleware.ts:73-77. user.router.ts:54-58.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: User/Validate User/Validate User - 403 admin.yml
+    request:
+      url: "{{baseUrl}}/user/validateUser?userName=free_{{$timestamp}}{{$randomInt}}&email=free{{$timestamp}}{{$randomInt}}@example.com&nic=FREE{{$timestamp}}{{$randomInt}}"
+      method: GET
+      params:
+        - name: userName
+          value: free_{{$timestamp}}{{$randomInt}}
+          type: query
+        - name: email
+          value: free{{$timestamp}}{{$randomInt}}@example.com
+          type: query
+        - name: nic
+          value: FREE{{$timestamp}}{{$randomInt}}
+          type: query
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      `_id: { $ne: "not-an-object-id" }` → CastError → 404 (user.service.ts:43-54).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Validate User/Validate User - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/user/validateUser?id={{invalidId}}&userName=free_{{$timestamp}}{{$randomInt}}&email=free{{$timestamp}}{{$randomInt}}@example.com&nic=FREE{{$timestamp}}{{$randomInt}}"
+      method: GET
+      params:
+        - name: id
+          value: "{{invalidId}}"
+          type: query
+        - name: userName
+          value: free_{{$timestamp}}{{$randomInt}}
+          type: query
+        - name: email
+          value: free{{$timestamp}}{{$randomInt}}@example.com
+          type: query
+        - name: nic
+          value: FREE{{$timestamp}}{{$randomInt}}
+          type: query
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/user/validateUser`**
+
+  This request runs the main scenario **200 all values free**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 all values free | (empty) |
+  | 2 | 200 | 200 username taken | Username already exists, please try another username! |
+  | 3 | 200 | 200 email taken | Email already exists, please try another email! |
+  | 4 | 200 | 200 nic taken | NIC already exists, please try another NIC! |
+  | 5 | 200 | 200 edit mode own values | (empty) |
+  | 6 | 200 | 200 [KNOWN BUG] only userName sent | Email already exists, please try another email! |
+  | 7 | 401 | 401 no token | Authentication invalid! |
+  | 8 | 403 | 403 admin | You're unauthorized to access this resource! |
+  | 9 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  No ACTIVE user has these values (user.controller.ts:415-432).

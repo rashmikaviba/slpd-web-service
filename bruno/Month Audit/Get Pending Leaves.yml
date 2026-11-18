@@ -1,0 +1,215 @@
+info:
+  name: Get Pending Leaves
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/monthAudit/pendingLeaves"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("LeaveResponseDto array", function () {
+          expect(res.body.data).to.be.an("array");
+          res.body.data.forEach((l) => expect(l.statusName).to.equal("PENDING"));
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      SUPERADMIN. PENDING leaves via `findAllLeavesByMonthYearAndStatusIn(Y, M)` (monthAudit.controller.ts:321-371).
+      [KNOWN BUG] month off-by-one: returns leaves starting in month M+1 (Document/monthAudit.md #1); availableLeaveCount
+      only for FINANCEOFFICER (comma operator, #2). Not asserted because it depends on existing data.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Month Audit/Get Pending Leaves - 200.yml
+    request:
+      url: "{{baseUrl}}/monthAudit/pendingLeaves"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6650a1b2c3d4e5f6a7b8f010",
+                "startDate": "2026-12-08T00:00:00.000Z",
+                "endDate": "2026-12-09T00:00:00.000Z",
+                "dateCount": 2,
+                "reason": "Family function in Kurunegala",
+                "status": 1,
+                "statusName": "PENDING",
+                "appliedUser": "6650a1b2c3d4e5f6a7b8c004",
+                "appliedUserName": "Dilani Jayasinghe",
+                "appliedUserRole": "Finance Officer",
+                "availableLeaveCount": 12,
+                "approveBy": null,
+                "approvedUser": "",
+                "approveDate": null,
+                "approveRemark": "",
+                "rejectBy": null,
+                "rejectedUser": "",
+                "rejectDate": null,
+                "rejectReason": "",
+                "isMonthEndDone": false,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c004",
+                "createdUser": "Dilani Jayasinghe",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c004",
+                "updatedUser": "Dilani Jayasinghe",
+                "createdAt": "2026-11-12T09:10:00.000Z",
+                "updatedAt": "2026-11-12T09:10:00.000Z"
+              },
+              {
+                "_id": "6650a1b2c3d4e5f6a7b8f011",
+                "startDate": "2026-12-22T00:00:00.000Z",
+                "endDate": "2026-12-24T00:00:00.000Z",
+                "dateCount": 3,
+                "reason": "Travel to Galle for a wedding",
+                "status": 1,
+                "statusName": "PENDING",
+                "appliedUser": "6650a1b2c3d4e5f6a7b8c013",
+                "appliedUserName": "Ishara Gunawardena",
+                "appliedUserRole": "Admin",
+                "availableLeaveCount": "",
+                "approveBy": null,
+                "approvedUser": "",
+                "approveDate": null,
+                "approveRemark": "",
+                "rejectBy": null,
+                "rejectedUser": "",
+                "rejectDate": null,
+                "rejectReason": "",
+                "isMonthEndDone": false,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c013",
+                "createdUser": "Ishara Gunawardena",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c013",
+                "updatedUser": "Ishara Gunawardena",
+                "createdAt": "2026-11-14T03:45:00.000Z",
+                "updatedAt": "2026-11-14T03:45:00.000Z"
+              }
+            ]
+          }
+  - name: 400 no working info
+    description: |-
+      [PRECONDITION] Only passes when no ACTIVE CompanyWorkingInfo exists; in a normal run it returns 200 and fails. monthAudit.controller.ts:329-331.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Month Audit/Get Pending Leaves - 400 no working info.yml
+    request:
+      url: "{{baseUrl}}/monthAudit/pendingLeaves"
+      method: GET
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No active company information found!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. monthAudit.route.ts:20-24.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Month Audit/Get Pending Leaves - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/monthAudit/pendingLeaves"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 admin
+    description: |-
+      Route allows SUPERADMIN only; `{{adminToken}}` is rejected by auth.middleware.ts:73-77. monthAudit.route.ts:20-24.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: Month Audit/Get Pending Leaves - 403 admin.yml
+    request:
+      url: "{{baseUrl}}/monthAudit/pendingLeaves"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/monthAudit/pendingLeaves`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | (empty) |
+  | 2 | 400 | 400 no working info | No active company information found! |
+  | 3 | 401 | 401 no token | Authentication invalid! |
+  | 4 | 403 | 403 admin | You're unauthorized to access this resource! |
+
+  ## Main scenario notes
+
+  SUPERADMIN. PENDING leaves via `findAllLeavesByMonthYearAndStatusIn(Y, M)` (monthAudit.controller.ts:321-371).
+  [KNOWN BUG] month off-by-one: returns leaves starting in month M+1 (Document/monthAudit.md #1); availableLeaveCount
+  only for FINANCEOFFICER (comma operator, #2). Not asserted because it depends on existing data.

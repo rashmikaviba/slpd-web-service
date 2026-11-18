@@ -1,0 +1,465 @@
+info:
+  name: Update Expense
+  type: http
+  seq: 2
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/expense/{{tripId}}/{{expenseId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "typeId": 1,
+        "typeName": "Fuel",
+        "amount": 1750,
+        "description": "Bruno expense updated",
+        "date": "{{expenseDate}}",
+        "receiptUrl": ""
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: bru.setVar("expenseDate", new Date().toISOString());
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Expense updated successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      Trip must be START, header not month-end. Overwrites all fields. Roles: SUPERADMIN, ADMIN, TRIPMANAGER, DRIVER. `src/modules/expenses/expenses.controller.ts:101`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Update Expense - 200.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}/{{expenseId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1750,
+            "description": "Bruno expense updated",
+            "date": "{{expenseDate}}",
+            "receiptUrl": ""
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense updated successfully!",
+            "data": null
+          }
+  - name: 200 deleted expense still editable
+    description: |-
+      [KNOWN BUG] Line lookup ignores `status` (`src/modules/expenses/expenses.controller.ts:136-138`), so a DELETED line can be edited. Expected: 400 'Expense not found!'.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Update Expense - 200 deleted expense still editable.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}/{{driverExpenseId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 2,
+            "typeName": "Meals",
+            "amount": 1,
+            "description": "Bruno expense",
+            "date": "{{expenseDate}}",
+            "receiptUrl": ""
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense updated successfully!",
+            "data": null
+          }
+  - name: 400 missing typeId
+    description: |-
+      Joi `updateExpenseSchema` (same rules as save). `src/modules/expenses/expenses.validation.ts:31-57`, `src/modules/expenses/expenses.controller.ts:109`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Update Expense - 400 missing typeId.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}/{{expenseId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "2026-01-01",
+            "receiptUrl": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Type is required",
+            "data": null
+          }
+  - name: 400 missing amount
+    description: |-
+      Joi `updateExpenseSchema` (same rules as save). `src/modules/expenses/expenses.validation.ts:31-57`, `src/modules/expenses/expenses.controller.ts:109`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Update Expense - 400 missing amount.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}/{{expenseId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "description": "Bruno expense",
+            "date": "2026-01-01",
+            "receiptUrl": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Amount is required",
+            "data": null
+          }
+  - name: 400 missing date
+    description: |-
+      Joi `updateExpenseSchema` (same rules as save). `src/modules/expenses/expenses.validation.ts:31-57`, `src/modules/expenses/expenses.controller.ts:109`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Update Expense - 400 missing date.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}/{{expenseId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "receiptUrl": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Date is required",
+            "data": null
+          }
+  - name: 400 unknown field
+    description: |-
+      Joi `updateExpenseSchema` (same rules as save). `src/modules/expenses/expenses.validation.ts:31-57`, `src/modules/expenses/expenses.controller.ts:109`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Update Expense - 400 unknown field.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}/{{expenseId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "2026-01-01",
+            "receiptUrl": "",
+            "foo": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"foo\" is not allowed",
+            "data": null
+          }
+  - name: 400 trip not started
+    description: |-
+      Unknown trip id; the same error is returned for FINISHED trips. `src/modules/expenses/expenses.controller.ts:119`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Update Expense - 400 trip not started.yml
+    request:
+      url: "{{baseUrl}}/expense/{{nonExistingId}}/{{expenseId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "{{expenseDate}}",
+            "receiptUrl": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No trip found or trip not in started status!",
+            "data": null
+          }
+  - name: 400 expense not found
+    description: |-
+      `src/modules/expenses/expenses.controller.ts:141`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Update Expense - 400 expense not found.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "{{expenseDate}}",
+            "receiptUrl": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense not found!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Expenses/Update Expense - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}/{{expenseId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "2026-01-01",
+            "receiptUrl": ""
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN, TRIPMANAGER, DRIVER only; `{{financeOfficerToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{financeOfficerToken}}
+
+      Source scenario: Expenses/Update Expense - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}/{{expenseId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "2026-01-01",
+            "receiptUrl": ""
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid trip id
+    description: |-
+      `src/modules/expenses/expenses.controller.ts:114`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Update Expense - 404 invalid trip id.yml
+    request:
+      url: "{{baseUrl}}/expense/{{invalidId}}/{{expenseId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "2026-01-01",
+            "receiptUrl": ""
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/expense/:tripId/:expenseId`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | Expense updated successfully! |
+  | 2 | 200 | 200 deleted expense still editable | Expense updated successfully! |
+  | 3 | 400 | 400 missing typeId | Type is required |
+  | 4 | 400 | 400 missing amount | Amount is required |
+  | 5 | 400 | 400 missing date | Date is required |
+  | 6 | 400 | 400 unknown field | "foo" is not allowed |
+  | 7 | 400 | 400 trip not started | No trip found or trip not in started status! |
+  | 8 | 400 | 400 expense not found | Expense not found! |
+  | 9 | 401 | 401 no token | Authentication invalid! |
+  | 10 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 11 | 404 | 404 invalid trip id | No item found with ID " |
+
+  ## Main scenario notes
+
+  Trip must be START, header not month-end. Overwrites all fields. Roles: SUPERADMIN, ADMIN, TRIPMANAGER, DRIVER. `src/modules/expenses/expenses.controller.ts:101`

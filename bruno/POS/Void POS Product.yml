@@ -1,0 +1,372 @@
+info:
+  name: Void POS Product
+  type: http
+  seq: 2
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/pos/voidPosProduct/{{voidPosProductId}}/trip/{{tripId}}"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Pos transaction void successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "201"
+    description: |-
+      [DESTRUCTIVE] Trip must be START. Line -> DELETED, 500 g put back in stock (logged as POS_TRANSACTION). Responds 201. `src/modules/pos/pos.controller.ts:169`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Void POS Product - 201.yml
+    request:
+      url: "{{baseUrl}}/pos/voidPosProduct/{{voidPosProductId}}/trip/{{tripId}}"
+      method: DELETE
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pos transaction void successfully!",
+            "data": {
+              "_id": "6731f5a2b4c5d6e7f8a9b201",
+              "tripId": {
+                "_id": "6731e5a2b4c5d6e7f8a9b0a1",
+                "tripConfirmedNumber": "BRUNO-MAIN-1794990790000",
+                "status": 3
+              },
+              "products": [
+                {
+                  "product": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "isReturnableProduct": false,
+                  "unitPrice": 300,
+                  "productUnitOfMeasure": 13,
+                  "enteredUnitOfMeasure": 13,
+                  "enteredQuantity": 2,
+                  "quantityWithSiUnitOfMeasure": 2000,
+                  "status": 1,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "createdAt": "2026-11-18T08:45:00.210Z",
+                  "updatedAt": "2026-11-18T08:45:00.210Z",
+                  "_id": "6731f5a2b4c5d6e7f8a9b202"
+                },
+                {
+                  "product": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "isReturnableProduct": false,
+                  "unitPrice": 300,
+                  "productUnitOfMeasure": 13,
+                  "enteredUnitOfMeasure": 12,
+                  "enteredQuantity": 500,
+                  "quantityWithSiUnitOfMeasure": 500,
+                  "status": 3,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "createdAt": "2026-11-18T08:45:01.330Z",
+                  "updatedAt": "2026-11-18T08:45:02.950Z",
+                  "_id": "6731f5a2b4c5d6e7f8a9b203"
+                }
+              ],
+              "totalAmount": 600,
+              "isTripEndAuditDone": false,
+              "endAuditProducts": [],
+              "totalAfterAudit": 0,
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:45:00.210Z",
+              "updatedAt": "2026-11-18T08:45:02.960Z"
+            }
+          }
+  - name: 201 already voided line re-voided
+    description: |-
+      [KNOWN BUG] Void does not check the line is still ACTIVE (`src/modules/pos/pos.controller.ts:196`): voiding the DELETED line again re-adds 500 g a second time.
+      Expected: 400 'Pos transaction not found to void!'. Must run before the audit (audit save drops DELETED lines from the array).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Void POS Product - 201 already voided line re-voided.yml
+    request:
+      url: "{{baseUrl}}/pos/voidPosProduct/{{voidPosProductId}}/trip/{{tripId}}"
+      method: DELETE
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pos transaction void successfully!",
+            "data": {
+              "_id": "6731f5a2b4c5d6e7f8a9b201",
+              "tripId": {
+                "_id": "6731e5a2b4c5d6e7f8a9b0a1",
+                "tripConfirmedNumber": "BRUNO-MAIN-1794990790000",
+                "status": 3
+              },
+              "products": [
+                {
+                  "product": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "isReturnableProduct": false,
+                  "unitPrice": 300,
+                  "productUnitOfMeasure": 13,
+                  "enteredUnitOfMeasure": 13,
+                  "enteredQuantity": 2,
+                  "quantityWithSiUnitOfMeasure": 2000,
+                  "status": 1,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "createdAt": "2026-11-18T08:45:00.210Z",
+                  "updatedAt": "2026-11-18T08:45:00.210Z",
+                  "_id": "6731f5a2b4c5d6e7f8a9b202"
+                },
+                {
+                  "product": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "isReturnableProduct": false,
+                  "unitPrice": 300,
+                  "productUnitOfMeasure": 13,
+                  "enteredUnitOfMeasure": 12,
+                  "enteredQuantity": 500,
+                  "quantityWithSiUnitOfMeasure": 500,
+                  "status": 3,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "createdAt": "2026-11-18T08:45:01.330Z",
+                  "updatedAt": "2026-11-18T08:45:05.410Z",
+                  "_id": "6731f5a2b4c5d6e7f8a9b203"
+                },
+                {
+                  "product": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "isReturnableProduct": false,
+                  "unitPrice": 300,
+                  "productUnitOfMeasure": 13,
+                  "enteredUnitOfMeasure": 13,
+                  "enteredQuantity": -1,
+                  "quantityWithSiUnitOfMeasure": -1000,
+                  "status": 1,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "createdAt": "2026-11-18T08:45:04.050Z",
+                  "updatedAt": "2026-11-18T08:45:04.050Z",
+                  "_id": "6731f5a2b4c5d6e7f8a9b204"
+                }
+              ],
+              "totalAmount": 300,
+              "isTripEndAuditDone": false,
+              "endAuditProducts": [],
+              "totalAfterAudit": 0,
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:45:00.210Z",
+              "updatedAt": "2026-11-18T08:45:05.420Z"
+            }
+          }
+  - name: 400 trip not started
+    description: |-
+      Precondition: `{{tripId}}` PENDING or FINISHED. `src/modules/pos/pos.controller.ts:185`
+      Not covered: void 'Product not found!' (`src/modules/pos/pos.controller.ts:221`, product inactivated after issue) and the 500 for a START trip without any POS doc
+      (`src/modules/pos/pos.controller.ts:196`) — both need extra fixtures (second product / second started trip) outside this folder's shared vars.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Manual Preconditions/Void POS Product - 400 trip not started.yml
+    request:
+      url: "{{baseUrl}}/pos/voidPosProduct/{{posProductId}}/trip/{{tripId}}"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You can not void pos transaction, because trip is not in started status!",
+            "data": null
+          }
+  - name: 400 trip not found
+    description: |-
+      `src/modules/pos/pos.controller.ts:183`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Void POS Product - 400 trip not found.yml
+    request:
+      url: "{{baseUrl}}/pos/voidPosProduct/{{posProductId}}/trip/{{nonExistingId}}"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip not found!",
+            "data": null
+          }
+  - name: 400 line not found
+    description: |-
+      `src/modules/pos/pos.controller.ts:199`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Void POS Product - 400 line not found.yml
+    request:
+      url: "{{baseUrl}}/pos/voidPosProduct/{{nonExistingId}}/trip/{{tripId}}"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pos transaction not found to void!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: POS/Void POS Product - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/pos/voidPosProduct/{{posProductId}}/trip/{{tripId}}"
+      method: DELETE
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN, TRIPMANAGER, FINANCEOFFICER only; `{{driverToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: POS/Void POS Product - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/pos/voidPosProduct/{{posProductId}}/trip/{{tripId}}"
+      method: DELETE
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid trip id
+    description: |-
+      `src/modules/pos/pos.controller.ts:175`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Void POS Product - 404 invalid trip id.yml
+    request:
+      url: "{{baseUrl}}/pos/voidPosProduct/{{posProductId}}/trip/{{invalidId}}"
+      method: DELETE
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+
+docs: |-
+  **DELETE `/api/v1/pos/voidPosProduct/:id/trip/:tripId`**
+
+  This request runs the main scenario **201**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 | Pos transaction void successfully! |
+  | 2 | 201 | 201 already voided line re-voided | Pos transaction void successfully! |
+  | 3 | 400 | 400 trip not started | You can not void pos transaction, because trip is not in started status! |
+  | 4 | 400 | 400 trip not found | Trip not found! |
+  | 5 | 400 | 400 line not found | Pos transaction not found to void! |
+  | 6 | 401 | 401 no token | Authentication invalid! |
+  | 7 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 8 | 404 | 404 invalid trip id | No item found with ID " |
+
+  ## Main scenario notes
+
+  [DESTRUCTIVE] Trip must be START. Line -> DELETED, 500 g put back in stock (logged as POS_TRANSACTION). Responds 201. `src/modules/pos/pos.controller.ts:169`

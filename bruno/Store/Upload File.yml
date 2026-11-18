@@ -1,0 +1,361 @@
+info:
+  name: Upload File
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/store/upload?type=9"
+  params:
+    - name: type
+      value: "9"
+      type: query
+  body:
+    type: multipart-form
+    data:
+      - name: file
+        type: file
+        value: &a1
+          - fixtures/sample.txt
+
+runtime:
+  scripts:
+    - type: after-response
+      code: if (res.status === 200) bru.setVar("uploadedFileUrl", res.body.data);
+    - type: tests
+      code: |-
+        test("returns public URL of the stored file", function () {
+          expect(res.body.data).to.match(/\/uploads\/MaintenanceInvoice\/\d+-sample\.txt$/);
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: File uploaded successfully
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 MaintenanceInvoice
+    description: |-
+      Public. Multer stores `src/uploads/MaintenanceInvoice/<Date.now()>-sample.txt` (multer.util.ts:8-25);
+      controller returns `${BASE_URL}/uploads/MaintenanceInvoice/...` (store.controller.ts:18-26).
+      Stores `{{uploadedFileUrl}}`. Precondition: server started from the project root (multer path is CWD-relative).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Store/Upload File - 200 MaintenanceInvoice.yml
+    request:
+      url: "{{baseUrl}}/store/upload?type=9"
+      method: POST
+      params:
+        - name: type
+          value: "9"
+          type: query
+      body:
+        type: multipart-form
+        data:
+          - name: file
+            type: file
+            value: *a1
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "File uploaded successfully",
+            "data": "http://localhost:9060/uploads/MaintenanceInvoice/1794990600000-sample.txt"
+          }
+  - name: 400 invalid type
+    description: |-
+      `99` is not a WellKnownUploadType value → multer destination `cb(new BadRequestError(...))` (multer.util.ts:13-15).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Store/Upload File - 400 invalid type.yml
+    request:
+      url: "{{baseUrl}}/store/upload?type=99"
+      method: POST
+      params:
+        - name: type
+          value: "99"
+          type: query
+      body:
+        type: multipart-form
+        data:
+          - name: file
+            type: file
+            value:
+              - fixtures/sample.txt
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid upload type",
+            "data": null
+          }
+  - name: 400 non-numeric type
+    description: |-
+      `Number("abc")` is NaN → not in enum (multer.util.ts:13-15).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Store/Upload File - 400 non-numeric type.yml
+    request:
+      url: "{{baseUrl}}/store/upload?type=abc"
+      method: POST
+      params:
+        - name: type
+          value: abc
+          type: query
+      body:
+        type: multipart-form
+        data:
+          - name: file
+            type: file
+            value:
+              - fixtures/sample.txt
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid upload type",
+            "data": null
+          }
+  - name: 400 missing type
+    description: |-
+      No `?type` → `Number(undefined)` is NaN → not in enum (multer.util.ts:13-15).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Store/Upload File - 400 missing type.yml
+    request:
+      url: "{{baseUrl}}/store/upload"
+      method: POST
+      body:
+        type: multipart-form
+        data:
+          - name: file
+            type: file
+            value:
+              - fixtures/sample.txt
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid upload type",
+            "data": null
+          }
+  - name: 400 missing file
+    description: |-
+      Multipart body without a `file` part → `req.file` undefined (store.controller.ts:14-16). The type check never runs because multer only calls `destination` for file parts.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Store/Upload File - 400 missing file.yml
+    request:
+      url: "{{baseUrl}}/store/upload?type=9"
+      method: POST
+      params:
+        - name: type
+          value: "9"
+          type: query
+      body:
+        type: multipart-form
+        data:
+          - name: note
+            type: text
+            value: no file attached
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Please upload a file!",
+            "data": null
+          }
+  - name: 500 wrong field name
+    description: |-
+      `upload.single('file')` receives a file under `files` → MulterError `LIMIT_UNEXPECTED_FILE` ("Unexpected field").
+      It has no `statusCode`, so error.middleware.ts maps it to 500.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Store/Upload File - 500 wrong field name.yml
+    request:
+      url: "{{baseUrl}}/store/upload?type=9"
+      method: POST
+      params:
+        - name: type
+          value: "9"
+          type: query
+      body:
+        type: multipart-form
+        data:
+          - name: files
+            type: file
+            value:
+              - fixtures/sample.txt
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Unexpected field",
+            "data": null
+          }
+  - name: 500 [KNOWN BUG] zero-padded type
+    description: |-
+      [KNOWN BUG] `Number("09")` = 9 passes the enum check, but the folder name is looked up with the raw string
+      (`WellKnownUploadType["09"]` → undefined, multer.util.ts:17-18), so multer writes to `src/uploads/undefined/` which
+      does not exist → fs ENOENT → 500. Fix: use `Number(type)` for the name lookup too.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Store/Upload File - 500 [KNOWN BUG] zero-padded type.yml
+    request:
+      url: "{{baseUrl}}/store/upload?type=09"
+      method: POST
+      params:
+        - name: type
+          value: "09"
+          type: query
+      body:
+        type: multipart-form
+        data:
+          - name: file
+            type: file
+            value:
+              - fixtures/sample.txt
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "ENOENT: no such file or directory, open 'src/uploads/undefined/1794990600000-sample.txt'",
+            "data": null
+          }
+  - name: 500 [KNOWN BUG] upload folder missing
+    description: |-
+      [KNOWN BUG] [PRECONDITION] Passes only while `src/uploads/ProfileImage/` does not exist (fresh checkout — only
+      MaintenanceInvoice is committed). Multer does not create folders when `destination` is a function
+      (multer.util.ts:11-20) → ENOENT → 500. Document/store.md › Known issues #3. If the folder exists this returns 200.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Store/Upload File - 500 [KNOWN BUG] upload folder missing.yml
+    request:
+      url: "{{baseUrl}}/store/upload?type=1"
+      method: POST
+      params:
+        - name: type
+          value: "1"
+          type: query
+      body:
+        type: multipart-form
+        data:
+          - name: file
+            type: file
+            value:
+              - fixtures/sample.txt
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "ENOENT: no such file or directory, open 'src/uploads/ProfileImage/1794990600000-sample.txt'",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/store/upload`**
+
+  This request runs the main scenario **200 MaintenanceInvoice**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 MaintenanceInvoice | File uploaded successfully |
+  | 2 | 400 | 400 invalid type | Invalid upload type |
+  | 3 | 400 | 400 non-numeric type | Invalid upload type |
+  | 4 | 400 | 400 missing type | Invalid upload type |
+  | 5 | 400 | 400 missing file | Please upload a file! |
+  | 6 | 500 | 500 wrong field name | Unexpected field |
+  | 7 | 500 | 500 [KNOWN BUG] zero-padded type | ENOENT: no such file or directory, open 'src/uploads/undefined/1794990600000-sample.txt' |
+  | 8 | 500 | 500 [KNOWN BUG] upload folder missing | ENOENT: no such file or directory, open 'src/uploads/ProfileImage/1794990600000-sample.txt' |
+
+  ## Main scenario notes
+
+  Public. Multer stores `src/uploads/MaintenanceInvoice/<Date.now()>-sample.txt` (multer.util.ts:8-25);
+  controller returns `${BASE_URL}/uploads/MaintenanceInvoice/...` (store.controller.ts:18-26).
+  Stores `{{uploadedFileUrl}}`. Precondition: server started from the project root (multer path is CWD-relative).

@@ -1,0 +1,428 @@
+info:
+  name: Update GRN
+  type: http
+  seq: 4
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/inventory/grn/{{pendingGrnId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "grnRemarks": "Bruno GRN updated",
+        "products": [
+          {
+            "_id": "new",
+            "productId": "{{productId}}",
+            "enteredMeasureUnitId": 13,
+            "quantity": 7,
+            "remarks": ""
+          }
+        ]
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("mongoose validation of the rebuilt lines", function () {
+          expect(res.body.message).to.match(/Unit is required|Quantity is required/);
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "400"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "false"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 400 always fails
+    description: |-
+      [KNOWN BUG] A perfectly valid update on a PENDING GRN. `src/modules/inventory/grn/grn.controller.ts:123-129` builds lines with `product.enteredUnitId` (field is
+      `enteredMeasureUnitId`) and omits `quantity`, so Mongoose validation fails -> error middleware 400 with 'Unit is required' / 'Quantity is required'.
+      Expected after fix: 201 'Good Receipt Note updated successfully!'.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Update GRN - 400 always fails.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/{{pendingGrnId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN updated",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 7,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Quantity is required",
+            "data": null
+          }
+  - name: 400 line missing productId
+    description: |-
+      Same Joi schema as create. `src/modules/inventory/grn/grn.controller.ts:107`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Update GRN - 400 line missing productId.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/{{pendingGrnId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product is required",
+            "data": null
+          }
+  - name: 400 empty products
+    description: |-
+      Precondition: `{{pendingGrnId}}` still PENDING. `src/modules/inventory/grn/grn.controller.ts:137`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Update GRN - 400 empty products.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/{{pendingGrnId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "x",
+            "products": []
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Please add at least one product to proceed!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Inventory/GRN/Update GRN - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/{{pendingGrnId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN, FINANCEOFFICER, TRIPMANAGER only; `{{driverToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Inventory/GRN/Update GRN - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/{{pendingGrnId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 not found
+    description: |-
+      `src/modules/inventory/grn/grn.controller.ts:113`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Update GRN - 404 not found.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pending Good Receipt Note not found for update!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      `src/modules/inventory/grn/grn.controller.ts:110`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Update GRN - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/{{invalidId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+  - name: 404 not pending
+    description: |-
+      `{{grnId}}` is APPROVED; only PENDING GRNs can be updated. `src/modules/inventory/grn/grn.controller.ts:113`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Update GRN - 404 not pending.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/{{grnId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pending Good Receipt Note not found for update!",
+            "data": null
+          }
+  - name: 404 product not found
+    description: |-
+      `src/modules/inventory/grn/grn.controller.ts:133`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Update GRN - 404 product not found.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/{{pendingGrnId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{nonExistingId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Selected product not found!",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/inventory/grn/:id`**
+
+  This request runs the main scenario **400 always fails**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 400 | 400 always fails | Quantity is required |
+  | 2 | 400 | 400 line missing productId | Product is required |
+  | 3 | 400 | 400 empty products | Please add at least one product to proceed! |
+  | 4 | 401 | 401 no token | Authentication invalid! |
+  | 5 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 6 | 404 | 404 not found | Pending Good Receipt Note not found for update! |
+  | 7 | 404 | 404 invalid id | No item found with ID " |
+  | 8 | 404 | 404 not pending | Pending Good Receipt Note not found for update! |
+  | 9 | 404 | 404 product not found | Selected product not found! |
+
+  ## Main scenario notes
+
+  [KNOWN BUG] A perfectly valid update on a PENDING GRN. `src/modules/inventory/grn/grn.controller.ts:123-129` builds lines with `product.enteredUnitId` (field is
+  `enteredMeasureUnitId`) and omits `quantity`, so Mongoose validation fails -> error middleware 400 with 'Unit is required' / 'Quantity is required'.
+  Expected after fix: 201 'Good Receipt Note updated successfully!'.

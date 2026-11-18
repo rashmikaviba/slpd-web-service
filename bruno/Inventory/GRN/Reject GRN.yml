@@ -1,0 +1,306 @@
+info:
+  name: Reject GRN
+  type: http
+  seq: 6
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/inventory/grn/reject/{{rejectGrnId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "remark": "Rejected by Bruno"
+      }
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Good Receipt Note rejected successfully!
+    - expression: res.body.data.status
+      operator: eq
+      value: "3"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "201"
+    description: |-
+      SUPERADMIN, ADMIN. PENDING -> REJECTED, stock unchanged. Responds 201. `src/modules/inventory/grn/grn.controller.ts:252`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Reject GRN - 201.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/reject/{{rejectGrnId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Rejected by Bruno"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Good Receipt Note rejected successfully!",
+            "data": {
+              "_id": "6731f1a2b4c5d6e7f8a9b0d3",
+              "grnNumber": 25,
+              "grnNumberWithPrefix": "GRN-025",
+              "grnDate": "2026-11-18T08:31:02.300Z",
+              "grnRemarks": "Bruno GRN to reject",
+              "products": [
+                {
+                  "productId": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "enteredMeasureUnitId": 13,
+                  "actualMeasureUnitId": 13,
+                  "siConvertedQuantity": 5000,
+                  "quantity": 5,
+                  "remarks": "",
+                  "_id": "6731f1a2b4c5d6e7f8a9b0d4"
+                }
+              ],
+              "status": 3,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "approvedBy": null,
+              "rejectedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "approvedDate": null,
+              "rejectedDate": "2026-11-18T08:31:02.910Z",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:31:02.300Z",
+              "updatedAt": "2026-11-18T08:31:02.912Z",
+              "approvedRejectedRemarks": "Rejected by Bruno"
+            }
+          }
+  - name: 400 remark not a string
+    description: |-
+      Joi `grnApproveRejectSchema`. `src/modules/inventory/grn/grn.controller.ts:260`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Reject GRN - 400 remark not a string.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/reject/{{pendingGrnId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": 5
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "GRN Remarks is invalid",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Inventory/GRN/Reject GRN - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/reject/{{pendingGrnId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": ""
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN only; `{{financeOfficerToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{financeOfficerToken}}
+
+      Source scenario: Inventory/GRN/Reject GRN - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/reject/{{pendingGrnId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": ""
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 not found
+    description: |-
+      `src/modules/inventory/grn/grn.controller.ts:266`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Reject GRN - 404 not found.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/reject/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": ""
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pending Good Receipt Note not found for rejection!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      `src/modules/inventory/grn/grn.controller.ts:263`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Reject GRN - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/reject/{{invalidId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": ""
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+  - name: 404 already rejected
+    description: |-
+      Precondition: `Reject GRN - 201`. `src/modules/inventory/grn/grn.controller.ts:266`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Reject GRN - 404 already rejected.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/reject/{{rejectGrnId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": ""
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pending Good Receipt Note not found for rejection!",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/inventory/grn/reject/:id`**
+
+  This request runs the main scenario **201**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 | Good Receipt Note rejected successfully! |
+  | 2 | 400 | 400 remark not a string | GRN Remarks is invalid |
+  | 3 | 401 | 401 no token | Authentication invalid! |
+  | 4 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 5 | 404 | 404 not found | Pending Good Receipt Note not found for rejection! |
+  | 6 | 404 | 404 invalid id | No item found with ID " |
+  | 7 | 404 | 404 already rejected | Pending Good Receipt Note not found for rejection! |
+
+  ## Main scenario notes
+
+  SUPERADMIN, ADMIN. PENDING -> REJECTED, stock unchanged. Responds 201. `src/modules/inventory/grn/grn.controller.ts:252`

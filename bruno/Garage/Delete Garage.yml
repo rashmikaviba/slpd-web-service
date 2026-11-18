@@ -1,0 +1,202 @@
+info:
+  name: Delete Garage
+  type: http
+  seq: 5
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/garage/{{garageToDeleteId}}"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Garage deleted successfully!
+    - expression: res.body.data
+      operator: isNull
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      [DESTRUCTIVE] Soft-deletes the throwaway garage (status 3) (garage.controller.ts:110-138).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Delete Garage/Delete Garage - 200.yml
+    request:
+      url: "{{baseUrl}}/garage/{{garageToDeleteId}}"
+      method: DELETE
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Garage deleted successfully!",
+            "data": null
+          }
+  - name: 400 already deleted
+    description: |-
+      Precondition: previous request deleted it (garage.controller.ts:119-121).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Delete Garage/Delete Garage - 400 already deleted.yml
+    request:
+      url: "{{baseUrl}}/garage/{{garageToDeleteId}}"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Garage not found!",
+            "data": null
+          }
+  - name: 400 not found
+    description: |-
+      garage.controller.ts:119-121.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Delete Garage/Delete Garage - 400 not found.yml
+    request:
+      url: "{{baseUrl}}/garage/{{nonExistingId}}"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Garage not found!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Garage/Delete Garage/Delete Garage - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/garage/{{garageToDeleteId}}"
+      method: DELETE
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 driver role
+    description: |-
+      DRIVER is not in the write roles (garage.route.ts:46-54).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Garage/Delete Garage/Delete Garage - 403 driver role.yml
+    request:
+      url: "{{baseUrl}}/garage/{{garageToDeleteId}}"
+      method: DELETE
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed id → CastError → 404.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Delete Garage/Delete Garage - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/garage/{{invalidId}}"
+      method: DELETE
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **DELETE `/api/v1/garage/:id`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | Garage deleted successfully! |
+  | 2 | 400 | 400 already deleted | Garage not found! |
+  | 3 | 400 | 400 not found | Garage not found! |
+  | 4 | 401 | 401 no token | Authentication invalid! |
+  | 5 | 403 | 403 driver role | You're unauthorized to access this resource! |
+  | 6 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  [DESTRUCTIVE] Soft-deletes the throwaway garage (status 3) (garage.controller.ts:110-138).

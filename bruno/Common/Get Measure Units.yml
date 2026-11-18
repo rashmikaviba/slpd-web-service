@@ -1,0 +1,296 @@
+info:
+  name: Get Measure Units
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{baseUrl}}/common/measureUnits"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("3 categories with their units", function () {
+          expect(res.body.data.map((c) => c.categoryId)).to.eql([1, 2, 3]);
+          expect(res.body.data.map((c) => c.items.length)).to.eql([10, 4, 3]);
+        });
+        test("items belong to their category", function () {
+          res.body.data.forEach((c) => c.items.forEach((u) => expect(u.categoryId).to.equal(c.categoryId)));
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      Any authenticated role. Builds `unitCategories[].items` from `measureUnit` (common.controller.ts:39-47).
+      Category 1 Countable (10 units), 2 Mass (4), 3 Volume (3) — util/data/measureUnitData.ts.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Common/Get Measure Units - 200.yml
+    request:
+      url: "{{baseUrl}}/common/measureUnits"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "categoryId": 1,
+                "categoryName": "Countable Units (Quantity)",
+                "items": [
+                  {
+                    "unitId": 1,
+                    "code": "pc",
+                    "name": "Piece",
+                    "isSaveWithSiUnit": false,
+                    "isSiUnit": true,
+                    "isAllowDecimal": false,
+                    "categoryId": 1,
+                    "conversionToSi": 1
+                  },
+                  {
+                    "unitId": 2,
+                    "code": "pkt",
+                    "name": "Packet",
+                    "isSaveWithSiUnit": false,
+                    "isSiUnit": true,
+                    "isAllowDecimal": false,
+                    "categoryId": 1,
+                    "conversionToSi": 1
+                  },
+                  {
+                    "unitId": 3,
+                    "code": "box",
+                    "name": "Box",
+                    "isSaveWithSiUnit": false,
+                    "isSiUnit": true,
+                    "isAllowDecimal": false,
+                    "categoryId": 1,
+                    "conversionToSi": 1
+                  },
+                  {
+                    "unitId": 4,
+                    "code": "btl",
+                    "name": "Bottle",
+                    "isSaveWithSiUnit": false,
+                    "isSiUnit": true,
+                    "isAllowDecimal": false,
+                    "categoryId": 1,
+                    "conversionToSi": 1
+                  },
+                  {
+                    "unitId": 5,
+                    "code": "can",
+                    "name": "Can",
+                    "isSaveWithSiUnit": false,
+                    "isSiUnit": true,
+                    "isAllowDecimal": false,
+                    "categoryId": 1,
+                    "conversionToSi": 1
+                  },
+                  {
+                    "unitId": 6,
+                    "code": "roll",
+                    "name": "Roll",
+                    "isSaveWithSiUnit": false,
+                    "isSiUnit": true,
+                    "isAllowDecimal": false,
+                    "categoryId": 1,
+                    "conversionToSi": 1
+                  },
+                  {
+                    "unitId": 7,
+                    "code": "set",
+                    "name": "Set",
+                    "isSaveWithSiUnit": false,
+                    "isSiUnit": true,
+                    "isAllowDecimal": false,
+                    "categoryId": 1,
+                    "conversionToSi": 1
+                  },
+                  {
+                    "unitId": 8,
+                    "code": "item",
+                    "name": "Item",
+                    "isSaveWithSiUnit": false,
+                    "isSiUnit": true,
+                    "isAllowDecimal": false,
+                    "categoryId": 1,
+                    "conversionToSi": 1
+                  },
+                  {
+                    "unitId": 9,
+                    "code": "unit",
+                    "name": "Unit",
+                    "isSaveWithSiUnit": false,
+                    "isSiUnit": true,
+                    "isAllowDecimal": false,
+                    "categoryId": 1,
+                    "conversionToSi": 1
+                  },
+                  {
+                    "unitId": 10,
+                    "code": "bag",
+                    "name": "Bag",
+                    "isSaveWithSiUnit": false,
+                    "isSiUnit": true,
+                    "isAllowDecimal": false,
+                    "categoryId": 1,
+                    "conversionToSi": 1
+                  }
+                ]
+              },
+              {
+                "categoryId": 2,
+                "categoryName": "Mass Units (Weight)",
+                "items": [
+                  {
+                    "unitId": 11,
+                    "code": "mg",
+                    "name": "Milligram",
+                    "conversionToSi": 0.001,
+                    "isSaveWithSiUnit": true,
+                    "isSiUnit": false,
+                    "isAllowDecimal": true,
+                    "categoryId": 2
+                  },
+                  {
+                    "unitId": 12,
+                    "code": "g",
+                    "name": "Gram",
+                    "conversionToSi": 1,
+                    "isSaveWithSiUnit": true,
+                    "isSiUnit": true,
+                    "isAllowDecimal": true,
+                    "categoryId": 2
+                  },
+                  {
+                    "unitId": 13,
+                    "code": "kg",
+                    "name": "Kilogram",
+                    "conversionToSi": 1000,
+                    "isSaveWithSiUnit": true,
+                    "isSiUnit": false,
+                    "isAllowDecimal": true,
+                    "categoryId": 2
+                  },
+                  {
+                    "unitId": 14,
+                    "code": "t",
+                    "name": "Tonne",
+                    "conversionToSi": 1000000,
+                    "isSaveWithSiUnit": true,
+                    "isSiUnit": false,
+                    "isAllowDecimal": true,
+                    "categoryId": 2
+                  }
+                ]
+              },
+              {
+                "categoryId": 3,
+                "categoryName": "Volume Units",
+                "items": [
+                  {
+                    "unitId": 15,
+                    "code": "ml",
+                    "name": "Milliliter",
+                    "conversionToSi": 1,
+                    "isSaveWithSiUnit": true,
+                    "isSiUnit": true,
+                    "isAllowDecimal": true,
+                    "categoryId": 3
+                  },
+                  {
+                    "unitId": 16,
+                    "code": "l",
+                    "name": "Liter",
+                    "conversionToSi": 1000,
+                    "isSaveWithSiUnit": true,
+                    "isSiUnit": false,
+                    "isAllowDecimal": true,
+                    "categoryId": 3
+                  },
+                  {
+                    "unitId": 17,
+                    "code": "cc",
+                    "name": "Cubic Centimeter",
+                    "conversionToSi": 1,
+                    "isSaveWithSiUnit": true,
+                    "isSiUnit": false,
+                    "isAllowDecimal": true,
+                    "categoryId": 3
+                  }
+                ]
+              }
+            ]
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. common.route.ts:24-28.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Common/Get Measure Units - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/common/measureUnits"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/common/measureUnits`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | (empty) |
+  | 2 | 401 | 401 no token | Authentication invalid! |
+
+  ## Main scenario notes
+
+  Any authenticated role. Builds `unitCategories[].items` from `measureUnit` (common.controller.ts:39-47).
+  Category 1 Countable (10 units), 2 Mass (4), 3 Volume (3) — util/data/measureUnitData.ts.

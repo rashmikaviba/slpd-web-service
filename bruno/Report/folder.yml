@@ -1,0 +1,16 @@
+info:
+  name: Report
+  type: folder
+  seq: 19
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    /api/v1/report/* — SUPERADMIN, ADMIN, FINANCEOFFICER, TRIPMANAGER (report.route.ts). Read-only month reports.
+    GET reports take an optional `date` query (any Date-parsable string; default = now); the month is derived from it
+    in server local time. An unparsable `date` becomes Invalid Date → Mongoose CastError → error.middleware.ts:56-60
+    maps it to 404 `No item found with ID "Invalid Date"!` (Document/report.md says 500 — the code returns 404).
+    Requests use `date = <current year-month>-15` (set in pre-request) so they see data created earlier in the run.
+  type: text/markdown

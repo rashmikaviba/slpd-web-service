@@ -1,0 +1,228 @@
+info:
+  name: Delete Expense
+  type: http
+  seq: 3
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/expense/{{tripId}}/{{driverExpenseId}}"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Expense deleted successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      [DESTRUCTIVE] Soft-deletes the driver's 'Meals' line (status 3). Trip must be START. `src/modules/expenses/expenses.controller.ts:167`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Delete Expense - 200.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}/{{driverExpenseId}}"
+      method: DELETE
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense deleted successfully!",
+            "data": null
+          }
+  - name: 200 already deleted
+    description: |-
+      [KNOWN BUG] Deleting a DELETED line again succeeds (`src/modules/expenses/expenses.controller.ts:196-198`). Expected: 400 'Expense not found!'.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Delete Expense - 200 already deleted.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}/{{driverExpenseId}}"
+      method: DELETE
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense deleted successfully!",
+            "data": null
+          }
+  - name: 400 trip not started
+    description: |-
+      `src/modules/expenses/expenses.controller.ts:179`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Delete Expense - 400 trip not started.yml
+    request:
+      url: "{{baseUrl}}/expense/{{nonExistingId}}/{{expenseId}}"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No trip found or trip not in started status!",
+            "data": null
+          }
+  - name: 400 expense not found
+    description: |-
+      `src/modules/expenses/expenses.controller.ts:201`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Delete Expense - 400 expense not found.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}/{{nonExistingId}}"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense not found!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Expenses/Delete Expense - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}/{{expenseId}}"
+      method: DELETE
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN, TRIPMANAGER, DRIVER only; `{{financeOfficerToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{financeOfficerToken}}
+
+      Source scenario: Expenses/Delete Expense - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}/{{expenseId}}"
+      method: DELETE
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid trip id
+    description: |-
+      `src/modules/expenses/expenses.controller.ts:174`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Delete Expense - 404 invalid trip id.yml
+    request:
+      url: "{{baseUrl}}/expense/{{invalidId}}/{{expenseId}}"
+      method: DELETE
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+
+docs: |-
+  **DELETE `/api/v1/expense/:tripId/:expenseId`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | Expense deleted successfully! |
+  | 2 | 200 | 200 already deleted | Expense deleted successfully! |
+  | 3 | 400 | 400 trip not started | No trip found or trip not in started status! |
+  | 4 | 400 | 400 expense not found | Expense not found! |
+  | 5 | 401 | 401 no token | Authentication invalid! |
+  | 6 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 7 | 404 | 404 invalid trip id | No item found with ID " |
+
+  ## Main scenario notes
+
+  [DESTRUCTIVE] Soft-deletes the driver's 'Meals' line (status 3). Trip must be START. `src/modules/expenses/expenses.controller.ts:167`

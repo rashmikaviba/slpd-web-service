@@ -1,0 +1,340 @@
+info:
+  name: Reject Expense Request
+  type: http
+  seq: 3
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/expenseRequest/reject/{{rejectedExpenseRequestId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "rejectRemark": "Rejected by Bruno"
+      }
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Expense request rejected successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      PENDING -> REJECTED. No transaction, no trip-status check. Emits `expense-request-rejected`. `src/modules/expenseRequest/expenseRequest.controller.ts:200`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expense Request/Reject Expense Request - 200.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest/reject/{{rejectedExpenseRequestId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "rejectRemark": "Rejected by Bruno"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense request rejected successfully!",
+            "data": null
+          }
+  - name: 400 rejectRemark not a string
+    description: |-
+      Joi `rejectExpenseRequestSchema`. `src/modules/expenseRequest/expenseRequest.controller.ts:208`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expense Request/Reject Expense Request - 400 rejectRemark not a string.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest/reject/{{rejectedExpenseRequestId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "rejectRemark": 5
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Reject Remarks is invalid",
+            "data": null
+          }
+  - name: 400 rejectRemark too long
+    description: |-
+      `src/modules/expenseRequest/expenseRequest.controller.ts:208`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expense Request/Reject Expense Request - 400 rejectRemark too long.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest/reject/{{rejectedExpenseRequestId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "rejectRemark": "{{longText501}}"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Reject Remarks should not be more than 500 characters",
+            "data": null
+          }
+  - name: 400 not found
+    description: |-
+      `src/modules/expenseRequest/expenseRequest.controller.ts:221`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expense Request/Reject Expense Request - 400 not found.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest/reject/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "rejectRemark": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No expense requests were found.!",
+            "data": null
+          }
+  - name: 400 already approved
+    description: |-
+      `src/modules/expenseRequest/expenseRequest.controller.ts:225`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expense Request/Reject Expense Request - 400 already approved.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest/reject/{{expenseRequestId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "rejectRemark": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense request already approved!",
+            "data": null
+          }
+  - name: 400 already rejected
+    description: |-
+      `src/modules/expenseRequest/expenseRequest.controller.ts:227`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expense Request/Reject Expense Request - 400 already rejected.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest/reject/{{rejectedExpenseRequestId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "rejectRemark": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense request already rejected!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Expense Request/Reject Expense Request - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest/reject/{{expenseRequestId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "rejectRemark": ""
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN, TRIPMANAGER, FINANCEOFFICER only; `{{driverToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Expense Request/Reject Expense Request - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest/reject/{{expenseRequestId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "rejectRemark": ""
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      `src/modules/expenseRequest/expenseRequest.controller.ts:212`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expense Request/Reject Expense Request - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest/reject/{{invalidId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "rejectRemark": ""
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/expenseRequest/reject/:id`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | Expense request rejected successfully! |
+  | 2 | 400 | 400 rejectRemark not a string | Reject Remarks is invalid |
+  | 3 | 400 | 400 rejectRemark too long | Reject Remarks should not be more than 500 characters |
+  | 4 | 400 | 400 not found | No expense requests were found.! |
+  | 5 | 400 | 400 already approved | Expense request already approved! |
+  | 6 | 400 | 400 already rejected | Expense request already rejected! |
+  | 7 | 401 | 401 no token | Authentication invalid! |
+  | 8 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 9 | 404 | 404 invalid id | No item found with ID " |
+
+  ## Main scenario notes
+
+  PENDING -> REJECTED. No transaction, no trip-status check. Emits `expense-request-rejected`. `src/modules/expenseRequest/expenseRequest.controller.ts:200`

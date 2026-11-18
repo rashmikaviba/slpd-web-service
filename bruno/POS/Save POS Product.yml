@@ -1,0 +1,959 @@
+info:
+  name: Save POS Product
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/pos/savePosProduct/{{tripId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "productId": "{{productId}}",
+        "quantity": 2,
+        "unitOfMeasure": 13
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.status === 201) {
+          const p = res.body.data.products;
+          bru.setVar("posProductId", p[p.length - 1]._id);
+        }
+    - type: tests
+      code: |-
+        test("line stored in SI grams", function () {
+          const l = res.body.data.products[res.body.data.products.length - 1];
+          expect(l.quantityWithSiUnitOfMeasure).to.equal(2000);
+          expect(l.status).to.equal(1);
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Pos transaction saved successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 201 2 kg
+    description: |-
+      Issues 2 kg of `{{productId}}` to the trip (trip PENDING or START). Stock -2000 g with a POS_TRANSACTION log.
+      Creates the trip's POS doc on first call. Stores `{{posProductId}}`. `src/modules/pos/pos.controller.ts:23`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Save POS Product - 201 2 kg.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "{{productId}}",
+            "quantity": 2,
+            "unitOfMeasure": 13
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pos transaction saved successfully!",
+            "data": {
+              "_id": "6731f5a2b4c5d6e7f8a9b201",
+              "tripId": "6731e5a2b4c5d6e7f8a9b0a1",
+              "products": [
+                {
+                  "product": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "isReturnableProduct": false,
+                  "unitPrice": 300,
+                  "productUnitOfMeasure": 13,
+                  "enteredUnitOfMeasure": 13,
+                  "enteredQuantity": 2,
+                  "quantityWithSiUnitOfMeasure": 2000,
+                  "status": 1,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "createdAt": "2026-11-18T08:45:00.210Z",
+                  "updatedAt": "2026-11-18T08:45:00.210Z",
+                  "_id": "6731f5a2b4c5d6e7f8a9b202"
+                }
+              ],
+              "totalAmount": 600,
+              "isTripEndAuditDone": false,
+              "endAuditProducts": [],
+              "totalAfterAudit": 0,
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:45:00.210Z",
+              "updatedAt": "2026-11-18T08:45:00.210Z"
+            }
+          }
+  - name: 201 500 g
+    description: |-
+      Entered unit g (12) for a kg product (same category) -> allowed; `totalAmount` recomputed in product units. Stored as `{{voidPosProductId}}`. `src/modules/pos/pos.controller.ts:98-122`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Save POS Product - 201 500 g.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "{{productId}}",
+            "quantity": 500,
+            "unitOfMeasure": 12
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pos transaction saved successfully!",
+            "data": {
+              "_id": "6731f5a2b4c5d6e7f8a9b201",
+              "tripId": {
+                "_id": "6731e5a2b4c5d6e7f8a9b0a1",
+                "tripConfirmedNumber": "BRUNO-MAIN-1794990790000",
+                "status": 3
+              },
+              "products": [
+                {
+                  "product": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "isReturnableProduct": false,
+                  "unitPrice": 300,
+                  "productUnitOfMeasure": 13,
+                  "enteredUnitOfMeasure": 13,
+                  "enteredQuantity": 2,
+                  "quantityWithSiUnitOfMeasure": 2000,
+                  "status": 1,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "createdAt": "2026-11-18T08:45:00.210Z",
+                  "updatedAt": "2026-11-18T08:45:00.210Z",
+                  "_id": "6731f5a2b4c5d6e7f8a9b202"
+                },
+                {
+                  "product": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "isReturnableProduct": false,
+                  "unitPrice": 300,
+                  "productUnitOfMeasure": 13,
+                  "enteredUnitOfMeasure": 12,
+                  "enteredQuantity": 500,
+                  "quantityWithSiUnitOfMeasure": 500,
+                  "status": 1,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "createdAt": "2026-11-18T08:45:01.330Z",
+                  "updatedAt": "2026-11-18T08:45:01.330Z",
+                  "_id": "6731f5a2b4c5d6e7f8a9b203"
+                }
+              ],
+              "totalAmount": 750,
+              "isTripEndAuditDone": false,
+              "endAuditProducts": [],
+              "totalAfterAudit": 0,
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:45:00.210Z",
+              "updatedAt": "2026-11-18T08:45:01.330Z"
+            }
+          }
+  - name: 201 negative quantity accepted
+    description: |-
+      [KNOWN BUG] `quantity` has no `.min()` (`src/modules/pos/pos.validation.ts:9`). -1 kg passes the stock check (`inventory < -1000` is false)
+      and `inventory -= -1000` **increases** stock (`src/modules/pos/pos.controller.ts:52,135`). Expected: 400. Stores `{{negativePosProductId}}`.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Save POS Product - 201 negative quantity accepted.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "{{productId}}",
+            "quantity": -1,
+            "unitOfMeasure": 13
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pos transaction saved successfully!",
+            "data": {
+              "_id": "6731f5a2b4c5d6e7f8a9b201",
+              "tripId": {
+                "_id": "6731e5a2b4c5d6e7f8a9b0a1",
+                "tripConfirmedNumber": "BRUNO-MAIN-1794990790000",
+                "status": 3
+              },
+              "products": [
+                {
+                  "product": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "isReturnableProduct": false,
+                  "unitPrice": 300,
+                  "productUnitOfMeasure": 13,
+                  "enteredUnitOfMeasure": 13,
+                  "enteredQuantity": 2,
+                  "quantityWithSiUnitOfMeasure": 2000,
+                  "status": 1,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "createdAt": "2026-11-18T08:45:00.210Z",
+                  "updatedAt": "2026-11-18T08:45:00.210Z",
+                  "_id": "6731f5a2b4c5d6e7f8a9b202"
+                },
+                {
+                  "product": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "isReturnableProduct": false,
+                  "unitPrice": 300,
+                  "productUnitOfMeasure": 13,
+                  "enteredUnitOfMeasure": 12,
+                  "enteredQuantity": 500,
+                  "quantityWithSiUnitOfMeasure": 500,
+                  "status": 3,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "createdAt": "2026-11-18T08:45:01.330Z",
+                  "updatedAt": "2026-11-18T08:45:02.950Z",
+                  "_id": "6731f5a2b4c5d6e7f8a9b203"
+                },
+                {
+                  "product": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "isReturnableProduct": false,
+                  "unitPrice": 300,
+                  "productUnitOfMeasure": 13,
+                  "enteredUnitOfMeasure": 13,
+                  "enteredQuantity": -1,
+                  "quantityWithSiUnitOfMeasure": -1000,
+                  "status": 1,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "createdAt": "2026-11-18T08:45:04.050Z",
+                  "updatedAt": "2026-11-18T08:45:04.050Z",
+                  "_id": "6731f5a2b4c5d6e7f8a9b204"
+                }
+              ],
+              "totalAmount": 300,
+              "isTripEndAuditDone": false,
+              "endAuditProducts": [],
+              "totalAfterAudit": 0,
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:45:00.210Z",
+              "updatedAt": "2026-11-18T08:45:04.050Z"
+            }
+          }
+  - name: 400 missing productId
+    description: |-
+      Joi `savePosProductSchema`. `src/modules/pos/pos.validation.ts:3-16`, `src/modules/pos/pos.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Save POS Product - 400 missing productId.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "quantity": 1,
+            "unitOfMeasure": 13
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "productId is required",
+            "data": null
+          }
+  - name: 400 productId not a string
+    description: |-
+      Joi `savePosProductSchema`. `src/modules/pos/pos.validation.ts:3-16`, `src/modules/pos/pos.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Save POS Product - 400 productId not a string.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": 5,
+            "quantity": 1,
+            "unitOfMeasure": 13
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "productId is invalid",
+            "data": null
+          }
+  - name: 400 missing quantity
+    description: |-
+      Joi `savePosProductSchema`. `src/modules/pos/pos.validation.ts:3-16`, `src/modules/pos/pos.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Save POS Product - 400 missing quantity.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "{{productId}}",
+            "unitOfMeasure": 13
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "quantity is required",
+            "data": null
+          }
+  - name: 400 quantity not a number
+    description: |-
+      Joi `savePosProductSchema`. `src/modules/pos/pos.validation.ts:3-16`, `src/modules/pos/pos.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Save POS Product - 400 quantity not a number.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "{{productId}}",
+            "quantity": "abc",
+            "unitOfMeasure": 13
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "quantity is invalid",
+            "data": null
+          }
+  - name: 400 missing unitOfMeasure
+    description: |-
+      Joi `savePosProductSchema`. `src/modules/pos/pos.validation.ts:3-16`, `src/modules/pos/pos.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Save POS Product - 400 missing unitOfMeasure.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "{{productId}}",
+            "quantity": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "unitOfMeasure is required",
+            "data": null
+          }
+  - name: 400 unitOfMeasure not a number
+    description: |-
+      Joi `savePosProductSchema`. `src/modules/pos/pos.validation.ts:3-16`, `src/modules/pos/pos.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Save POS Product - 400 unitOfMeasure not a number.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "{{productId}}",
+            "quantity": 1,
+            "unitOfMeasure": "abc"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "unitOfMeasure is invalid",
+            "data": null
+          }
+  - name: 400 unknown field
+    description: |-
+      Joi `savePosProductSchema`. `src/modules/pos/pos.validation.ts:3-16`, `src/modules/pos/pos.controller.ts:31`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Save POS Product - 400 unknown field.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "{{productId}}",
+            "quantity": 1,
+            "unitOfMeasure": 13,
+            "foo": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"foo\" is not allowed",
+            "data": null
+          }
+  - name: 400 trip not found
+    description: |-
+      Trip must be PENDING or START. `src/modules/pos/pos.controller.ts:41`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Save POS Product - 400 trip not found.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{nonExistingId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "{{productId}}",
+            "quantity": 1,
+            "unitOfMeasure": 13
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pending or Started Trip not found!",
+            "data": null
+          }
+  - name: 400 product not found
+    description: |-
+      Only ACTIVE products. `src/modules/pos/pos.controller.ts:51`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Save POS Product - 400 product not found.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "{{nonExistingId}}",
+            "quantity": 1,
+            "unitOfMeasure": 13
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product is not found!",
+            "data": null
+          }
+  - name: 400 not enough stock
+    description: |-
+      100 000 kg > stock (compared in SI grams). `src/modules/pos/pos.controller.ts:53`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Save POS Product - 400 not enough stock.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "{{productId}}",
+            "quantity": 100000,
+            "unitOfMeasure": 13
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You can not save pos transaction, because product inventory is not enough!",
+            "data": null
+          }
+  - name: 400 unit category mismatch
+    description: |-
+      Entered `pc` (countable) for a kg product: passes the stock check, then the total recompute throws inside the transaction (rolled back). `pos.controller.ts:117,546`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Save POS Product - 400 unit category mismatch.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "{{productId}}",
+            "quantity": 1,
+            "unitOfMeasure": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid Measure Unit Conversion!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: POS/Save POS Product - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "{{productId}}",
+            "quantity": 1,
+            "unitOfMeasure": 13
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN, TRIPMANAGER, FINANCEOFFICER only; `{{driverToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: POS/Save POS Product - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "{{productId}}",
+            "quantity": 1,
+            "unitOfMeasure": 13
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid trip id
+    description: |-
+      `src/modules/pos/pos.controller.ts:35`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Save POS Product - 404 invalid trip id.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{invalidId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "{{productId}}",
+            "quantity": 1,
+            "unitOfMeasure": 13
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+  - name: 404 invalid product id
+    description: |-
+      `src/modules/pos/pos.controller.ts:46`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Save POS Product - 404 invalid product id.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "{{invalidId}}",
+            "quantity": 1,
+            "unitOfMeasure": 13
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+  - name: 201 setup POS line on pending trip (Trip setup)
+    description: |-
+      Setup: POS allows PENDING trips (pos.controller.ts:35-42). PRECONDITION: product has inventory ≥ 1. Optional — cancel succeeds without it.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Cancel Trip/Save POS Product - 201 setup POS line on pending trip.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{canceledTripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "{{productId}}",
+            "quantity": 1,
+            "unitOfMeasure": {{productMeasureUnit}}
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pos transaction saved successfully!",
+            "data": {
+              "tripId": "6651b2c3d4e5f6a7b8c9d003",
+              "products": [
+                {
+                  "product": "6650a1b2c3d4e5f6a7b8e001",
+                  "isReturnableProduct": false,
+                  "unitPrice": 150,
+                  "productUnitOfMeasure": 4,
+                  "enteredUnitOfMeasure": 4,
+                  "enteredQuantity": 1,
+                  "quantityWithSiUnitOfMeasure": 1,
+                  "status": 1,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "_id": "6654e5f6a7b8c9d0e1f2b001",
+                  "createdAt": "2026-11-18T08:30:40.310Z",
+                  "updatedAt": "2026-11-18T08:30:40.310Z"
+                }
+              ],
+              "totalAmount": 150,
+              "isTripEndAuditDone": false,
+              "endAuditProducts": [],
+              "totalAfterAudit": 0,
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "_id": "6654e5f6a7b8c9d0e1f2a001",
+              "createdAt": "2026-11-18T08:30:40.310Z",
+              "updatedAt": "2026-11-18T08:30:40.310Z"
+            }
+          }
+  - name: 201 setup POS line on undo trip (Trip setup)
+    description: |-
+      Setup: POST /pos/savePosProduct/:tripId (pos.controller.ts:23-160) creates an ACTIVE POS with isTripEndAuditDone=false. PRECONDITION: product has inventory ≥ 1.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Finish/Save POS Product - 201 setup POS line on undo trip.yml
+    request:
+      url: "{{baseUrl}}/pos/savePosProduct/{{undoTripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "productId": "{{productId}}",
+            "quantity": 1,
+            "unitOfMeasure": {{productMeasureUnit}}
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pos transaction saved successfully!",
+            "data": {
+              "tripId": "6651b2c3d4e5f6a7b8c9d004",
+              "products": [
+                {
+                  "product": "6650a1b2c3d4e5f6a7b8e001",
+                  "isReturnableProduct": false,
+                  "unitPrice": 150,
+                  "productUnitOfMeasure": 4,
+                  "enteredUnitOfMeasure": 4,
+                  "enteredQuantity": 1,
+                  "quantityWithSiUnitOfMeasure": 1,
+                  "status": 1,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "_id": "6654e5f6a7b8c9d0e1f2b002",
+                  "createdAt": "2026-11-18T08:30:36.902Z",
+                  "updatedAt": "2026-11-18T08:30:36.902Z"
+                }
+              ],
+              "totalAmount": 150,
+              "isTripEndAuditDone": false,
+              "endAuditProducts": [],
+              "totalAfterAudit": 0,
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "_id": "6654e5f6a7b8c9d0e1f2a002",
+              "createdAt": "2026-11-18T08:30:36.902Z",
+              "updatedAt": "2026-11-18T08:30:36.902Z"
+            }
+          }
+
+docs: |-
+  **POST `/api/v1/pos/savePosProduct/:tripId`**
+
+  This request runs the main scenario **201 2 kg**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 2 kg | Pos transaction saved successfully! |
+  | 2 | 201 | 201 500 g | Pos transaction saved successfully! |
+  | 3 | 201 | 201 negative quantity accepted | Pos transaction saved successfully! |
+  | 4 | 400 | 400 missing productId | productId is required |
+  | 5 | 400 | 400 productId not a string | productId is invalid |
+  | 6 | 400 | 400 missing quantity | quantity is required |
+  | 7 | 400 | 400 quantity not a number | quantity is invalid |
+  | 8 | 400 | 400 missing unitOfMeasure | unitOfMeasure is required |
+  | 9 | 400 | 400 unitOfMeasure not a number | unitOfMeasure is invalid |
+  | 10 | 400 | 400 unknown field | "foo" is not allowed |
+  | 11 | 400 | 400 trip not found | Pending or Started Trip not found! |
+  | 12 | 400 | 400 product not found | Product is not found! |
+  | 13 | 400 | 400 not enough stock | You can not save pos transaction, because product inventory is not enough! |
+  | 14 | 400 | 400 unit category mismatch | Invalid Measure Unit Conversion! |
+  | 15 | 401 | 401 no token | Authentication invalid! |
+  | 16 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 17 | 404 | 404 invalid trip id | No item found with ID " |
+  | 18 | 404 | 404 invalid product id | No item found with ID " |
+  | 19 | 201 | 201 setup POS line on pending trip (Trip setup) | Pos transaction saved successfully! |
+  | 20 | 201 | 201 setup POS line on undo trip (Trip setup) | Pos transaction saved successfully! |
+
+  ## Main scenario notes
+
+  Issues 2 kg of `{{productId}}` to the trip (trip PENDING or START). Stock -2000 g with a POS_TRANSACTION log.
+  Creates the trip's POS doc on first call. Stores `{{posProductId}}`. `src/modules/pos/pos.controller.ts:23`

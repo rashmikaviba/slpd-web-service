@@ -1,0 +1,179 @@
+info:
+  name: Get Vehicle Maintenance Invoice
+  type: http
+  seq: 6
+
+http:
+  method: GET
+  url: "{{baseUrl}}/vehicleMaintenance/maintainInvoice/{{vehicleMaintenanceId}}"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.data.id
+      operator: eq
+      value: '"{{vehicleMaintenanceId}}"'
+    - expression: res.body.data.vehicleId
+      operator: eq
+      value: '"{{vehicleId}}"'
+    - expression: res.body.data.vehicleOwnerName
+      operator: isString
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      Invoice DTO with populated vehicle/garage/users (vehicleMaintenance.controller.ts:239-258, vehicleMaintenance.util.ts:34).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Get Vehicle Maintenance Invoice/Get Vehicle Maintenance Invoice - 200.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/maintainInvoice/{{vehicleMaintenanceId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "id": "6653a1b2c3d4e5f6a7b8c9d0",
+              "vehicleId": "6651a1b2c3d4e5f6a7b8c9d0",
+              "vehicleNumber": "BRU-1794990600000",
+              "vehicleOwnerName": "SLPD Bruno",
+              "maintenancePart": "Engine oil change",
+              "isCompanyVehicle": true,
+              "isRentalVehicle": false,
+              "isFreelanceVehicle": false,
+              "garageId": "6652a1b2c3d4e5f6a7b8c9d0",
+              "garageName": "Bruno Garage 1794990660",
+              "maintenanceDate": "2026-11-15T00:00:00.000Z",
+              "cost": 12500,
+              "note": "Bruno test maintenance",
+              "billImageUrls": [
+                "https://example.com/bills/bruno-1.png"
+              ],
+              "isMonthEndDone": false,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdUser": "Kasun Perera",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedUser": "Kasun Perera",
+              "createdAt": "2026-11-18T08:40:00.000Z",
+              "updatedAt": "2026-11-18T08:40:00.000Z"
+            }
+          }
+  - name: 200 not found returns null
+    description: |-
+      No not-found error: 200 with `data: null` (vehicleMaintenance.controller.ts:245-249).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Get Vehicle Maintenance Invoice/Get Vehicle Maintenance Invoice - 200 not found returns null.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/maintainInvoice/{{nonExistingId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Vehicle Maintenance/Get Vehicle Maintenance Invoice/Get Vehicle Maintenance Invoice - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/maintainInvoice/{{vehicleMaintenanceId}}"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed id → CastError → 404.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Get Vehicle Maintenance Invoice/Get Vehicle Maintenance Invoice - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/maintainInvoice/{{invalidId}}"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/vehicleMaintenance/maintainInvoice/:id`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | (empty) |
+  | 2 | 200 | 200 not found returns null | (empty) |
+  | 3 | 401 | 401 no token | Authentication invalid! |
+  | 4 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  Invoice DTO with populated vehicle/garage/users (vehicleMaintenance.controller.ts:239-258, vehicleMaintenance.util.ts:34).

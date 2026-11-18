@@ -1,0 +1,14 @@
+info:
+  name: GRN
+  type: folder
+  seq: 2
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    `/inventory/grn` — `src/modules/inventory/grn/`. Needs `{{productId}}` (ACTIVE, kg) and `{{tempProductId}}` (DELETED) from the Product folder.
+    Runtime vars set here: `grnId` (approved -> +50 kg stock on `{{productId}}`), `rejectGrnId`, `pendingGrnId` (cancelled at the end).
+    Note: approve / reject / cancel / update respond **201**, not 200.
+  type: text/markdown

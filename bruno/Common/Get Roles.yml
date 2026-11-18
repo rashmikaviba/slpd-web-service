@@ -1,0 +1,96 @@
+info:
+  name: Get Roles
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/common/role"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("array of active roles", function () {
+          expect(res.body.data).to.be.an("array");
+          res.body.data.forEach((r) => expect(r.status).to.equal(1));
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 public
+    description: |-
+      Public (common.route.ts:16). `roleService.findAllByStatusIn([ACTIVE])`, cached `role-[1]` (common.controller.ts:19).
+      [KNOWN ISSUE] unauthenticated endpoint (Document/common.md › Known issues #6).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Common/Get Roles - 200 public.yml
+    request:
+      url: "{{baseUrl}}/common/role"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6650a1b2c3d4e5f6a7b8d001",
+                "id": 1,
+                "name": "Super Admin",
+                "status": 1,
+                "modules": [],
+                "createdAt": "2026-01-05T04:15:00.000Z",
+                "updatedAt": "2026-01-05T04:15:00.000Z"
+              },
+              {
+                "_id": "6650a1b2c3d4e5f6a7b8d002",
+                "id": 2,
+                "name": "Admin",
+                "status": 1,
+                "modules": [],
+                "createdAt": "2026-01-05T04:15:00.000Z",
+                "updatedAt": "2026-01-05T04:15:00.000Z"
+              }
+            ]
+          }
+
+docs: |-
+  **GET `/api/v1/common/role`**
+
+  This request runs the main scenario **200 public**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 public | (empty) |
+
+  ## Main scenario notes
+
+  Public (common.route.ts:16). `roleService.findAllByStatusIn([ACTIVE])`, cached `role-[1]` (common.controller.ts:19).
+  [KNOWN ISSUE] unauthenticated endpoint (Document/common.md › Known issues #6).

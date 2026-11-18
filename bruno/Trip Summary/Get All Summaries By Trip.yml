@@ -1,0 +1,377 @@
+info:
+  name: Get All Summaries By Trip
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/tripSummary/trip/{{tripId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("trip DTO and ACTIVE summaries", function () {
+          expect(res.body.data.trip.id).to.equal(bru.getVar("tripId"));
+          const ids = res.body.data.tripSummaries.map((s) => s._id);
+          expect(ids).to.include(bru.getVar("tripSummaryId"));
+          expect(ids).to.include(bru.getVar("driverTripSummaryId"));
+          expect(res.body.data.tripSummaries[0]).to.have.property("startTime");
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 started trip
+    description: |-
+      `data: { trip: TripResponseDtoGetAll, tripSummaries: TripSummaryResponseDto[] }` — DTO field names startTime/endTime (src/modules/tripSummary/tripSummary.controller.ts:147-167).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Get All Summaries By Trip/Get All Summaries By Trip - 200 started trip.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/trip/{{tripId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "trip": {
+                "id": "6651b2c3d4e5f6a7b8c9d001",
+                "startDate": "2026-11-18T00:00:00.000Z",
+                "endDate": "2026-11-21T00:00:00.000Z",
+                "dateCount": 4,
+                "totalCost": 1500,
+                "requestedVehicle": "Van",
+                "totalCostLocalCurrency": 450000,
+                "paymentMode": "Cash",
+                "isActiveDriver": false,
+                "isCheckListDone": true,
+                "isPaymentCollected": false,
+                "email": "guest@example.com",
+                "phoneNumber": "+94770000000",
+                "status": 3,
+                "passengersCount": 1,
+                "statusName": "START",
+                "tripConfirmedNumber": "BRUNO-MAIN-1794990601118",
+                "contactPerson": "Bruno Updated",
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c002",
+                "isMonthEndDone": false,
+                "isDriverSalaryDone": false,
+                "endedBy": null,
+                "createdUser": "Kasun Perera",
+                "updatedUser": "Kasun Perera",
+                "startedUser": "Nimal Silva",
+                "endedUser": null,
+                "canUndo": false,
+                "createdAt": "2026-11-18T08:30:01.125Z",
+                "updatedAt": "2026-11-18T08:30:20.347Z",
+                "paidByCompanyCount": 0,
+                "activeVehicleId": "6650a1b2c3d4e5f6a7b8d001",
+                "activeRegistrationNumber": "WP CAB-4521",
+                "activeDriverId": "6650a1b2c3d4e5f6a7b8c002",
+                "activeDriverName": "Nimal Silva (nimals)",
+                "drivers": [
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c002",
+                    "driverName": "Nimal Silva",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "driverAssignedByName": "Kasun Perera",
+                    "isActive": true
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6650a1b2c3d4e5f6a7b8d001",
+                    "registrationNumber": "WP CAB-4521",
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "licenseRenewalDate": "2027-03-31T00:00:00.000Z",
+                    "insuranceRenewalDate": "2027-01-15T00:00:00.000Z",
+                    "isActive": true
+                  }
+                ]
+              },
+              "tripSummaries": [
+                {
+                  "_id": "6653d4e5f6a7b8c9d0e1a001",
+                  "tripId": "6651b2c3d4e5f6a7b8c9d001",
+                  "date": "2026-11-18T00:00:00.000Z",
+                  "startTime": "2026-11-18T08:00:00.000Z",
+                  "endTime": "2026-11-18T17:00:00.000Z",
+                  "startingKm": 1000,
+                  "endingKm": 1080,
+                  "totalKm": 80,
+                  "fuel": 12,
+                  "description": "Kandy to Ella"
+                },
+                {
+                  "_id": "6653d4e5f6a7b8c9d0e1a002",
+                  "tripId": "6651b2c3d4e5f6a7b8c9d001",
+                  "date": "2026-11-18T00:00:00.000Z",
+                  "startTime": "2026-11-18T08:00:00.000Z",
+                  "endTime": "2026-11-18T17:00:00.000Z",
+                  "startingKm": 1000,
+                  "endingKm": 1080,
+                  "totalKm": 80,
+                  "fuel": 12,
+                  "description": "Kandy to Ella"
+                }
+              ]
+            }
+          }
+  - name: 200 as driver
+    description: |-
+      authorize([]) — any role.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip Summary/Get All Summaries By Trip/Get All Summaries By Trip - 200 as driver.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/trip/{{tripId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "trip": {
+                "id": "6651b2c3d4e5f6a7b8c9d001",
+                "startDate": "2026-11-18T00:00:00.000Z",
+                "endDate": "2026-11-21T00:00:00.000Z",
+                "dateCount": 4,
+                "totalCost": 1500,
+                "requestedVehicle": "Van",
+                "totalCostLocalCurrency": 450000,
+                "paymentMode": "Cash",
+                "isActiveDriver": false,
+                "isCheckListDone": true,
+                "isPaymentCollected": false,
+                "email": "guest@example.com",
+                "phoneNumber": "+94770000000",
+                "status": 3,
+                "passengersCount": 1,
+                "statusName": "START",
+                "tripConfirmedNumber": "BRUNO-MAIN-1794990601118",
+                "contactPerson": "Bruno Updated",
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c002",
+                "isMonthEndDone": false,
+                "isDriverSalaryDone": false,
+                "endedBy": null,
+                "createdUser": "Kasun Perera",
+                "updatedUser": "Kasun Perera",
+                "startedUser": "Nimal Silva",
+                "endedUser": null,
+                "canUndo": false,
+                "createdAt": "2026-11-18T08:30:01.125Z",
+                "updatedAt": "2026-11-18T08:30:20.347Z",
+                "paidByCompanyCount": 0,
+                "activeVehicleId": "6650a1b2c3d4e5f6a7b8d001",
+                "activeRegistrationNumber": "WP CAB-4521",
+                "activeDriverId": "6650a1b2c3d4e5f6a7b8c002",
+                "activeDriverName": "Nimal Silva (nimals)",
+                "drivers": [
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c002",
+                    "driverName": "Nimal Silva",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "driverAssignedByName": "Kasun Perera",
+                    "isActive": true
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6650a1b2c3d4e5f6a7b8d001",
+                    "registrationNumber": "WP CAB-4521",
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "licenseRenewalDate": "2027-03-31T00:00:00.000Z",
+                    "insuranceRenewalDate": "2027-01-15T00:00:00.000Z",
+                    "isActive": true
+                  }
+                ]
+              },
+              "tripSummaries": [
+                {
+                  "_id": "6653d4e5f6a7b8c9d0e1a001",
+                  "tripId": "6651b2c3d4e5f6a7b8c9d001",
+                  "date": "2026-11-18T00:00:00.000Z",
+                  "startTime": "2026-11-18T08:00:00.000Z",
+                  "endTime": "2026-11-18T17:00:00.000Z",
+                  "startingKm": 1000,
+                  "endingKm": 1080,
+                  "totalKm": 80,
+                  "fuel": 12,
+                  "description": "Kandy to Ella"
+                },
+                {
+                  "_id": "6653d4e5f6a7b8c9d0e1a002",
+                  "tripId": "6651b2c3d4e5f6a7b8c9d001",
+                  "date": "2026-11-18T00:00:00.000Z",
+                  "startTime": "2026-11-18T08:00:00.000Z",
+                  "endTime": "2026-11-18T17:00:00.000Z",
+                  "startingKm": 1000,
+                  "endingKm": 1080,
+                  "totalKm": 80,
+                  "fuel": 12,
+                  "description": "Kandy to Ella"
+                }
+              ]
+            }
+          }
+  - name: 400 trip not found
+    description: |-
+      src/modules/tripSummary/tripSummary.controller.ts:138-145.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Get All Summaries By Trip/Get All Summaries By Trip - 400 trip not found.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/trip/{{nonExistingId}}"
+      method: GET
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No trip found!",
+            "data": null
+          }
+  - name: 400 canceled trip
+    description: |-
+      Only START/FINISHED trips (src/modules/tripSummary/tripSummary.controller.ts:138-145).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Get All Summaries By Trip/Get All Summaries By Trip - 400 canceled trip.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/trip/{{canceledTripId}}"
+      method: GET
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No trip found!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → UnauthorizedError (src/middleware/auth.middleware.ts:24-26).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Trip Summary/Get All Summaries By Trip/Get All Summaries By Trip - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/trip/{{tripId}}"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed ObjectId reaches findOne → CastError → 404 (error.middleware.ts CastError branch). tripSummary.service.ts findTripByIdAndStatusIn (src/modules/tripSummary/tripSummary.controller.ts:138).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Get All Summaries By Trip/Get All Summaries By Trip - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/trip/{{invalidId}}"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/tripSummary/trip/:tripId`**
+
+  This request runs the main scenario **200 started trip**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 started trip | (empty) |
+  | 2 | 200 | 200 as driver | (empty) |
+  | 3 | 400 | 400 trip not found | No trip found! |
+  | 4 | 400 | 400 canceled trip | No trip found! |
+  | 5 | 401 | 401 no token | Authentication invalid! |
+  | 6 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  `data: { trip: TripResponseDtoGetAll, tripSummaries: TripSummaryResponseDto[] }` — DTO field names startTime/endTime (src/modules/tripSummary/tripSummary.controller.ts:147-167).

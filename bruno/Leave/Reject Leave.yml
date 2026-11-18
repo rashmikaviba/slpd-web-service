@@ -1,0 +1,456 @@
+info:
+  name: Reject Leave
+  type: http
+  seq: 6
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/leave/reject/{{leaveId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "remark": "Bruno remark"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("rejected, approve info cleared", function () {
+          expect(res.body.data.statusName).to.equal("REJECTED");
+          expect(res.body.data.rejectReason).to.equal("Bruno remark");
+          expect(res.body.data.approveBy).to.equal(null);
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Leave rejected successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 201 super admin rejects approved leave
+    description: |-
+      APPROVED → REJECTED (leave.controller.ts:507-546). Approved-days cache is not cleared (Document/leave.md #4).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Reject Leave/Reject Leave - 201 super admin rejects approved leave.yml
+    request:
+      url: "{{baseUrl}}/leave/reject/{{leaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Bruno remark"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave rejected successfully!",
+            "data": {
+              "_id": "6650a1b2c3d4e5f6a7b8f001",
+              "startDate": "2437-01-11T00:00:00.000Z",
+              "endDate": "2437-01-12T00:00:00.000Z",
+              "dateCount": 2,
+              "reason": "Bruno test leave (updated)",
+              "status": 3,
+              "statusName": "REJECTED",
+              "appliedUser": "6650a1b2c3d4e5f6a7b8c003",
+              "appliedUserName": "Ruwan Bandara",
+              "appliedUserRole": "",
+              "availableLeaveCount": "",
+              "approveBy": null,
+              "approvedUser": "",
+              "approveDate": null,
+              "approveRemark": "",
+              "rejectBy": "6650a1b2c3d4e5f6a7b8c001",
+              "rejectedUser": "",
+              "rejectDate": "2026-11-18T08:31:03.020Z",
+              "rejectReason": "Bruno remark",
+              "isMonthEndDone": false,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c003",
+              "createdUser": "Ruwan Bandara",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedUser": "",
+              "createdAt": "2026-11-18T08:31:00.120Z",
+              "updatedAt": "2026-11-18T08:31:03.020Z"
+            }
+          }
+  - name: 403 [KNOWN BUG] driver role accepted
+    description: |-
+      [KNOWN BUG] Should be 403; a DRIVER rejects the admin's approved leave (leave.route.ts:57). Asserts current 201.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Reject Leave/Reject Leave - 403 [KNOWN BUG] driver role accepted.yml
+    request:
+      url: "{{baseUrl}}/leave/reject/{{adminLeaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Bruno remark"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave rejected successfully!",
+            "data": {
+              "_id": "6650a1b2c3d4e5f6a7b8f003",
+              "startDate": "2437-01-31T00:00:00.000Z",
+              "endDate": "2437-02-01T00:00:00.000Z",
+              "dateCount": 14,
+              "reason": "Bruno test leave",
+              "status": 3,
+              "statusName": "REJECTED",
+              "appliedUser": "6650a1b2c3d4e5f6a7b8c002",
+              "appliedUserName": "Nadeesha Fernando",
+              "appliedUserRole": "",
+              "availableLeaveCount": "",
+              "approveBy": null,
+              "approvedUser": "",
+              "approveDate": null,
+              "approveRemark": "",
+              "rejectBy": "6650a1b2c3d4e5f6a7b8c003",
+              "rejectedUser": "",
+              "rejectDate": "2026-11-18T08:31:03.390Z",
+              "rejectReason": "Bruno remark",
+              "isMonthEndDone": false,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c002",
+              "createdUser": "Nadeesha Fernando",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c003",
+              "updatedUser": "",
+              "createdAt": "2026-11-18T08:31:00.705Z",
+              "updatedAt": "2026-11-18T08:31:03.390Z"
+            }
+          }
+  - name: 201 reject again (cleanup)
+    description: |-
+      Back to REJECTED so nothing stays APPROVED.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/State Checks/Reject Leave - 201 reject again (cleanup).yml
+    request:
+      url: "{{baseUrl}}/leave/reject/{{leaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Bruno remark"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave rejected successfully!",
+            "data": {
+              "_id": "6650a1b2c3d4e5f6a7b8f001",
+              "startDate": "2437-01-11T00:00:00.000Z",
+              "endDate": "2437-01-12T00:00:00.000Z",
+              "dateCount": 2,
+              "reason": "Bruno test leave (updated)",
+              "status": 3,
+              "statusName": "REJECTED",
+              "appliedUser": "6650a1b2c3d4e5f6a7b8c003",
+              "appliedUserName": "Ruwan Bandara",
+              "appliedUserRole": "",
+              "availableLeaveCount": "",
+              "approveBy": null,
+              "approvedUser": "",
+              "approveDate": null,
+              "approveRemark": "",
+              "rejectBy": "6650a1b2c3d4e5f6a7b8c001",
+              "rejectedUser": "",
+              "rejectDate": "2026-11-18T08:31:05.440Z",
+              "rejectReason": "Bruno remark",
+              "isMonthEndDone": false,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c003",
+              "createdUser": "Ruwan Bandara",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedUser": "",
+              "createdAt": "2026-11-18T08:31:00.120Z",
+              "updatedAt": "2026-11-18T08:31:05.440Z"
+            }
+          }
+  - name: 400 missing remark
+    description: |-
+      Joi `approveRejectLeaveSchema` (leave.controller.ts:499-505).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Reject Leave/Reject Leave - 400 missing remark.yml
+    request:
+      url: "{{baseUrl}}/leave/reject/{{adminLeaveId2}}"
+      method: PUT
+      body:
+        type: json
+        data: "{}"
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Remark is required",
+            "data": null
+          }
+  - name: 400 remark too long
+    description: |-
+      Joi max 500 (leave.validation.ts:26-30).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Reject Leave/Reject Leave - 400 remark too long.yml
+    request:
+      url: "{{baseUrl}}/leave/reject/{{adminLeaveId2}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Remark cannot be more than 500 characters",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. leave.route.ts:55-59.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Leave/Reject Leave/Reject Leave - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/leave/reject/{{leaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Bruno remark"
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 already rejected
+    description: |-
+      Only PENDING/APPROVED can be rejected (leave.controller.ts:507-512).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Reject Leave/Reject Leave - 404 already rejected.yml
+    request:
+      url: "{{baseUrl}}/leave/reject/{{leaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Bruno remark"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave not found!",
+            "data": null
+          }
+  - name: 404 cancelled leave
+    description: |-
+      leave.controller.ts:507-512.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/State Checks/Reject Leave - 404 cancelled leave.yml
+    request:
+      url: "{{baseUrl}}/leave/reject/{{cancelLeaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Bruno remark"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave not found!",
+            "data": null
+          }
+  - name: 404 not found
+    description: |-
+      leave.controller.ts:512.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Reject Leave/Reject Leave - 404 not found.yml
+    request:
+      url: "{{baseUrl}}/leave/reject/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Bruno remark"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave not found!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      CastError in `Leave.findOne` → 404.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Reject Leave/Reject Leave - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/leave/reject/{{invalidId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Bruno remark"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/leave/reject/:id`**
+
+  This request runs the main scenario **201 super admin rejects approved leave**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 super admin rejects approved leave | Leave rejected successfully! |
+  | 2 | 201 | 403 [KNOWN BUG] driver role accepted | Leave rejected successfully! |
+  | 3 | 201 | 201 reject again (cleanup) | Leave rejected successfully! |
+  | 4 | 400 | 400 missing remark | Remark is required |
+  | 5 | 400 | 400 remark too long | Remark cannot be more than 500 characters |
+  | 6 | 401 | 401 no token | Authentication invalid! |
+  | 7 | 404 | 404 already rejected | Leave not found! |
+  | 8 | 404 | 404 cancelled leave | Leave not found! |
+  | 9 | 404 | 404 not found | Leave not found! |
+  | 10 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  APPROVED → REJECTED (leave.controller.ts:507-546). Approved-days cache is not cleared (Document/leave.md #4).

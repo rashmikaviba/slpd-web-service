@@ -1,0 +1,408 @@
+info:
+  name: Dashboard Stats
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/dashboard/getDashboardstats?startDate={{dashStartDate}}&endDate={{dashEndDate}}"
+  params:
+    - name: startDate
+      value: "{{dashStartDate}}"
+      type: query
+    - name: endDate
+      value: "{{dashEndDate}}"
+      type: query
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const d = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+        bru.setVar("dashStartDate", `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`);
+        bru.setVar("dashEndDate", `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(last)}`);
+    - type: tests
+      code: |-
+        test("exactly finishedTripsCount, totalIncome, totalExpenses (numbers)", function () {
+          expect(res.body.data).to.have.all.keys("finishedTripsCount", "totalIncome", "totalExpenses");
+          expect(res.body.data.finishedTripsCount).to.be.a("number");
+          expect(res.body.data.totalIncome).to.be.a("number");
+          expect(res.body.data.totalExpenses).to.be.a("number");
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 current month
+    description: |-
+      KPI tiles for the current calendar month: FINISHED trips by endDate, Σ totalCostLocalCurrency, and
+      trip expenses + driver salaries + monthly expenses + company-borne maintenance (dashboard.controller.ts:33-58, :141, :157).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Dashboard/Dashboard Stats - 200 current month.yml
+    request:
+      url: "{{baseUrl}}/dashboard/getDashboardstats?startDate={{dashStartDate}}&endDate={{dashEndDate}}"
+      method: GET
+      params:
+        - name: startDate
+          value: "{{dashStartDate}}"
+          type: query
+        - name: endDate
+          value: "{{dashEndDate}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "finishedTripsCount": 1,
+              "totalIncome": 375000,
+              "totalExpenses": 115950
+            }
+          }
+  - name: 200 Admin
+    description: |-
+      Same as Super Admin; ADMIN is allowed (dashboard.route.ts:14).
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: Dashboard/Dashboard Stats - 200 Admin.yml
+    request:
+      url: "{{baseUrl}}/dashboard/getDashboardstats?startDate={{dashStartDate}}&endDate={{dashEndDate}}"
+      method: GET
+      params:
+        - name: startDate
+          value: "{{dashStartDate}}"
+          type: query
+        - name: endDate
+          value: "{{dashEndDate}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "finishedTripsCount": 1,
+              "totalIncome": 375000,
+              "totalExpenses": 115950
+            }
+          }
+  - name: 200 start after end returns zeros
+    description: |-
+      [KNOWN BUG] No date-order validation: startDate > endDate is accepted and every range query is empty, so the
+      handler returns 200 with zeros instead of a 400 (dashboard.controller.ts:33-58, dashboard.md › Known issues 5).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Dashboard/Dashboard Stats - 200 start after end returns zeros.yml
+    request:
+      url: "{{baseUrl}}/dashboard/getDashboardstats?startDate=2026-12-31&endDate=2026-01-01"
+      method: GET
+      params:
+        - name: startDate
+          value: 2026-12-31
+          type: query
+        - name: endDate
+          value: 2026-01-01
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "finishedTripsCount": 0,
+              "totalIncome": 0,
+              "totalExpenses": 0
+            }
+          }
+  - name: 401 no token
+    description: |-
+      auth.middleware.ts:25-26 — no `Authorization: Bearer` header → UnauthorizedError.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Dashboard/Dashboard Stats - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/dashboard/getDashboardstats?startDate=2026-01-01&endDate=2026-01-31"
+      method: GET
+      params:
+        - name: startDate
+          value: 2026-01-01
+          type: query
+        - name: endDate
+          value: 2026-01-31
+          type: query
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 Driver
+    description: |-
+      DRIVER not allowed (dashboard.route.ts:14). auth.middleware.ts:68-79 — role not in the route's roles array → ForbiddenError.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Dashboard/Dashboard Stats - 403 Driver.yml
+    request:
+      url: "{{baseUrl}}/dashboard/getDashboardstats?startDate=2026-01-01&endDate=2026-01-31"
+      method: GET
+      params:
+        - name: startDate
+          value: 2026-01-01
+          type: query
+        - name: endDate
+          value: 2026-01-31
+          type: query
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 500 missing startDate
+    description: |-
+      [KNOWN BUG] missing startDate: no validation; `new Date(...)` is Invalid Date → Mongoose CastError in
+      trip.service.ts:166 findAllByStatusInAndOnlyFromEndDate → caught at dashboard.controller.ts:59-60 → 500
+      "Error fetching dashboard data" (should be 400). dashboard.md › Known issues 5.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Dashboard/Dashboard Stats - 500 missing startDate.yml
+    request:
+      url: "{{baseUrl}}/dashboard/getDashboardstats?endDate={{dashEndDate}}"
+      method: GET
+      params:
+        - name: endDate
+          value: "{{dashEndDate}}"
+          type: query
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Error fetching dashboard data",
+            "data": null
+          }
+  - name: 500 missing endDate
+    description: |-
+      [KNOWN BUG] missing endDate: no validation; `new Date(...)` is Invalid Date → Mongoose CastError in
+      trip.service.ts:166 findAllByStatusInAndOnlyFromEndDate → caught at dashboard.controller.ts:59-60 → 500
+      "Error fetching dashboard data" (should be 400). dashboard.md › Known issues 5.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Dashboard/Dashboard Stats - 500 missing endDate.yml
+    request:
+      url: "{{baseUrl}}/dashboard/getDashboardstats?startDate={{dashStartDate}}"
+      method: GET
+      params:
+        - name: startDate
+          value: "{{dashStartDate}}"
+          type: query
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Error fetching dashboard data",
+            "data": null
+          }
+  - name: 500 missing both dates
+    description: |-
+      [KNOWN BUG] missing both dates: no validation; `new Date(...)` is Invalid Date → Mongoose CastError in
+      trip.service.ts:166 findAllByStatusInAndOnlyFromEndDate → caught at dashboard.controller.ts:59-60 → 500
+      "Error fetching dashboard data" (should be 400). dashboard.md › Known issues 5.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Dashboard/Dashboard Stats - 500 missing both dates.yml
+    request:
+      url: "{{baseUrl}}/dashboard/getDashboardstats"
+      method: GET
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Error fetching dashboard data",
+            "data": null
+          }
+  - name: 500 invalid startDate
+    description: |-
+      [KNOWN BUG] invalid startDate: no validation; `new Date(...)` is Invalid Date → Mongoose CastError in
+      trip.service.ts:166 findAllByStatusInAndOnlyFromEndDate → caught at dashboard.controller.ts:59-60 → 500
+      "Error fetching dashboard data" (should be 400). dashboard.md › Known issues 5.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Dashboard/Dashboard Stats - 500 invalid startDate.yml
+    request:
+      url: "{{baseUrl}}/dashboard/getDashboardstats?startDate=not-a-date&endDate={{dashEndDate}}"
+      method: GET
+      params:
+        - name: startDate
+          value: not-a-date
+          type: query
+        - name: endDate
+          value: "{{dashEndDate}}"
+          type: query
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Error fetching dashboard data",
+            "data": null
+          }
+  - name: 500 invalid endDate
+    description: |-
+      [KNOWN BUG] invalid endDate: no validation; `new Date(...)` is Invalid Date → Mongoose CastError in
+      trip.service.ts:166 findAllByStatusInAndOnlyFromEndDate → caught at dashboard.controller.ts:59-60 → 500
+      "Error fetching dashboard data" (should be 400). dashboard.md › Known issues 5.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Dashboard/Dashboard Stats - 500 invalid endDate.yml
+    request:
+      url: "{{baseUrl}}/dashboard/getDashboardstats?startDate={{dashStartDate}}&endDate=2026-13-45"
+      method: GET
+      params:
+        - name: startDate
+          value: "{{dashStartDate}}"
+          type: query
+        - name: endDate
+          value: 2026-13-45
+          type: query
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Error fetching dashboard data",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/dashboard/getDashboardstats`**
+
+  This request runs the main scenario **200 current month**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 current month | (empty) |
+  | 2 | 200 | 200 Admin | (empty) |
+  | 3 | 200 | 200 start after end returns zeros | (empty) |
+  | 4 | 401 | 401 no token | Authentication invalid! |
+  | 5 | 403 | 403 Driver | You're unauthorized to access this resource! |
+  | 6 | 500 | 500 missing startDate | Error fetching dashboard data |
+  | 7 | 500 | 500 missing endDate | Error fetching dashboard data |
+  | 8 | 500 | 500 missing both dates | Error fetching dashboard data |
+  | 9 | 500 | 500 invalid startDate | Error fetching dashboard data |
+  | 10 | 500 | 500 invalid endDate | Error fetching dashboard data |
+
+  ## Main scenario notes
+
+  KPI tiles for the current calendar month: FINISHED trips by endDate, Σ totalCostLocalCurrency, and
+  trip expenses + driver salaries + monthly expenses + company-borne maintenance (dashboard.controller.ts:33-58, :141, :157).

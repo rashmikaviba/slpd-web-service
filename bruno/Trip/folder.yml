@@ -1,0 +1,33 @@
+info:
+  name: Trip
+  type: folder
+  seq: 11
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    # Trip module (Document/trip.md)
+
+    Run the whole folder in order (sub-folder seq = lifecycle order). Requires Auth/Login (all role tokens + userIds) and Vehicle (`{{vehicleId}}`, ACTIVE). POS setup requests also use `{{productId}}` from Inventory (with stock).
+
+    ## Trips created by "Create Trip" (runtime vars)
+    | var | purpose | final status |
+    |---|---|---|
+    | `tripId` | main trip: driver+vehicle, checklist, place 1 reached, updated | START (used by Trip Summary, Expenses, POS...) |
+    | `finishedTripId` | start → place reached → finish; places wiped by [KNOWN BUG] update | FINISHED |
+    | `canceledTripId` | pending-state errors, POS line, then cancelled | CANCELED |
+    | `undoTripId` | undo flows (driver/admin), expense / expense-request guards, POS audit guard | START |
+    | `paymentTripId` | hotel/activity payments, payment guards | START |
+    | `noDriverTripId` | started without drivers (no active driver / assign crash) | START |
+    | `otherDriverTripId` | active driver = driver-assistant user (not the logged-in driver), duplicate-driver bug | START |
+    | `noVehicleTripId` | driver only, no vehicle (mark-as-reached crash) | START |
+
+    ## Manual vars (month-end cases)
+    `monthEndPendingTripId` (PENDING trip with isMonthEndDone=true) and `monthEndStartedTripId` (START trip with isMonthEndDone=true).
+    They exist only after Month Audit closed a month containing such trips; set them by hand (e.g. from the DB) before running the "month end" requests. Unset → URL contains the literal placeholder and the request returns 404 instead.
+
+    ## Not reachable via HTTP
+    "Can't change status to pending after expense added or driver salary added!" (src/modules/trip/trip.controller.ts:894, :1003) needs active expense lines AND driver salaries on a START trip, but driver salary can only be saved on a FINISHED trip (expenses.controller.ts saveDriverSalary) and FINISHED never goes back to START. Only the && [KNOWN BUG] side is covered.
+  type: text/markdown

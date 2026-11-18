@@ -1,0 +1,27 @@
+info:
+  name: Leave
+  type: folder
+  seq: 5
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    /api/v1/leave/* — leave requests (leave.route.ts, leave.controller.ts, leave.service.ts, leave.validation.ts).
+    See Document/leave.md.
+
+    Run the sub-folders in order — they form one lifecycle:
+    1. Get Leave Count stores `{{adminLeaveCount}}` (= admin's `User.leaveCount`).
+    2. Apply Leave (seq 1) picks a random far-future year `{{leaveYear}}` (2100-2899) and date slots
+       `{{leaveFrom1..6}}`/`{{leaveTo1..6}}` so reruns never overlap old leaves and month-end never touches them.
+       It creates: `{{leaveId}}` (driver), `{{cancelLeaveId}}` (driver), `{{adminLeaveId}}` and `{{adminLeaveId2}}`
+       (admin, each `dateCount = adminLeaveCount`).
+    3. Update → Get All → Get By Id → Approve → Reject → Cancel → Eligible Leaves → State Checks.
+    Final state: `leaveId` REJECTED, `cancelLeaveId` CANCELLED, `adminLeaveId` REJECTED, `adminLeaveId2` CANCELLED —
+    nothing left PENDING/APPROVED.
+
+    Preconditions: driver/admin/superAdmin tokens from Auth/Login; the admin user has `leaveCount >= 1`
+    (entitlement checks are skipped when it is unset — Document/leave.md #6).
+    Joi errors are thrown as `BadRequestError(error.message)` (first error only, Joi default abortEarly).
+  type: text/markdown

@@ -1,0 +1,261 @@
+info:
+  name: Upload Multiple Files
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/store/uploadMultiple?type=9"
+  params:
+    - name: type
+      value: "9"
+      type: query
+  body:
+    type: multipart-form
+    data:
+      - name: files
+        type: file
+        value: &a1
+          - fixtures/sample.txt
+          - fixtures/sample.txt
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("one URL per file", function () {
+          expect(res.body.data).to.be.an("array").with.lengthOf(2);
+          res.body.data.forEach((u) => expect(u).to.match(/\/uploads\/MaintenanceInvoice\/\d+-sample\.txt$/));
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Files uploaded successfully
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 two files
+    description: |-
+      Public. Field `files`, up to 10 (store.route.ts:16, `upload.array('files', 10)`); returns `string[]` of URLs
+      (store.controller.ts:30-52).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Store/Upload Multiple Files - 200 two files.yml
+    request:
+      url: "{{baseUrl}}/store/uploadMultiple?type=9"
+      method: POST
+      params:
+        - name: type
+          value: "9"
+          type: query
+      body:
+        type: multipart-form
+        data:
+          - name: files
+            type: file
+            value: *a1
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Files uploaded successfully",
+            "data": [
+              "http://localhost:9060/uploads/MaintenanceInvoice/1794990600231-sample.txt",
+              "http://localhost:9060/uploads/MaintenanceInvoice/1794990600232-sample.txt"
+            ]
+          }
+  - name: 400 invalid type
+    description: |-
+      Same multer destination check as single upload (multer.util.ts:13-15).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Store/Upload Multiple Files - 400 invalid type.yml
+    request:
+      url: "{{baseUrl}}/store/uploadMultiple?type=99"
+      method: POST
+      params:
+        - name: type
+          value: "99"
+          type: query
+      body:
+        type: multipart-form
+        data:
+          - name: files
+            type: file
+            value:
+              - fixtures/sample.txt
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid upload type",
+            "data": null
+          }
+  - name: 400 missing files
+    description: |-
+      `req.files` is an empty array (store.controller.ts:34-36).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Store/Upload Multiple Files - 400 missing files.yml
+    request:
+      url: "{{baseUrl}}/store/uploadMultiple?type=9"
+      method: POST
+      params:
+        - name: type
+          value: "9"
+          type: query
+      body:
+        type: multipart-form
+        data:
+          - name: note
+            type: text
+            value: no file attached
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Please upload a file!",
+            "data": null
+          }
+  - name: 500 wrong field name
+    description: |-
+      `upload.array('files', 10)` receives a `file` part → MulterError LIMIT_UNEXPECTED_FILE → 500 (no statusCode).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Store/Upload Multiple Files - 500 wrong field name.yml
+    request:
+      url: "{{baseUrl}}/store/uploadMultiple?type=9"
+      method: POST
+      params:
+        - name: type
+          value: "9"
+          type: query
+      body:
+        type: multipart-form
+        data:
+          - name: file
+            type: file
+            value:
+              - fixtures/sample.txt
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Unexpected field",
+            "data": null
+          }
+  - name: 500 more than 10 files
+    description: |-
+      11 files exceed `maxCount` 10 → MulterError LIMIT_UNEXPECTED_FILE ("Unexpected field") → 500.
+      Note: the first 10 files are already written to disk and are not cleaned up (no delete is ever called).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Store/Upload Multiple Files - 500 more than 10 files.yml
+    request:
+      url: "{{baseUrl}}/store/uploadMultiple?type=9"
+      method: POST
+      params:
+        - name: type
+          value: "9"
+          type: query
+      body:
+        type: multipart-form
+        data:
+          - name: files
+            type: file
+            value:
+              - fixtures/sample.txt
+              - fixtures/sample.txt
+              - fixtures/sample.txt
+              - fixtures/sample.txt
+              - fixtures/sample.txt
+              - fixtures/sample.txt
+              - fixtures/sample.txt
+              - fixtures/sample.txt
+              - fixtures/sample.txt
+              - fixtures/sample.txt
+              - fixtures/sample.txt
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Unexpected field",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/store/uploadMultiple`**
+
+  This request runs the main scenario **200 two files**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 two files | Files uploaded successfully |
+  | 2 | 400 | 400 invalid type | Invalid upload type |
+  | 3 | 400 | 400 missing files | Please upload a file! |
+  | 4 | 500 | 500 wrong field name | Unexpected field |
+  | 5 | 500 | 500 more than 10 files | Unexpected field |
+
+  ## Main scenario notes
+
+  Public. Field `files`, up to 10 (store.route.ts:16, `upload.array('files', 10)`); returns `string[]` of URLs
+  (store.controller.ts:30-52).

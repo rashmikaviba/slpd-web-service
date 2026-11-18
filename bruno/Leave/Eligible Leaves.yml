@@ -1,0 +1,157 @@
+info:
+  name: Eligible Leaves
+  type: http
+  seq: 9
+
+http:
+  method: POST
+  url: "{{baseUrl}}/leave/eligibleLeaves"
+  auth:
+    type: bearer
+    token: "{{adminToken}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("remaining days is a number", function () {
+          expect(res.body.data).to.be.a("number");
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 admin
+    description: |-
+      leave.controller.ts:718-738.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: Leave/Eligible Leaves/Eligible Leaves - 200 admin.yml
+    request:
+      url: "{{baseUrl}}/leave/eligibleLeaves"
+      method: POST
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": 12
+          }
+  - name: 200 driver
+    description: |-
+      Drivers usually have no `leaveCount` → `undefined - n` = NaN → serialised as `null` (Document/leave.md #6).
+      `data` is not asserted because it depends on the driver's profile.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Eligible Leaves/Eligible Leaves - 200 driver.yml
+    request:
+      url: "{{baseUrl}}/leave/eligibleLeaves"
+      method: POST
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": null
+          }
+  - name: 400 no working info
+    description: |-
+      [PRECONDITION] Only passes when there is no ACTIVE CompanyWorkingInfo (e.g. fresh DB seeded with the
+      wrong-collection script, Document/common.md #1). Fails in a normal run (returns 200) (leave.controller.ts:721-726).
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: Leave/Eligible Leaves/Eligible Leaves - 400 no working info.yml
+    request:
+      url: "{{baseUrl}}/leave/eligibleLeaves"
+      method: POST
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Company not found!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. leave.route.ts:73-77.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Leave/Eligible Leaves/Eligible Leaves - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/leave/eligibleLeaves"
+      method: POST
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/leave/eligibleLeaves`**
+
+  This request runs the main scenario **200 admin**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 admin | (empty) |
+  | 2 | 200 | 200 driver | (empty) |
+  | 3 | 400 | 400 no working info | Company not found! |
+  | 4 | 401 | 401 no token | Authentication invalid! |
+
+  ## Main scenario notes
+
+  leave.controller.ts:718-738.

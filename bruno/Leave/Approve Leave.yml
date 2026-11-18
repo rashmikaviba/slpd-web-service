@@ -1,0 +1,555 @@
+info:
+  name: Approve Leave
+  type: http
+  seq: 5
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/leave/approve/{{leaveId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "remark": "Bruno remark"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("approved", function () {
+          expect(res.body.data.statusName).to.equal("APPROVED");
+          expect(res.body.data.approveBy).to.equal(bru.getVar("superAdminUserId"));
+          expect(res.body.data.approveRemark).to.equal("Bruno remark");
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Leave approved successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 201 super admin
+    description: |-
+      Driver leave (no entitlement check) PENDING → APPROVED (leave.controller.ts:454-491).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Approve Leave/Approve Leave - 201 super admin.yml
+    request:
+      url: "{{baseUrl}}/leave/approve/{{leaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Bruno remark"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave approved successfully!",
+            "data": {
+              "_id": "6650a1b2c3d4e5f6a7b8f001",
+              "startDate": "2437-01-11T00:00:00.000Z",
+              "endDate": "2437-01-12T00:00:00.000Z",
+              "dateCount": 2,
+              "reason": "Bruno test leave (updated)",
+              "status": 2,
+              "statusName": "APPROVED",
+              "appliedUser": "6650a1b2c3d4e5f6a7b8c003",
+              "appliedUserName": "Ruwan Bandara",
+              "appliedUserRole": "",
+              "availableLeaveCount": "",
+              "approveBy": "6650a1b2c3d4e5f6a7b8c001",
+              "approvedUser": "",
+              "approveDate": "2026-11-18T08:31:02.210Z",
+              "approveRemark": "Bruno remark",
+              "rejectBy": null,
+              "rejectedUser": "",
+              "rejectDate": null,
+              "rejectReason": "",
+              "isMonthEndDone": false,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c003",
+              "createdUser": "Ruwan Bandara",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedUser": "",
+              "createdAt": "2026-11-18T08:31:00.120Z",
+              "updatedAt": "2026-11-18T08:31:02.210Z"
+            }
+          }
+  - name: 403 [KNOWN BUG] driver role accepted
+    description: |-
+      [KNOWN BUG] Should be 403 `You're unauthorized to access this resource!` — a DRIVER approves the admin's leave
+      because `authorize()` gets a number, not an array (leave.route.ts:51, auth.middleware.ts:68). Asserts the current
+      201. Admin now has L approved days in `{{leaveYear}}`.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Approve Leave/Approve Leave - 403 [KNOWN BUG] driver role accepted.yml
+    request:
+      url: "{{baseUrl}}/leave/approve/{{adminLeaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Bruno remark"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave approved successfully!",
+            "data": {
+              "_id": "6650a1b2c3d4e5f6a7b8f003",
+              "startDate": "2437-01-31T00:00:00.000Z",
+              "endDate": "2437-02-01T00:00:00.000Z",
+              "dateCount": 14,
+              "reason": "Bruno test leave",
+              "status": 2,
+              "statusName": "APPROVED",
+              "appliedUser": "6650a1b2c3d4e5f6a7b8c002",
+              "appliedUserName": "Nadeesha Fernando",
+              "appliedUserRole": "",
+              "availableLeaveCount": "",
+              "approveBy": "6650a1b2c3d4e5f6a7b8c003",
+              "approvedUser": "",
+              "approveDate": "2026-11-18T08:31:02.655Z",
+              "approveRemark": "Bruno remark",
+              "rejectBy": null,
+              "rejectedUser": "",
+              "rejectDate": null,
+              "rejectReason": "",
+              "isMonthEndDone": false,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c002",
+              "createdUser": "Nadeesha Fernando",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c003",
+              "updatedUser": "",
+              "createdAt": "2026-11-18T08:31:00.705Z",
+              "updatedAt": "2026-11-18T08:31:02.655Z"
+            }
+          }
+  - name: 201 re-approve rejected leave
+    description: |-
+      REJECTED → APPROVED is allowed (leave.controller.ts:424-427).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/State Checks/Approve Leave - 201 re-approve rejected leave.yml
+    request:
+      url: "{{baseUrl}}/leave/approve/{{leaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Bruno remark"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave approved successfully!",
+            "data": {
+              "_id": "6650a1b2c3d4e5f6a7b8f001",
+              "startDate": "2437-01-11T00:00:00.000Z",
+              "endDate": "2437-01-12T00:00:00.000Z",
+              "dateCount": 2,
+              "reason": "Bruno test leave (updated)",
+              "status": 2,
+              "statusName": "APPROVED",
+              "appliedUser": "6650a1b2c3d4e5f6a7b8c003",
+              "appliedUserName": "Ruwan Bandara",
+              "appliedUserRole": "",
+              "availableLeaveCount": "",
+              "approveBy": "6650a1b2c3d4e5f6a7b8c001",
+              "approvedUser": "",
+              "approveDate": "2026-11-18T08:31:05.020Z",
+              "approveRemark": "Bruno remark",
+              "rejectBy": null,
+              "rejectedUser": "",
+              "rejectDate": null,
+              "rejectReason": "",
+              "isMonthEndDone": false,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c003",
+              "createdUser": "Ruwan Bandara",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedUser": "",
+              "createdAt": "2026-11-18T08:31:00.120Z",
+              "updatedAt": "2026-11-18T08:31:05.020Z"
+            }
+          }
+  - name: 400 applicant exceeded leave limit
+    description: |-
+      Admin already has L approved days (seq 2); approving another L-day leave: `L + L > L` → `BadRequestError`
+      (leave.controller.ts:437-452).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Approve Leave/Approve Leave - 400 applicant exceeded leave limit.yml
+    request:
+      url: "{{baseUrl}}/leave/approve/{{adminLeaveId2}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Bruno remark"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "This user have exceeded the leave limit for 2437 year!",
+            "data": null
+          }
+  - name: 400 missing remark
+    description: |-
+      Joi `approveRejectLeaveSchema` (leave.validation.ts:25-31) → leave.controller.ts:416-422.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Approve Leave/Approve Leave - 400 missing remark.yml
+    request:
+      url: "{{baseUrl}}/leave/approve/{{adminLeaveId2}}"
+      method: PUT
+      body:
+        type: json
+        data: "{}"
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Remark is required",
+            "data": null
+          }
+  - name: 400 empty remark
+    description: |-
+      Joi `approveRejectLeaveSchema` (leave.validation.ts:25-31) → leave.controller.ts:416-422. `.min(0)` does not allow `""`; Joi default `string.empty` message.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Approve Leave/Approve Leave - 400 empty remark.yml
+    request:
+      url: "{{baseUrl}}/leave/approve/{{adminLeaveId2}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"remark\" is not allowed to be empty",
+            "data": null
+          }
+  - name: 400 remark too long
+    description: |-
+      Joi `approveRejectLeaveSchema` (leave.validation.ts:25-31) → leave.controller.ts:416-422.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Approve Leave/Approve Leave - 400 remark too long.yml
+    request:
+      url: "{{baseUrl}}/leave/approve/{{adminLeaveId2}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Remark cannot be more than 500 characters",
+            "data": null
+          }
+  - name: 400 non-string remark
+    description: |-
+      Joi `approveRejectLeaveSchema` (leave.validation.ts:25-31) → leave.controller.ts:416-422.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Approve Leave/Approve Leave - 400 non-string remark.yml
+    request:
+      url: "{{baseUrl}}/leave/approve/{{adminLeaveId2}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": 123
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Remark is invalid",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. leave.route.ts:49-53.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Leave/Approve Leave/Approve Leave - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/leave/approve/{{leaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Bruno remark"
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 cancelled leave
+    description: |-
+      CANCELLED is terminal (leave.controller.ts:424-429).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/State Checks/Approve Leave - 404 cancelled leave.yml
+    request:
+      url: "{{baseUrl}}/leave/approve/{{cancelLeaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Bruno remark"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave not found!",
+            "data": null
+          }
+  - name: 404 already approved
+    description: |-
+      Only PENDING/REJECTED can be approved (leave.controller.ts:424-429).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Approve Leave/Approve Leave - 404 already approved.yml
+    request:
+      url: "{{baseUrl}}/leave/approve/{{leaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Bruno remark"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave not found!",
+            "data": null
+          }
+  - name: 404 not found
+    description: |-
+      leave.controller.ts:429.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Approve Leave/Approve Leave - 404 not found.yml
+    request:
+      url: "{{baseUrl}}/leave/approve/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Bruno remark"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave not found!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      CastError in `Leave.findOne` → 404.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Approve Leave/Approve Leave - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/leave/approve/{{invalidId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Bruno remark"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/leave/approve/:id`**
+
+  This request runs the main scenario **201 super admin**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 super admin | Leave approved successfully! |
+  | 2 | 201 | 403 [KNOWN BUG] driver role accepted | Leave approved successfully! |
+  | 3 | 201 | 201 re-approve rejected leave | Leave approved successfully! |
+  | 4 | 400 | 400 applicant exceeded leave limit | This user have exceeded the leave limit for 2437 year! |
+  | 5 | 400 | 400 missing remark | Remark is required |
+  | 6 | 400 | 400 empty remark | "remark" is not allowed to be empty |
+  | 7 | 400 | 400 remark too long | Remark cannot be more than 500 characters |
+  | 8 | 400 | 400 non-string remark | Remark is invalid |
+  | 9 | 401 | 401 no token | Authentication invalid! |
+  | 10 | 404 | 404 cancelled leave | Leave not found! |
+  | 11 | 404 | 404 already approved | Leave not found! |
+  | 12 | 404 | 404 not found | Leave not found! |
+  | 13 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  Driver leave (no entitlement check) PENDING → APPROVED (leave.controller.ts:454-491).

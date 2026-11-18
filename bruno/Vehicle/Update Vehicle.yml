@@ -1,0 +1,613 @@
+info:
+  name: Update Vehicle
+  type: http
+  seq: 2
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/vehicle/{{vehicleId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "vehicleType": 2,
+        "vehicleOwner": "SLPD Bruno",
+        "registrationNumber": "{{vehicleRegNo}}",
+        "capacity": 15,
+        "availableSeats": 14,
+        "gpsTracker": "{{vehicleGps}}",
+        "description": "Updated by Bruno",
+        "licenseRenewalDate": "2027-06-30",
+        "insuranceRenewalDate": "2027-06-30",
+        "gearOil": "75W-90",
+        "airFilter": "AF-100",
+        "oilFilter": "OF-200",
+        "initialMileage": 1000,
+        "isFreelanceVehicle": false,
+        "isRentalVehicle": false,
+        "rentalFor30Days": 0
+      }
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Vehicle updated successfully!
+    - expression: res.body.data.description
+      operator: eq
+      value: Updated by Bruno
+    - expression: res.body.data.currentMileage
+      operator: eq
+      value: "1000"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      Same registration/GPS/initialMileage as created, new description (vehicle.controller.ts:111-210). SUPERADMIN only. initialMileage unchanged so currentMileage is kept.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Update Vehicle/Update Vehicle - 200.yml
+    request:
+      url: "{{baseUrl}}/vehicle/{{vehicleId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "{{vehicleRegNo}}",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "{{vehicleGps}}",
+            "description": "Updated by Bruno",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle updated successfully!",
+            "data": {
+              "_id": "6651a1b2c3d4e5f6a7b8c9d0",
+              "vehicleType": 2,
+              "vehicleOwner": "SLPD Bruno",
+              "registrationNumber": "BRU-1794990600000",
+              "gpsTracker": "GPS-1794990600000",
+              "capacity": 15,
+              "availableSeats": 14,
+              "licenseRenewalDate": "2027-06-30T00:00:00.000Z",
+              "insuranceRenewalDate": "2027-06-30T00:00:00.000Z",
+              "gearOil": "75W-90",
+              "airFilter": "AF-100",
+              "oilFilter": "OF-200",
+              "initialMileage": 1000,
+              "currentMileage": 1000,
+              "description": "Updated by Bruno",
+              "isFreelanceVehicle": false,
+              "rentalFor30Days": 0,
+              "isRentalVehicle": false,
+              "status": 1,
+              "createdBy": {
+                "_id": "6650a1b2c3d4e5f6a7b8c9d0",
+                "fullName": "Kasun Perera",
+                "userName": "superadmin",
+                "gender": "6650a0000000000000000001",
+                "dateOfBirth": "1990-04-12T00:00:00.000Z",
+                "address": "45 Temple Road, Nugegoda",
+                "phoneNumber1": "0771234567",
+                "phoneNumber2": "0112345678",
+                "email": "superadmin@example.lk",
+                "isFreelanceDriver": false,
+                "profileImageUrl": "https://example.com/profile/u1.png",
+                "nic": "199010312345",
+                "nicImageUrl": "https://example.com/nic/u1.png",
+                "gsCertificateUrl": "https://example.com/gs/u1.pdf",
+                "drivingLicenseUrl": "https://example.com/dl/u1.png",
+                "sltdaCertificateUrl": "https://example.com/sltda/u1.pdf",
+                "policeReportUrl": "https://example.com/police/u1.pdf",
+                "bankName": "Bank of Ceylon",
+                "bankId": 1,
+                "branch": "Nugegoda",
+                "accountNumber": "0000123456",
+                "accountHolderName": "Kasun Perera",
+                "accountHolderAddress": "45 Temple Road, Nugegoda",
+                "basicSalary": 85000,
+                "leaveCount": 14,
+                "languages": [
+                  "English",
+                  "Sinhala"
+                ],
+                "role": "6650a0000000000000000011",
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "createdAt": "2026-01-05T04:00:00.000Z",
+                "updatedAt": "2026-01-05T04:00:00.000Z"
+              },
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:30:00.000Z",
+              "updatedAt": "2026-11-18T08:31:00.000Z"
+            }
+          }
+  - name: 200 initialMileage change resets currentMileage
+    description: |-
+      [KNOWN BUG] Changing initialMileage overwrites currentMileage, discarding any mileage added by trips/internal trips (vehicle.controller.ts:193-196). Uses the throwaway vehicle.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Update Vehicle/Update Vehicle - 200 initialMileage change resets currentMileage.yml
+    request:
+      url: "{{baseUrl}}/vehicle/{{vehicleToDeleteId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 1,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "{{vehicleToDeleteRegNo}}",
+            "capacity": 5,
+            "availableSeats": 4,
+            "gpsTracker": "{{vehicleToDeleteGps}}",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 2000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle updated successfully!",
+            "data": {
+              "_id": "6651a1b2c3d4e5f6a7b8c9d1",
+              "vehicleType": 1,
+              "vehicleOwner": "SLPD Bruno",
+              "registrationNumber": "BRU-1794990601200",
+              "gpsTracker": "GPS-1794990601200",
+              "capacity": 5,
+              "availableSeats": 4,
+              "licenseRenewalDate": "2027-06-30T00:00:00.000Z",
+              "insuranceRenewalDate": "2027-06-30T00:00:00.000Z",
+              "gearOil": "75W-90",
+              "airFilter": "AF-100",
+              "oilFilter": "OF-200",
+              "initialMileage": 2000,
+              "currentMileage": 2000,
+              "description": "Bruno test vehicle",
+              "isFreelanceVehicle": false,
+              "rentalFor30Days": 0,
+              "isRentalVehicle": false,
+              "status": 1,
+              "createdBy": {
+                "_id": "6650a1b2c3d4e5f6a7b8c9d0",
+                "fullName": "Kasun Perera",
+                "userName": "superadmin",
+                "gender": "6650a0000000000000000001",
+                "dateOfBirth": "1990-04-12T00:00:00.000Z",
+                "address": "45 Temple Road, Nugegoda",
+                "phoneNumber1": "0771234567",
+                "phoneNumber2": "0112345678",
+                "email": "superadmin@example.lk",
+                "isFreelanceDriver": false,
+                "profileImageUrl": "https://example.com/profile/u1.png",
+                "nic": "199010312345",
+                "nicImageUrl": "https://example.com/nic/u1.png",
+                "gsCertificateUrl": "https://example.com/gs/u1.pdf",
+                "drivingLicenseUrl": "https://example.com/dl/u1.png",
+                "sltdaCertificateUrl": "https://example.com/sltda/u1.pdf",
+                "policeReportUrl": "https://example.com/police/u1.pdf",
+                "bankName": "Bank of Ceylon",
+                "bankId": 1,
+                "branch": "Nugegoda",
+                "accountNumber": "0000123456",
+                "accountHolderName": "Kasun Perera",
+                "accountHolderAddress": "45 Temple Road, Nugegoda",
+                "basicSalary": 85000,
+                "leaveCount": 14,
+                "languages": [
+                  "English",
+                  "Sinhala"
+                ],
+                "role": "6650a0000000000000000011",
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "createdAt": "2026-01-05T04:00:00.000Z",
+                "updatedAt": "2026-01-05T04:00:00.000Z"
+              },
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:30:01.000Z",
+              "updatedAt": "2026-11-18T08:31:05.000Z"
+            }
+          }
+  - name: 400 missing vehicleType
+    description: |-
+      Same Joi schema as create (all rules covered in Create Vehicle) (vehicle.validation.ts:5, vehicle.controller.ts:134-137).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Update Vehicle/Update Vehicle - 400 missing vehicleType.yml
+    request:
+      url: "{{baseUrl}}/vehicle/{{vehicleId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "{{vehicleRegNo}}",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "{{vehicleGps}}",
+            "description": "Updated by Bruno",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle Type is required!",
+            "data": null
+          }
+  - name: 400 not found
+    description: |-
+      vehicle.controller.ts:139-146.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Update Vehicle/Update Vehicle - 400 not found.yml
+    request:
+      url: "{{baseUrl}}/vehicle/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "{{vehicleRegNo}}",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "{{vehicleGps}}",
+            "description": "Updated by Bruno",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle not found!",
+            "data": null
+          }
+  - name: 400 duplicate registrationNumber
+    description: |-
+      Throwaway vehicle updated with `{{vehicleRegNo}}` of the main vehicle (vehicle.controller.ts:148-159).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Update Vehicle/Update Vehicle - 400 duplicate registrationNumber.yml
+    request:
+      url: "{{baseUrl}}/vehicle/{{vehicleToDeleteId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "{{vehicleRegNo}}",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "{{vehicleToDeleteGps}}",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle already exists with this registration number!",
+            "data": null
+          }
+  - name: 400 duplicate gpsTracker
+    description: |-
+      Throwaway vehicle keeps its registration but takes `{{vehicleGps}}` of the main vehicle (vehicle.controller.ts:161-173).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Update Vehicle/Update Vehicle - 400 duplicate gpsTracker.yml
+    request:
+      url: "{{baseUrl}}/vehicle/{{vehicleToDeleteId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "{{vehicleToDeleteRegNo}}",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "{{vehicleGps}}",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle already exists with this GPS Tracker!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Vehicle/Update Vehicle/Update Vehicle - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/vehicle/{{vehicleId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "{{vehicleRegNo}}",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "{{vehicleGps}}",
+            "description": "Updated by Bruno",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 admin role
+    description: |-
+      PUT /vehicle/:id allows SUPERADMIN only (vehicle.route.ts:25-29).
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: Vehicle/Update Vehicle/Update Vehicle - 403 admin role.yml
+    request:
+      url: "{{baseUrl}}/vehicle/{{vehicleId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "{{vehicleRegNo}}",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "{{vehicleGps}}",
+            "description": "Updated by Bruno",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Body valid; malformed id → CastError in findOne → 404 (error.middleware.ts:57-60).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Update Vehicle/Update Vehicle - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/vehicle/{{invalidId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "{{vehicleRegNo}}",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "{{vehicleGps}}",
+            "description": "Updated by Bruno",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/vehicle/:id`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | Vehicle updated successfully! |
+  | 2 | 200 | 200 initialMileage change resets currentMileage | Vehicle updated successfully! |
+  | 3 | 400 | 400 missing vehicleType | Vehicle Type is required! |
+  | 4 | 400 | 400 not found | Vehicle not found! |
+  | 5 | 400 | 400 duplicate registrationNumber | Vehicle already exists with this registration number! |
+  | 6 | 400 | 400 duplicate gpsTracker | Vehicle already exists with this GPS Tracker! |
+  | 7 | 401 | 401 no token | Authentication invalid! |
+  | 8 | 403 | 403 admin role | You're unauthorized to access this resource! |
+  | 9 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  Same registration/GPS/initialMileage as created, new description (vehicle.controller.ts:111-210). SUPERADMIN only. initialMileage unchanged so currentMileage is kept.

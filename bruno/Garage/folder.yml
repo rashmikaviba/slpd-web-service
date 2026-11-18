@@ -1,0 +1,15 @@
+info:
+  name: Garage
+  type: folder
+  seq: 7
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    Garage master data (`src/modules/garage/`, Document/garage.md).
+    Write routes: SUPERADMIN, ADMIN, TRIPMANAGER, DRIVERASSISTANT. Reads: any authenticated role.
+    `Create Garage - 201` sets `{{garageId}}` (used by Vehicle Maintenance) — never delete it here.
+    Active/inactive and delete tests use the throwaway `{{garageToDeleteId}}`.
+  type: text/markdown

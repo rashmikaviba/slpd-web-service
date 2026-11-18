@@ -1,0 +1,533 @@
+info:
+  name: Create Expense Request
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/expenseRequest"
+  body:
+    type: json
+    data: |-
+      {
+        "tripId": "{{tripId}}",
+        "requestedAmount": 5000,
+        "description": "Bruno needs more fuel money"
+      }
+  auth:
+    type: bearer
+    token: "{{driverToken}}"
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Expense request saved successfully!
+    - expression: res.body.data
+      operator: isNull
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "201"
+    description: |-
+      DRIVER only. Trip must be START and have no PENDING request. Emits socket `new-expense-request`. Returns `data: null`. `src/modules/expenseRequest/expenseRequest.controller.ts:20`
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Expense Request/Create Expense Request - 201.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "requestedAmount": 5000,
+            "description": "Bruno needs more fuel money"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense request saved successfully!",
+            "data": null
+          }
+  - name: 201 second request
+    description: |-
+      Allowed again because the previous one is no longer PENDING. Will be rejected.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Expense Request/Create Expense Request - 201 second request.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "requestedAmount": 2000,
+            "description": "Bruno second request"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense request saved successfully!",
+            "data": null
+          }
+  - name: 400 pending request exists
+    description: |-
+      State-dependent, so placed right after the create: the request above is still PENDING. `src/modules/expenseRequest/expenseRequest.controller.ts:48`
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Expense Request/Create Expense Request - 400 pending request exists.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "requestedAmount": 5000,
+            "description": "Bruno needs more fuel money"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You already have a pending expense request for this trip. If you need immediate assistance, please contact the administrator!",
+            "data": null
+          }
+  - name: 400 missing tripId
+    description: |-
+      Joi `saveExpenseRequestSchema` (copy-paste message says 'Type'). `src/modules/expenseRequest/expenseRequest.validation.ts:3-17`, `src/modules/expenseRequest/expenseRequest.controller.ts:27`
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Expense Request/Create Expense Request - 400 missing tripId.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "requestedAmount": 5000,
+            "description": "Bruno needs more fuel money"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Type is required",
+            "data": null
+          }
+  - name: 400 tripId not a string
+    description: |-
+      Joi `saveExpenseRequestSchema` (copy-paste message says 'Type'). `src/modules/expenseRequest/expenseRequest.validation.ts:3-17`, `src/modules/expenseRequest/expenseRequest.controller.ts:27`
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Expense Request/Create Expense Request - 400 tripId not a string.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": 5,
+            "requestedAmount": 5000,
+            "description": "Bruno needs more fuel money"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Type is invalid",
+            "data": null
+          }
+  - name: 400 missing requestedAmount
+    description: |-
+      Joi `saveExpenseRequestSchema`. `src/modules/expenseRequest/expenseRequest.validation.ts:3-17`, `src/modules/expenseRequest/expenseRequest.controller.ts:27`
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Expense Request/Create Expense Request - 400 missing requestedAmount.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "description": "Bruno needs more fuel money"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Requested Amount is required",
+            "data": null
+          }
+  - name: 400 requestedAmount not a number
+    description: |-
+      Joi `saveExpenseRequestSchema`. `src/modules/expenseRequest/expenseRequest.validation.ts:3-17`, `src/modules/expenseRequest/expenseRequest.controller.ts:27`
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Expense Request/Create Expense Request - 400 requestedAmount not a number.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "requestedAmount": "abc",
+            "description": "Bruno needs more fuel money"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Requested Amount is invalid",
+            "data": null
+          }
+  - name: 400 description too long
+    description: |-
+      Joi `saveExpenseRequestSchema`. `src/modules/expenseRequest/expenseRequest.validation.ts:3-17`, `src/modules/expenseRequest/expenseRequest.controller.ts:27`
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Expense Request/Create Expense Request - 400 description too long.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "requestedAmount": 5000,
+            "description": "{{longText501}}"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Description should not be more than 500 characters",
+            "data": null
+          }
+  - name: 400 unknown field
+    description: |-
+      Joi `saveExpenseRequestSchema`. `src/modules/expenseRequest/expenseRequest.validation.ts:3-17`, `src/modules/expenseRequest/expenseRequest.controller.ts:27`
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Expense Request/Create Expense Request - 400 unknown field.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "requestedAmount": 5000,
+            "description": "Bruno needs more fuel money",
+            "foo": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"foo\" is not allowed",
+            "data": null
+          }
+  - name: 400 trip not started
+    description: |-
+      Unknown trip (same error for non-START trips). `src/modules/expenseRequest/expenseRequest.controller.ts:37`
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Expense Request/Create Expense Request - 400 trip not started.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{nonExistingId}}",
+            "requestedAmount": 5000,
+            "description": "Bruno needs more fuel money"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid trip or trip is not in started status!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Expense Request/Create Expense Request - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "requestedAmount": 5000,
+            "description": "Bruno needs more fuel money"
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Only DRIVER may create; the collection default `{{superAdminToken}}` is rejected.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expense Request/Create Expense Request - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "requestedAmount": 5000,
+            "description": "Bruno needs more fuel money"
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid trip id
+    description: |-
+      Uses `{{driverToken}}`. `src/modules/expenseRequest/expenseRequest.controller.ts:32`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Expense Request/Create Expense Request - 404 invalid trip id.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{invalidId}}",
+            "requestedAmount": 5000,
+            "description": "Bruno needs more fuel money"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+  - name: Request Expense - 201 setup pending expense request (Trip setup)
+    description: |-
+      Setup: POST /expenseRequest (DRIVER, expenseRequest.controller.ts:20-110) on the started undo trip.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Undo/Request Expense - 201 setup pending expense request.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{undoTripId}}",
+            "requestedAmount": 5000,
+            "description": "Bruno setup request"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense request saved successfully!",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/expenseRequest`**
+
+  This request runs the main scenario **201**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 | Expense request saved successfully! |
+  | 2 | 201 | 201 second request | Expense request saved successfully! |
+  | 3 | 400 | 400 pending request exists | You already have a pending expense request for this trip. If you need immediate assistance, please contact the administrator! |
+  | 4 | 400 | 400 missing tripId | Type is required |
+  | 5 | 400 | 400 tripId not a string | Type is invalid |
+  | 6 | 400 | 400 missing requestedAmount | Requested Amount is required |
+  | 7 | 400 | 400 requestedAmount not a number | Requested Amount is invalid |
+  | 8 | 400 | 400 description too long | Description should not be more than 500 characters |
+  | 9 | 400 | 400 unknown field | "foo" is not allowed |
+  | 10 | 400 | 400 trip not started | Invalid trip or trip is not in started status! |
+  | 11 | 401 | 401 no token | Authentication invalid! |
+  | 12 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 13 | 404 | 404 invalid trip id | No item found with ID " |
+  | 14 | 201 | Request Expense - 201 setup pending expense request (Trip setup) | Expense request saved successfully! |
+
+  ## Main scenario notes
+
+  DRIVER only. Trip must be START and have no PENDING request. Emits socket `new-expense-request`. Returns `data: null`. `src/modules/expenseRequest/expenseRequest.controller.ts:20`

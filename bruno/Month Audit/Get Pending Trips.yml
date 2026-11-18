@@ -1,0 +1,210 @@
+info:
+  name: Get Pending Trips
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{baseUrl}}/monthAudit/pendingTrip"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("array of trips without full driver salary", function () {
+          expect(res.body.data).to.be.an("array");
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      SUPERADMIN. Trips ending before next month without all driver salaries (monthAudit.controller.ts:393-453). [KNOWN BUG] trips with drivers always appear unpaid (Document/monthAudit.md #9).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Month Audit/Get Pending Trips - 200.yml
+    request:
+      url: "{{baseUrl}}/monthAudit/pendingTrip"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "id": "6650a1b2c3d4e5f6a7b8b021",
+                "startDate": "2026-11-02T00:00:00.000Z",
+                "endDate": "2026-11-09T00:00:00.000Z",
+                "dateCount": 8,
+                "totalCost": 1450,
+                "requestedVehicle": "Van",
+                "totalCostLocalCurrency": 435000,
+                "paymentMode": "Cash",
+                "isActiveDriver": false,
+                "isCheckListDone": true,
+                "isPaymentCollected": true,
+                "email": "bookings@example.com",
+                "phoneNumber": "+94771234599",
+                "status": 4,
+                "passengersCount": 2,
+                "statusName": "FINISHED",
+                "tripConfirmedNumber": "SLPD-2026-1043",
+                "contactPerson": "Anna Schmidt",
+                "createdBy": "6650a1b2c3d4e5f6a7b8c005",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c003",
+                "isMonthEndDone": false,
+                "isDriverSalaryDone": false,
+                "endedBy": "6650a1b2c3d4e5f6a7b8c003",
+                "createdUser": "Chaminda Silva",
+                "updatedUser": "Kasun Perera",
+                "startedUser": "Ruwan Bandara",
+                "endedUser": "Ruwan Bandara",
+                "canUndo": false,
+                "createdAt": "2026-10-20T06:12:00.000Z",
+                "updatedAt": "2026-11-09T12:40:00.000Z",
+                "paidByCompanyCount": 1,
+                "activeVehicleId": "6650a1b2c3d4e5f6a7b8b101",
+                "activeRegistrationNumber": "WP PH-4521",
+                "activeDriverName": "undefined (undefined)",
+                "drivers": [
+                  {
+                    "driver": "",
+                    "driverName": "",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c005",
+                    "driverAssignedByName": "",
+                    "isActive": true
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6650a1b2c3d4e5f6a7b8b101",
+                    "registrationNumber": "WP PH-4521",
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c005",
+                    "licenseRenewalDate": "2027-03-15T00:00:00.000Z",
+                    "insuranceRenewalDate": "2027-05-01T00:00:00.000Z",
+                    "isActive": true
+                  }
+                ]
+              }
+            ]
+          }
+  - name: 400 no working info
+    description: |-
+      [PRECONDITION] Only passes when no ACTIVE CompanyWorkingInfo exists; in a normal run it returns 200 and fails. monthAudit.controller.ts:398-400.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Month Audit/Get Pending Trips - 400 no working info.yml
+    request:
+      url: "{{baseUrl}}/monthAudit/pendingTrip"
+      method: GET
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No active company information found!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. monthAudit.route.ts:32-36.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Month Audit/Get Pending Trips - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/monthAudit/pendingTrip"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 admin
+    description: |-
+      Route allows SUPERADMIN only; `{{adminToken}}` is rejected by auth.middleware.ts:73-77. monthAudit.route.ts:32-36.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: Month Audit/Get Pending Trips - 403 admin.yml
+    request:
+      url: "{{baseUrl}}/monthAudit/pendingTrip"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/monthAudit/pendingTrip`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | (empty) |
+  | 2 | 400 | 400 no working info | No active company information found! |
+  | 3 | 401 | 401 no token | Authentication invalid! |
+  | 4 | 403 | 403 admin | You're unauthorized to access this resource! |
+
+  ## Main scenario notes
+
+  SUPERADMIN. Trips ending before next month without all driver salaries (monthAudit.controller.ts:393-453). [KNOWN BUG] trips with drivers always appear unpaid (Document/monthAudit.md #9).

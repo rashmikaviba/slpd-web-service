@@ -1,0 +1,279 @@
+info:
+  name: Get User By Id
+  type: http
+  seq: 8
+
+http:
+  method: GET
+  url: "{{baseUrl}}/user/{{createdUserId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("dto of the created driver", function () {
+          expect(res.body.data._id).to.equal(bru.getVar("createdUserId"));
+          expect(res.body.data.role).to.equal(3);
+          expect(res.body.data.gender).to.equal(1);
+          expect(res.body.data.isBlackListed).to.equal(false);
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 created user
+    description: |-
+      `findByIdWithGenderRole` → `UserResponseDto` (user.controller.ts:363-377).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Get User By Id/Get User By Id - 200 created user.yml
+    request:
+      url: "{{baseUrl}}/user/{{createdUserId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "_id": "6650a1b2c3d4e5f6a7b8c010",
+              "fullName": "Bruno Test User",
+              "userName": "bru_user_1794990600482",
+              "gender": 1,
+              "genderName": "Male",
+              "dateOfBirth": "1990-01-15T00:00:00.000Z",
+              "address": "1 Test Street, Colombo",
+              "phoneNumber1": "0771234567",
+              "phoneNumber2": "",
+              "email": "bru1794990600482@example.com",
+              "profileImageUrl": "",
+              "nic": "BRU1794990600482",
+              "bankName": "Test Bank",
+              "bankId": 1,
+              "branch": "Colombo",
+              "accountNumber": "000111222333",
+              "accountHolderName": "Bruno Test User",
+              "accountHolderAddress": "1 Test Street, Colombo",
+              "basicSalary": 50000,
+              "leaveCount": 14,
+              "languages": [
+                "English",
+                "Sinhala"
+              ],
+              "isBlackListed": false,
+              "role": 3,
+              "isFreelanceDriver": false,
+              "roleName": "Driver (Permanent)",
+              "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+              "createdUser": "Kasun Perera",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedUser": "Kasun Perera",
+              "createdAt": "2026-11-18T08:30:00.512Z",
+              "updatedAt": "2026-11-18T08:30:00.512Z"
+            }
+          }
+  - name: 200 driver reads another user
+    description: |-
+      [KNOWN ISSUE] Open to every authenticated role; a DRIVER can read any user's bank details and salary
+      (user.router.ts:66-70, Document/user.md #9).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: User/Get User By Id/Get User By Id - 200 driver reads another user.yml
+    request:
+      url: "{{baseUrl}}/user/{{createdUserId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "_id": "6650a1b2c3d4e5f6a7b8c010",
+              "fullName": "Bruno Test User",
+              "userName": "bru_user_1794990600482",
+              "gender": 1,
+              "genderName": "Male",
+              "dateOfBirth": "1990-01-15T00:00:00.000Z",
+              "address": "1 Test Street, Colombo",
+              "phoneNumber1": "0771234567",
+              "phoneNumber2": "",
+              "email": "bru1794990600482@example.com",
+              "profileImageUrl": "",
+              "nic": "BRU1794990600482",
+              "bankName": "Test Bank",
+              "bankId": 1,
+              "branch": "Colombo",
+              "accountNumber": "000111222333",
+              "accountHolderName": "Bruno Test User",
+              "accountHolderAddress": "1 Test Street, Colombo",
+              "basicSalary": 50000,
+              "leaveCount": 14,
+              "languages": [
+                "English",
+                "Sinhala"
+              ],
+              "isBlackListed": false,
+              "role": 3,
+              "isFreelanceDriver": false,
+              "roleName": "Driver (Permanent)",
+              "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+              "createdUser": "Kasun Perera",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedUser": "Kasun Perera",
+              "createdAt": "2026-11-18T08:30:00.512Z",
+              "updatedAt": "2026-11-18T08:30:00.512Z"
+            }
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. user.router.ts:66-70.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: User/Get User By Id/Get User By Id - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/user/{{createdUserId}}"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 deleted user
+    description: |-
+      Effect of the delete: only ACTIVE users are found (user.service.ts:79-82, user.controller.ts:373).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Delete User/Get User By Id - 404 deleted user.yml
+    request:
+      url: "{{baseUrl}}/user/{{deleteUserId}}"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "User not found!",
+            "data": null
+          }
+  - name: 404 not found
+    description: |-
+      No ACTIVE user with that id → `NotFoundError` (user.controller.ts:368-374).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Get User By Id/Get User By Id - 404 not found.yml
+    request:
+      url: "{{baseUrl}}/user/{{nonExistingId}}"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "User not found!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      CastError in `User.findOne` → 404 (error.middleware.ts:56-60).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Get User By Id/Get User By Id - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/user/{{invalidId}}"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/user/:id`**
+
+  This request runs the main scenario **200 created user**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 created user | (empty) |
+  | 2 | 200 | 200 driver reads another user | (empty) |
+  | 3 | 401 | 401 no token | Authentication invalid! |
+  | 4 | 404 | 404 deleted user | User not found! |
+  | 5 | 404 | 404 not found | User not found! |
+  | 6 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  `findByIdWithGenderRole` → `UserResponseDto` (user.controller.ts:363-377).

@@ -1,0 +1,1274 @@
+info:
+  name: Create User
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/user"
+  body:
+    type: json
+    data: |-
+      {
+        "fullName": "Bruno Test User",
+        "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+        "gender": 1,
+        "dateOfBirth": "1990-01-15",
+        "address": "1 Test Street, Colombo",
+        "phoneNumber1": "0771234567",
+        "phoneNumber2": "",
+        "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+        "profileImageUrl": "",
+        "nic": "BRU{{$timestamp}}{{$randomInt}}",
+        "bankName": "Test Bank",
+        "bankId": 1,
+        "branch": "Colombo",
+        "accountNumber": "000111222333",
+        "accountHolderName": "Bruno Test User",
+        "accountHolderAddress": "1 Test Street, Colombo",
+        "basicSalary": 50000,
+        "leaveCount": 14,
+        "languages": ["English", "Sinhala"],
+        "role": 3,
+        "isFreelanceDriver": false
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.status === 201) {
+          bru.setVar("createdUserId", res.body.data._id);
+          bru.setVar("createdUserName", res.body.data.userName);
+          bru.setVar("createdUserEmail", res.body.data.email);
+          bru.setVar("createdUserNic", res.body.data.nic);
+        }
+    - type: tests
+      code: |-
+        test("returns the raw saved user", function () {
+          expect(res.body.data).to.have.property("_id");
+          expect(res.body.data.status).to.equal(1);
+          expect(res.body.data).to.not.have.property("password");
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: User created successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 201 driver
+    description: |-
+      Creates a DRIVER (role 3, gender 1) with unique userName/email/nic, plus its Auth with the default password, in one
+      transaction (user.controller.ts:22-152). 201 + raw User document.
+      Sets `{{createdUserId}}` `{{createdUserName}}` `{{createdUserEmail}}` `{{createdUserNic}}` (shared with other modules).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Create User/Create User - 201 driver.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "User created successfully!",
+            "data": {
+              "fullName": "Bruno Test User",
+              "userName": "bru_user_1794990600482",
+              "gender": "6650a1b2c3d4e5f6a7b8e001",
+              "dateOfBirth": "1990-01-15T00:00:00.000Z",
+              "address": "1 Test Street, Colombo",
+              "phoneNumber1": "0771234567",
+              "phoneNumber2": "",
+              "email": "bru1794990600482@example.com",
+              "isFreelanceDriver": false,
+              "profileImageUrl": "",
+              "nic": "BRU1794990600482",
+              "bankName": "Test Bank",
+              "bankId": 1,
+              "branch": "Colombo",
+              "accountNumber": "000111222333",
+              "accountHolderName": "Bruno Test User",
+              "accountHolderAddress": "1 Test Street, Colombo",
+              "basicSalary": 50000,
+              "leaveCount": 14,
+              "languages": [
+                "English",
+                "Sinhala"
+              ],
+              "role": "6650a1b2c3d4e5f6a7b8d003",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "_id": "6650a1b2c3d4e5f6a7b8c010",
+              "createdAt": "2026-11-18T08:30:00.512Z",
+              "updatedAt": "2026-11-18T08:30:00.512Z"
+            }
+          }
+  - name: 201 throwaway for delete (setup)
+    description: |-
+      Setup: creates the user deleted in seq 2. Sets `{{deleteUserId}}`.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Delete User/Create User - 201 throwaway for delete (setup).yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Delete Target",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "User created successfully!",
+            "data": {
+              "fullName": "Bruno Delete Target",
+              "userName": "bru_user_1794990612731",
+              "gender": "6650a1b2c3d4e5f6a7b8e001",
+              "dateOfBirth": "1990-01-15T00:00:00.000Z",
+              "address": "1 Test Street, Colombo",
+              "phoneNumber1": "0771234567",
+              "phoneNumber2": "",
+              "email": "bru1794990612731@example.com",
+              "isFreelanceDriver": false,
+              "profileImageUrl": "",
+              "nic": "BRU1794990612731",
+              "bankName": "Test Bank",
+              "bankId": 1,
+              "branch": "Colombo",
+              "accountNumber": "000111222333",
+              "accountHolderName": "Bruno Test User",
+              "accountHolderAddress": "1 Test Street, Colombo",
+              "basicSalary": 50000,
+              "leaveCount": 14,
+              "languages": [
+                "English",
+                "Sinhala"
+              ],
+              "role": "6650a1b2c3d4e5f6a7b8d003",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "_id": "6650a1b2c3d4e5f6a7b8c011",
+              "createdAt": "2026-11-18T08:30:12.904Z",
+              "updatedAt": "2026-11-18T08:30:12.904Z"
+            }
+          }
+  - name: 400 duplicate userName
+    description: |-
+      userName already used by an ACTIVE user (user.controller.ts:30-68). No unique index exists, so this is the
+      application check → 400 (not 409 duplicate-key).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Create User/Create User - 400 duplicate userName.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "userName": "{{createdUserName}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "User Name already exists!",
+            "data": null
+          }
+  - name: 400 duplicate email
+    description: |-
+      Email used by an ACTIVE user (user.controller.ts:31,61-68).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Create User/Create User - 400 duplicate email.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "{{createdUserEmail}}",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Email already exists!",
+            "data": null
+          }
+  - name: 400 duplicate nic
+    description: |-
+      NIC used by an ACTIVE user (user.controller.ts:32,63-68).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Create User/Create User - 400 duplicate nic.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "{{createdUserNic}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "NIC already exists!",
+            "data": null
+          }
+  - name: 400 [KNOWN BUG] missing userName
+    description: |-
+      [KNOWN BUG] `User.find({ userName: undefined, status: ACTIVE })` — Mongoose drops the undefined key, so it matches
+      every active user and reports a duplicate instead of "Username is required" (user.controller.ts:30,59-68,
+      user.service.ts:21-27).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Create User/Create User - 400 [KNOWN BUG] missing userName.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "User Name already exists!",
+            "data": null
+          }
+  - name: 400 [KNOWN BUG] missing email
+    description: |-
+      [KNOWN BUG] Same undefined-filter issue for email (user.controller.ts:31,61-62). Expected "Email is required".
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Create User/Create User - 400 [KNOWN BUG] missing email.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Email already exists!",
+            "data": null
+          }
+  - name: 400 [KNOWN BUG] missing nic
+    description: |-
+      [KNOWN BUG] Same undefined-filter issue for nic (user.controller.ts:32,63-64). Expected "NIC is required".
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Create User/Create User - 400 [KNOWN BUG] missing nic.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "NIC already exists!",
+            "data": null
+          }
+  - name: 400 invalid role
+    description: |-
+      No ACTIVE Role with `id: 99` (user.controller.ts:71-74). Also returned for roles 6/7 if they are not seeded.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Create User/Create User - 400 invalid role.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 99,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Valid Role is required!",
+            "data": null
+          }
+  - name: 400 invalid gender
+    description: |-
+      No ACTIVE Gender with `id: 99` (user.controller.ts:72,75).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Create User/Create User - 400 invalid gender.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 99,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Valid Gender is required!",
+            "data": null
+          }
+  - name: 400 missing fullName
+    description: |-
+      Mongoose `required` on save → ValidationError → 400 (user.model.ts:13-17, error.middleware.ts:38-47). Transaction aborted.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Create User/Create User - 400 missing fullName.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Full Name is required",
+            "data": null
+          }
+  - name: 400 fullName too long
+    description: |-
+      maxlength 120 (user.model.ts:15).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Create User/Create User - 400 fullName too long.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Full Name cannot be more than 120 characters",
+            "data": null
+          }
+  - name: 400 userName too long
+    description: |-
+      maxlength 50 (user.model.ts:21). Passes the uniqueness check first.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Create User/Create User - 400 userName too long.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "userName": "bru_long_{{$timestamp}}{{$randomInt}}uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Username cannot be more than 50 characters",
+            "data": null
+          }
+  - name: 400 invalid email
+    description: |-
+      Regex validator on email (user.model.ts:51-58).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Create User/Create User - 400 invalid email.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "not-an-email",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "not-an-email is not a valid email",
+            "data": null
+          }
+  - name: 400 nic too long
+    description: |-
+      maxlength 20 (user.model.ts:73).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Create User/Create User - 400 nic too long.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}XXXXXXXXXXXXXXXXXXXX",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "NIC cannot be more than 20 characters",
+            "data": null
+          }
+  - name: 400 missing bankId
+    description: |-
+      `bankId` is required (user.model.ts:103-106).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Create User/Create User - 400 missing bankId.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Bank Id is required",
+            "data": null
+          }
+  - name: 400 non-numeric bankId
+    description: |-
+      Cast failure inside save validation → ValidationError → 400 with the cast message (error.middleware.ts:38-47).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Create User/Create User - 400 non-numeric bankId.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": "abc",
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Cast to Number failed for value \"abc\" (type string) at path \"bankId\"",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. user.router.ts:30-34.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: User/Create User/Create User - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 admin
+    description: |-
+      Route allows SUPERADMIN only; `{{adminToken}}` is rejected by auth.middleware.ts:73-77. user.router.ts:30-34.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: User/Create User/Create User - 403 admin.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 non-numeric role
+    description: |-
+      `Role.findOne({ id: "abc" })` — `Role.id` is a Number → CastError → 404 (role.service.ts:39, error.middleware.ts:56-60).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Create User/Create User - 404 non-numeric role.yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": "abc",
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"abc\"!",
+            "data": null
+          }
+  - name: 201 reset target (setup) (Auth setup)
+    description: |-
+      Setup: creates a DRIVER user (role 3, gender 1) as SUPERADMIN so the reset has a non-login target.
+      Sets `{{createdUserId}}`, `{{createdUserName}}`, `{{createdUserEmail}}`, `{{createdUserNic}}` (user.controller.ts:22-152).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Auth/Reset Password/Create User - 201 reset target (setup).yml
+    request:
+      url: "{{baseUrl}}/user"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Reset Target",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "User created successfully!",
+            "data": {
+              "fullName": "Bruno Reset Target",
+              "userName": "bru_user_1794990588115",
+              "gender": "6650a1b2c3d4e5f6a7b8e001",
+              "dateOfBirth": "1990-01-15T00:00:00.000Z",
+              "address": "1 Test Street, Colombo",
+              "phoneNumber1": "0771234567",
+              "phoneNumber2": "",
+              "email": "bru1794990588115@example.com",
+              "isFreelanceDriver": false,
+              "profileImageUrl": "",
+              "nic": "BRU1794990588115",
+              "bankName": "Test Bank",
+              "bankId": 1,
+              "branch": "Colombo",
+              "accountNumber": "000111222333",
+              "accountHolderName": "Bruno Test User",
+              "accountHolderAddress": "1 Test Street, Colombo",
+              "basicSalary": 50000,
+              "leaveCount": 14,
+              "languages": [
+                "English",
+                "Sinhala"
+              ],
+              "role": "6650a1b2c3d4e5f6a7b8d003",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "_id": "6650a1b2c3d4e5f6a7b8c012",
+              "createdAt": "2026-11-18T08:29:48.230Z",
+              "updatedAt": "2026-11-18T08:29:48.230Z"
+            }
+          }
+
+docs: |-
+  **POST `/api/v1/user`**
+
+  This request runs the main scenario **201 driver**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 driver | User created successfully! |
+  | 2 | 201 | 201 throwaway for delete (setup) | User created successfully! |
+  | 3 | 400 | 400 duplicate userName | User Name already exists! |
+  | 4 | 400 | 400 duplicate email | Email already exists! |
+  | 5 | 400 | 400 duplicate nic | NIC already exists! |
+  | 6 | 400 | 400 [KNOWN BUG] missing userName | User Name already exists! |
+  | 7 | 400 | 400 [KNOWN BUG] missing email | Email already exists! |
+  | 8 | 400 | 400 [KNOWN BUG] missing nic | NIC already exists! |
+  | 9 | 400 | 400 invalid role | Valid Role is required! |
+  | 10 | 400 | 400 invalid gender | Valid Gender is required! |
+  | 11 | 400 | 400 missing fullName | Full Name is required |
+  | 12 | 400 | 400 fullName too long | Full Name cannot be more than 120 characters |
+  | 13 | 400 | 400 userName too long | Username cannot be more than 50 characters |
+  | 14 | 400 | 400 invalid email | not-an-email is not a valid email |
+  | 15 | 400 | 400 nic too long | NIC cannot be more than 20 characters |
+  | 16 | 400 | 400 missing bankId | Bank Id is required |
+  | 17 | 400 | 400 non-numeric bankId | Cast to Number failed for value "abc" (type string) at path "bankId" |
+  | 18 | 401 | 401 no token | Authentication invalid! |
+  | 19 | 403 | 403 admin | You're unauthorized to access this resource! |
+  | 20 | 404 | 404 non-numeric role | No item found with ID "abc"! |
+  | 21 | 201 | 201 reset target (setup) (Auth setup) | User created successfully! |
+
+  ## Main scenario notes
+
+  Creates a DRIVER (role 3, gender 1) with unique userName/email/nic, plus its Auth with the default password, in one
+  transaction (user.controller.ts:22-152). 201 + raw User document.
+  Sets `{{createdUserId}}` `{{createdUserName}}` `{{createdUserEmail}}` `{{createdUserNic}}` (shared with other modules).

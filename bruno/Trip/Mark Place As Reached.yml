@@ -1,0 +1,740 @@
+info:
+  name: Mark Place As Reached
+  type: http
+  seq: 12
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/trip/{{tripId}}/markAsReached/{{mainPlace1Id}}"
+  body:
+    type: json
+    data: |-
+      {
+        "location": {
+          "lat": 7.2906,
+          "lng": 80.6337
+        },
+        "currentMilage": {{nextMilage}}
+      }
+  auth:
+    type: bearer
+    token: "{{driverToken}}"
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const m = Number(bru.getVar("vehicleMileage") || 0) + 10;
+        bru.setVar("nextMilage", m);
+    - type: after-response
+      code: if (res.status === 200) bru.setVar("vehicleMileage", bru.getVar("nextMilage"));
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Place marked as reached successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 main trip place 1
+    description: |-
+      Active driver = caller, place found, mileage > vehicle mileage → place reached, vehicle odometer advanced (src/modules/trip/trip.controller.ts:1218-1244). Freelance vehicle: no mileage check, distance 0 (src/modules/trip/trip.controller.ts:1210-1217).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 200 main trip place 1.yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}/markAsReached/{{mainPlace1Id}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "location": {
+              "lat": 7.2906,
+              "lng": 80.6337
+            },
+            "currentMilage": {{nextMilage}}
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Place marked as reached successfully!",
+            "data": null
+          }
+  - name: 200 finish trip place 1
+    description: |-
+      Reached place on the finish trip; later wiped by the Update Trip [KNOWN BUG] places: [] request.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 200 finish trip place 1.yml
+    request:
+      url: "{{baseUrl}}/trip/{{finishedTripId}}/markAsReached/{{finPlace1Id}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "location": {
+              "lat": 7.2906,
+              "lng": 80.6337
+            },
+            "currentMilage": {{nextMilage}}
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Place marked as reached successfully!",
+            "data": null
+          }
+  - name: 400 place already reached
+    description: |-
+      src/modules/trip/trip.controller.ts:1193-1195.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 400 place already reached.yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}/markAsReached/{{mainPlace1Id}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "location": {
+              "lat": 7.2906,
+              "lng": 80.6337
+            },
+            "currentMilage": {{nextMilage}}
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Place already reached!",
+            "data": null
+          }
+  - name: 400 mileage not greater than vehicle mileage
+    description: |-
+      PRECONDITION: `{{vehicleId}}` is not a freelance vehicle (freelance skips the check). currentMilage 0 ≤ vehicle currentMileage (src/modules/trip/trip.controller.ts:1219-1223).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 400 mileage not greater than vehicle mileage.yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}/markAsReached/{{mainPlace2Id}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "location": {
+              "lat": 7.2906,
+              "lng": 80.6337
+            },
+            "currentMilage": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Current mileage should be greater than previous mileage!",
+            "data": null
+          }
+  - name: 400 place not found
+    description: |-
+      src/modules/trip/trip.controller.ts:1187-1191. A malformed placeId gives the same error (no cast — compared in JS).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 400 place not found.yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}/markAsReached/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "location": {
+              "lat": 7.2906,
+              "lng": 80.6337
+            },
+            "currentMilage": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Place not found!",
+            "data": null
+          }
+  - name: 400 trip not started
+    description: |-
+      `canceledTripId` is still PENDING here (src/modules/trip/trip.controller.ts:1163-1169). Unknown ids give the same error.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 400 trip not started.yml
+    request:
+      url: "{{baseUrl}}/trip/{{canceledTripId}}/markAsReached/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "location": {
+              "lat": 7.2906,
+              "lng": 80.6337
+            },
+            "currentMilage": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Started trip not found!",
+            "data": null
+          }
+  - name: 400 no active driver
+    description: |-
+      `noDriverTripId` was started without any driver (Assign folder setup) (src/modules/trip/trip.controller.ts:1172-1178).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 400 no active driver.yml
+    request:
+      url: "{{baseUrl}}/trip/{{noDriverTripId}}/markAsReached/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "location": {
+              "lat": 7.2906,
+              "lng": 80.6337
+            },
+            "currentMilage": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No active driver found!",
+            "data": null
+          }
+  - name: 400 caller is not the active driver
+    description: |-
+      Active driver of `otherDriverTripId` is `{{driverAssistantUserId}}` (src/modules/trip/trip.controller.ts:1180-1184).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 400 caller is not the active driver.yml
+    request:
+      url: "{{baseUrl}}/trip/{{otherDriverTripId}}/markAsReached/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "location": {
+              "lat": 7.2906,
+              "lng": 80.6337
+            },
+            "currentMilage": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Only active driver can update place as reached!",
+            "data": null
+          }
+  - name: 400 selected vehicle not active
+    description: |-
+      Active vehicle is INACTIVE → vehicleService.findByIdAndStatusIn(id, [ACTIVE]) is null (src/modules/trip/trip.controller.ts:1201-1208).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 400 selected vehicle not active.yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}/markAsReached/{{mainPlace2Id}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "location": {
+              "lat": 7.2906,
+              "lng": 80.6337
+            },
+            "currentMilage": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Selected vehicle not found!",
+            "data": null
+          }
+  - name: 400 missing currentMilage
+    description: |-
+      Joi `markPlaceSchema` (trip.validation.ts:348-361) → src/modules/trip/trip.controller.ts:1151-1155.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 400 missing currentMilage.yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}/markAsReached/{{mainPlace2Id}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "location": {
+              "lat": 7.29,
+              "lng": 80.63
+            }
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Current milage is required",
+            "data": null
+          }
+  - name: 400 currentMilage not number
+    description: |-
+      Joi `markPlaceSchema` (trip.validation.ts:348-361) → src/modules/trip/trip.controller.ts:1151-1155.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 400 currentMilage not number.yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}/markAsReached/{{mainPlace2Id}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "location": {
+              "lat": 7.2906,
+              "lng": 80.6337
+            },
+            "currentMilage": "abc"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "currentMilage is invalid",
+            "data": null
+          }
+  - name: 400 lat not number
+    description: |-
+      Joi `markPlaceSchema` (trip.validation.ts:348-361) → src/modules/trip/trip.controller.ts:1151-1155.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 400 lat not number.yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}/markAsReached/{{mainPlace2Id}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "location": {
+              "lat": "x",
+              "lng": 80.63
+            },
+            "currentMilage": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "lat is invalid",
+            "data": null
+          }
+  - name: 400 lng not number
+    description: |-
+      Joi `markPlaceSchema` (trip.validation.ts:348-361) → src/modules/trip/trip.controller.ts:1151-1155.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 400 lng not number.yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}/markAsReached/{{mainPlace2Id}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "location": {
+              "lat": 7.29,
+              "lng": "x"
+            },
+            "currentMilage": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "lng is invalid",
+            "data": null
+          }
+  - name: 400 location not object
+    description: |-
+      Joi `markPlaceSchema` (trip.validation.ts:348-361) → src/modules/trip/trip.controller.ts:1151-1155.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 400 location not object.yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}/markAsReached/{{mainPlace2Id}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "location": "x",
+            "currentMilage": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"location\" must be of type object",
+            "data": null
+          }
+  - name: 400 unknown field
+    description: |-
+      Joi `markPlaceSchema` (trip.validation.ts:348-361) → src/modules/trip/trip.controller.ts:1151-1155.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 400 unknown field.yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}/markAsReached/{{mainPlace2Id}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "currentMilage": 1,
+            "foo": "bar"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"foo\" is not allowed",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → `authorize()` throws UnauthorizedError (src/middleware/auth.middleware.ts:24-26).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}/markAsReached/{{mainPlace2Id}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "location": {
+              "lat": 7.2906,
+              "lng": 80.6337
+            },
+            "currentMilage": 1
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows DRIVER only (src/modules/trip/trip.route.ts:120-124); collection default (super admin) is rejected.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}/markAsReached/{{mainPlace2Id}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "location": {
+              "lat": 7.2906,
+              "lng": 80.6337
+            },
+            "currentMilage": 1
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed ObjectId reaches `Trip.findOne({_id})` → Mongoose CastError → error middleware returns 404 (src/middleware/error.middleware.ts, CastError branch). Controller: src/modules/trip/trip.controller.ts:1163.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/trip/{{invalidId}}/markAsReached/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "location": {
+              "lat": 7.2906,
+              "lng": 80.6337
+            },
+            "currentMilage": 1
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+  - name: 500 [KNOWN BUG] trip without active vehicle
+    description: |-
+      [KNOWN BUG] No active vehicle → `activeVehicle.vehicle` on undefined (src/modules/trip/trip.controller.ts:1197-1202) → TypeError → 500 (Document/trip.md Known issue 7). Expected after fix: 400.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Mark Place As Reached/Mark Place As Reached - 500 [KNOWN BUG] trip without active vehicle.yml
+    request:
+      url: "{{baseUrl}}/trip/{{noVehicleTripId}}/markAsReached/{{novehPlace1Id}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "location": {
+              "lat": 7.2906,
+              "lng": 80.6337
+            },
+            "currentMilage": 1
+          }
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Cannot read properties of undefined (reading 'vehicle')",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/trip/:tripId/markAsReached/:placeId`**
+
+  This request runs the main scenario **200 main trip place 1**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 main trip place 1 | Place marked as reached successfully! |
+  | 2 | 200 | 200 finish trip place 1 | Place marked as reached successfully! |
+  | 3 | 400 | 400 place already reached | Place already reached! |
+  | 4 | 400 | 400 mileage not greater than vehicle mileage | Current mileage should be greater than previous mileage! |
+  | 5 | 400 | 400 place not found | Place not found! |
+  | 6 | 400 | 400 trip not started | Started trip not found! |
+  | 7 | 400 | 400 no active driver | No active driver found! |
+  | 8 | 400 | 400 caller is not the active driver | Only active driver can update place as reached! |
+  | 9 | 400 | 400 selected vehicle not active | Selected vehicle not found! |
+  | 10 | 400 | 400 missing currentMilage | Current milage is required |
+  | 11 | 400 | 400 currentMilage not number | currentMilage is invalid |
+  | 12 | 400 | 400 lat not number | lat is invalid |
+  | 13 | 400 | 400 lng not number | lng is invalid |
+  | 14 | 400 | 400 location not object | "location" must be of type object |
+  | 15 | 400 | 400 unknown field | "foo" is not allowed |
+  | 16 | 401 | 401 no token | Authentication invalid! |
+  | 17 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 18 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+  | 19 | 500 | 500 [KNOWN BUG] trip without active vehicle | Cannot read properties of undefined (reading 'vehicle') |
+
+  ## Main scenario notes
+
+  Active driver = caller, place found, mileage > vehicle mileage → place reached, vehicle odometer advanced (src/modules/trip/trip.controller.ts:1218-1244). Freelance vehicle: no mileage check, distance 0 (src/modules/trip/trip.controller.ts:1210-1217).

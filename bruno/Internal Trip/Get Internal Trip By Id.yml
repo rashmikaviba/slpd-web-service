@@ -1,0 +1,195 @@
+info:
+  name: Get Internal Trip By Id
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/internalTrip/{{internalTripId}}"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.data._id
+      operator: eq
+      value: '"{{internalTripId}}"'
+    - expression: res.body.data.vehicle
+      operator: eq
+      value: '"{{internalTripVehicleId}}"'
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      Raw document, no populate (internalTrip.controller.ts:195-204).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Get Internal Trip By Id/Get Internal Trip By Id - 200.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/{{internalTripId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "_id": "6654a1b2c3d4e5f6a7b8c9d0",
+              "startDate": "2090-01-10T00:00:00.000Z",
+              "endDate": "2090-01-12T00:00:00.000Z",
+              "dateCount": 3,
+              "vehicle": "6651a1b2c3d4e5f6a7b8c9d3",
+              "meterReading": 1100,
+              "calcDistance": 100,
+              "driver": "6650a1b2c3d4e5f6a7b8c9d1",
+              "isMonthEndDone": false,
+              "reason": "Bruno internal trip",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:46:00.000Z",
+              "updatedAt": "2026-11-18T08:46:00.000Z"
+            }
+          }
+  - name: 200 not found returns null
+    description: |-
+      [KNOWN BUG] No not-found error: 200 with `data: null` (internalTrip.controller.ts:195-204).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Get Internal Trip By Id/Get Internal Trip By Id - 200 not found returns null.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/{{nonExistingId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Internal Trip/Get Internal Trip By Id/Get Internal Trip By Id - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/{{internalTripId}}"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 driver role
+    description: |-
+      internalTrip.route.ts:26-35.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Internal Trip/Get Internal Trip By Id/Get Internal Trip By Id - 403 driver role.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/{{internalTripId}}"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed id → CastError → 404.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Get Internal Trip By Id/Get Internal Trip By Id - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/{{invalidId}}"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/internalTrip/:id`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | (empty) |
+  | 2 | 200 | 200 not found returns null | (empty) |
+  | 3 | 401 | 401 no token | Authentication invalid! |
+  | 4 | 403 | 403 driver role | You're unauthorized to access this resource! |
+  | 5 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  Raw document, no populate (internalTrip.controller.ts:195-204).

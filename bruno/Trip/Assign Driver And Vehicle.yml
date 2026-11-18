@@ -1,0 +1,755 @@
+info:
+  name: Assign Driver And Vehicle
+  type: http
+  seq: 6
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/trip/assignDriver/{{tripId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "driverId": "{{driverUserId}}",
+        "vehicleId": "{{vehicleId}}"
+      }
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Driver and vehicle assigned successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 main trip driver and vehicle
+    description: |-
+      PENDING trip → drivers/vehicles replaced by a single active entry (src/modules/trip/trip.controller.ts:713-720, :762-769).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 200 main trip driver and vehicle.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "driverId": "{{driverUserId}}",
+            "vehicleId": "{{vehicleId}}"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Driver and vehicle assigned successfully!",
+            "data": null
+          }
+  - name: 200 finish trip driver and vehicle
+    description: |-
+      Setup for the finish flow.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 200 finish trip driver and vehicle.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{finishedTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "driverId": "{{driverUserId}}",
+            "vehicleId": "{{vehicleId}}"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Driver and vehicle assigned successfully!",
+            "data": null
+          }
+  - name: 200 undo trip driver and vehicle
+    description: |-
+      Setup for the undo flows.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 200 undo trip driver and vehicle.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{undoTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "driverId": "{{driverUserId}}",
+            "vehicleId": "{{vehicleId}}"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Driver and vehicle assigned successfully!",
+            "data": null
+          }
+  - name: 200 driver only
+    description: |-
+      Only driverId → message from src/modules/trip/trip.controller.ts:801-806. Trip keeps no vehicle (used by Mark Place As Reached 500 case).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 200 driver only.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{noVehicleTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "driverId": "{{driverUserId}}"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Driver assigned successfully!",
+            "data": null
+          }
+  - name: 200 vehicle only
+    description: |-
+      Only vehicleId.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 200 vehicle only.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{otherDriverTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleId": "{{vehicleId}}"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle assigned successfully!",
+            "data": null
+          }
+  - name: 200 non-driver user as driver
+    description: |-
+      driverId is only checked to be an ACTIVE user (user.service.ts:72-77), not a DRIVER (Document/trip.md Known issue 6). The driver-assistant user becomes the active driver.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 200 non-driver user as driver.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{otherDriverTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "driverId": "{{driverAssistantUserId}}"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Driver assigned successfully!",
+            "data": null
+          }
+  - name: 200 empty body is a no-op
+    description: |-
+      Neither id given: nothing changes but the trip is saved and the fallback message says "Vehicle assigned" (src/modules/trip/trip.controller.ts:801-806).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 200 empty body is a no-op.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{paymentTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: "{}"
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle assigned successfully!",
+            "data": null
+          }
+  - name: 200 started trip adds new active driver
+    description: |-
+      START branch (src/modules/trip/trip.controller.ts:721-747): active driver differs → all deactivated, new entry pushed as active.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 200 started trip adds new active driver.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{otherDriverTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "driverId": "{{driverUserId}}"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Driver assigned successfully!",
+            "data": null
+          }
+  - name: 200 [KNOWN BUG] re-assigning previous driver duplicates entry
+    description: |-
+      [KNOWN BUG] src/modules/trip/trip.controller.ts:730 compares ObjectId === string (always false), so the previous driver is pushed again instead of re-activated (Document/trip.md Known issue 5). Verified by the next request. Same bug for vehicles at :778.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 200 [KNOWN BUG] re-assigning previous driver duplicates entry.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{otherDriverTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "driverId": "{{driverAssistantUserId}}"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Driver assigned successfully!",
+            "data": null
+          }
+  - name: 400 finished trip
+    description: |-
+      State check for the assign endpoint: only PENDING/START trips can be assigned (src/modules/trip/trip.controller.ts:697-704).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Finish/Assign Driver And Vehicle - 400 finished trip.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{finishedTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "driverId": "{{driverUserId}}"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip not found!",
+            "data": null
+          }
+  - name: 400 driverId not string
+    description: |-
+      Joi `assignDriverVehicleSchema` (trip.validation.ts:272-279) → src/modules/trip/trip.controller.ts:691-694.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 400 driverId not string.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "driverId": 123
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Driver Id is invalid",
+            "data": null
+          }
+  - name: 400 vehicleId not string
+    description: |-
+      Joi `assignDriverVehicleSchema` (trip.validation.ts:272-279) → src/modules/trip/trip.controller.ts:691-694.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 400 vehicleId not string.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleId": 123
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle Id is invalid",
+            "data": null
+          }
+  - name: 400 unknown field
+    description: |-
+      Joi `assignDriverVehicleSchema` (trip.validation.ts:272-279) → src/modules/trip/trip.controller.ts:691-694.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 400 unknown field.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "foo": "bar"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"foo\" is not allowed",
+            "data": null
+          }
+  - name: 400 trip not found
+    description: |-
+      Only PENDING/START trips (src/modules/trip/trip.controller.ts:697-704). A FINISHED trip gives the same error — see Change Trip Status - Finish folder.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 400 trip not found.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "driverId": "{{driverUserId}}"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip not found!",
+            "data": null
+          }
+  - name: 400 driver not found
+    description: |-
+      userService.findById (ACTIVE users only) returns null (src/modules/trip/trip.controller.ts:706-711).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 400 driver not found.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "driverId": "{{nonExistingId}}"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Driver not found!",
+            "data": null
+          }
+  - name: 400 vehicle not found
+    description: |-
+      vehicleService.findByIdAndStatusIn(id, [ACTIVE]) returns null (src/modules/trip/trip.controller.ts:751-759). Inactive vehicles give the same error.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 400 vehicle not found.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleId": "{{nonExistingId}}"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle not found!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → `authorize()` throws UnauthorizedError (src/middleware/auth.middleware.ts:24-26).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "driverId": "{{driverUserId}}"
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows TRIPMANAGER, SUPERADMIN, ADMIN only (src/modules/trip/trip.route.ts:71-79); `driverToken` is rejected by authorize() (src/middleware/auth.middleware.ts:66-74).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "driverId": "{{driverUserId}}"
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid trip id
+    description: |-
+      Malformed ObjectId reaches `Trip.findOne({_id})` → Mongoose CastError → error middleware returns 404 (src/middleware/error.middleware.ts, CastError branch). Controller: src/modules/trip/trip.controller.ts:697.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 404 invalid trip id.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{invalidId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "driverId": "{{driverUserId}}"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+  - name: 404 invalid driver id
+    description: |-
+      Malformed driverId reaches User.findOne → CastError → 404 (src/modules/trip/trip.controller.ts:707, user.service.ts:72-77).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 404 invalid driver id.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "driverId": "{{invalidId}}"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+  - name: 404 invalid vehicle id
+    description: |-
+      Malformed vehicleId reaches Vehicle.findOne → CastError → 404 (src/modules/trip/trip.controller.ts:752, vehicle.service.ts:44-48).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 404 invalid vehicle id.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleId": "{{invalidId}}"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+  - name: 500 [KNOWN BUG] started trip without active driver
+    description: |-
+      [KNOWN BUG] START trip with no active driver: `activeDriver.driver` on undefined (src/modules/trip/trip.controller.ts:724-728) → TypeError → 500 (Document/trip.md Known issue 6). Message text is Node's TypeError message.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Assign Driver And Vehicle/Assign Driver And Vehicle - 500 [KNOWN BUG] started trip without active driver.yml
+    request:
+      url: "{{baseUrl}}/trip/assignDriver/{{noDriverTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "driverId": "{{driverUserId}}"
+          }
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Cannot read properties of undefined (reading 'driver')",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/trip/assignDriver/:id`**
+
+  This request runs the main scenario **200 main trip driver and vehicle**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 main trip driver and vehicle | Driver and vehicle assigned successfully! |
+  | 2 | 200 | 200 finish trip driver and vehicle | Driver and vehicle assigned successfully! |
+  | 3 | 200 | 200 undo trip driver and vehicle | Driver and vehicle assigned successfully! |
+  | 4 | 200 | 200 driver only | Driver assigned successfully! |
+  | 5 | 200 | 200 vehicle only | Vehicle assigned successfully! |
+  | 6 | 200 | 200 non-driver user as driver | Driver assigned successfully! |
+  | 7 | 200 | 200 empty body is a no-op | Vehicle assigned successfully! |
+  | 8 | 200 | 200 started trip adds new active driver | Driver assigned successfully! |
+  | 9 | 200 | 200 [KNOWN BUG] re-assigning previous driver duplicates entry | Driver assigned successfully! |
+  | 10 | 400 | 400 finished trip | Trip not found! |
+  | 11 | 400 | 400 driverId not string | Driver Id is invalid |
+  | 12 | 400 | 400 vehicleId not string | Vehicle Id is invalid |
+  | 13 | 400 | 400 unknown field | "foo" is not allowed |
+  | 14 | 400 | 400 trip not found | Trip not found! |
+  | 15 | 400 | 400 driver not found | Driver not found! |
+  | 16 | 400 | 400 vehicle not found | Vehicle not found! |
+  | 17 | 401 | 401 no token | Authentication invalid! |
+  | 18 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 19 | 404 | 404 invalid trip id | No item found with ID "not-an-object-id"! |
+  | 20 | 404 | 404 invalid driver id | No item found with ID "not-an-object-id"! |
+  | 21 | 404 | 404 invalid vehicle id | No item found with ID "not-an-object-id"! |
+  | 22 | 500 | 500 [KNOWN BUG] started trip without active driver | Cannot read properties of undefined (reading 'driver') |
+
+  ## Main scenario notes
+
+  PENDING trip → drivers/vehicles replaced by a single active entry (src/modules/trip/trip.controller.ts:713-720, :762-769).

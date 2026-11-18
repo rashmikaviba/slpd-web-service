@@ -1,0 +1,1945 @@
+info:
+  name: Create Vehicle
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/vehicle/"
+  body:
+    type: json
+    data: |-
+      {
+        "vehicleType": 2,
+        "vehicleOwner": "SLPD Bruno",
+        "registrationNumber": "{{newVehicleRegNo}}",
+        "capacity": 15,
+        "availableSeats": 14,
+        "gpsTracker": "{{newVehicleGps}}",
+        "description": "Bruno test vehicle",
+        "licenseRenewalDate": "2027-06-30",
+        "insuranceRenewalDate": "2027-06-30",
+        "gearOil": "75W-90",
+        "airFilter": "AF-100",
+        "oilFilter": "OF-200",
+        "initialMileage": 1000,
+        "isFreelanceVehicle": false,
+        "isRentalVehicle": false,
+        "rentalFor30Days": 0
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const ts = Date.now();
+        bru.setVar("newVehicleRegNo", "BRU-" + ts);
+        bru.setVar("newVehicleGps", "GPS-" + ts);
+    - type: after-response
+      code: |-
+        if (res.status === 200 || res.status === 201) {
+          bru.setVar("vehicleId", res.body.data._id);
+          bru.setVar("vehicleRegNo", res.body.data.registrationNumber);
+          bru.setVar("vehicleGps", res.body.data.gpsTracker);
+        }
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Vehicle created successfully!
+    - expression: res.body.data.status
+      operator: eq
+      value: "1"
+    - expression: res.body.data.currentMileage
+      operator: eq
+      value: "1000"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 201 company vehicle
+    description: |-
+      Company vehicle (not freelance, not rental), initialMileage 1000. Stores `{{vehicleId}}`, `{{vehicleRegNo}}`, `{{vehicleGps}}`.
+      Response 201 with the saved document, currentMileage = initialMileage (vehicle.controller.ts:89-103). Role: SUPERADMIN.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 201 company vehicle.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "{{newVehicleRegNo}}",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "{{newVehicleGps}}",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle created successfully!",
+            "data": {
+              "vehicleType": 2,
+              "vehicleOwner": "SLPD Bruno",
+              "registrationNumber": "BRU-1794990600000",
+              "gpsTracker": "GPS-1794990600000",
+              "capacity": 15,
+              "availableSeats": 14,
+              "licenseRenewalDate": "2027-06-30T00:00:00.000Z",
+              "insuranceRenewalDate": "2027-06-30T00:00:00.000Z",
+              "gearOil": "75W-90",
+              "airFilter": "AF-100",
+              "oilFilter": "OF-200",
+              "initialMileage": 1000,
+              "currentMileage": 1000,
+              "description": "Bruno test vehicle",
+              "isFreelanceVehicle": false,
+              "rentalFor30Days": 0,
+              "isRentalVehicle": false,
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "_id": "6651a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:30:00.000Z",
+              "updatedAt": "2026-11-18T08:30:00.000Z"
+            }
+          }
+  - name: 201 throwaway vehicle for delete
+    description: |-
+      Second company vehicle used by Update (duplicate checks), Active Inactive and Delete. Stores `{{vehicleToDeleteId}}`, `{{vehicleToDeleteRegNo}}`, `{{vehicleToDeleteGps}}`.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 201 throwaway vehicle for delete.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 1,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "{{newVehicleRegNo}}",
+            "capacity": 5,
+            "availableSeats": 4,
+            "gpsTracker": "{{newVehicleGps}}",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle created successfully!",
+            "data": {
+              "vehicleType": 1,
+              "vehicleOwner": "SLPD Bruno",
+              "registrationNumber": "BRU-1794990601200",
+              "gpsTracker": "GPS-1794990601200",
+              "capacity": 5,
+              "availableSeats": 4,
+              "licenseRenewalDate": "2027-06-30T00:00:00.000Z",
+              "insuranceRenewalDate": "2027-06-30T00:00:00.000Z",
+              "gearOil": "75W-90",
+              "airFilter": "AF-100",
+              "oilFilter": "OF-200",
+              "initialMileage": 1000,
+              "currentMileage": 1000,
+              "description": "Bruno test vehicle",
+              "isFreelanceVehicle": false,
+              "rentalFor30Days": 0,
+              "isRentalVehicle": false,
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "_id": "6651a1b2c3d4e5f6a7b8c9d1",
+              "createdAt": "2026-11-18T08:30:01.000Z",
+              "updatedAt": "2026-11-18T08:30:01.000Z"
+            }
+          }
+  - name: 201 freelance vehicle without GPS
+    description: |-
+      Freelance vehicle: GPS uniqueness check is skipped (vehicle.controller.ts:59), `rentalFor30Days` required. No `gpsTracker` stored — used by `400 null gpsTracker collides` below. Stores `{{freelanceVehicleId}}`.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 201 freelance vehicle without GPS.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "{{newVehicleRegNo}}",
+            "capacity": 15,
+            "availableSeats": 14,
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": true,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 60000
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle created successfully!",
+            "data": {
+              "vehicleType": 2,
+              "vehicleOwner": "SLPD Bruno",
+              "registrationNumber": "BRU-1794990602400",
+              "capacity": 15,
+              "availableSeats": 14,
+              "licenseRenewalDate": "2027-06-30T00:00:00.000Z",
+              "insuranceRenewalDate": "2027-06-30T00:00:00.000Z",
+              "gearOil": "75W-90",
+              "airFilter": "AF-100",
+              "oilFilter": "OF-200",
+              "initialMileage": 1000,
+              "currentMileage": 1000,
+              "description": "Bruno test vehicle",
+              "isFreelanceVehicle": true,
+              "rentalFor30Days": 60000,
+              "isRentalVehicle": false,
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "_id": "6651a1b2c3d4e5f6a7b8c9d2",
+              "createdAt": "2026-11-18T08:30:02.000Z",
+              "updatedAt": "2026-11-18T08:30:02.000Z"
+            }
+          }
+  - name: 400 missing vehicleType
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:5, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 missing vehicleType.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle Type is required!",
+            "data": null
+          }
+  - name: 400 invalid vehicleType
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:6, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 invalid vehicleType.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": "abc",
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle Type is invalid!",
+            "data": null
+          }
+  - name: 400 missing vehicleOwner
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:10, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 missing vehicleOwner.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle Owner is required",
+            "data": null
+          }
+  - name: 400 invalid vehicleOwner
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:11, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 invalid vehicleOwner.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": 123,
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle Owner is invalid",
+            "data": null
+          }
+  - name: 400 missing registrationNumber
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:15, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 missing registrationNumber.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Registration Number is required",
+            "data": null
+          }
+  - name: 400 invalid registrationNumber
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:16, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 invalid registrationNumber.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": 123,
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Registration Number is invalid",
+            "data": null
+          }
+  - name: 400 missing capacity
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:20, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 missing capacity.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Capacity is required",
+            "data": null
+          }
+  - name: 400 invalid capacity
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:21, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 invalid capacity.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": "abc",
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Capacity is invalid",
+            "data": null
+          }
+  - name: 400 missing availableSeats
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:25, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 missing availableSeats.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Available Seats is required",
+            "data": null
+          }
+  - name: 400 invalid availableSeats
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:26, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 invalid availableSeats.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": "abc",
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Available Seats is invalid",
+            "data": null
+          }
+  - name: 400 invalid gpsTracker
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:30, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 invalid gpsTracker.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": 123,
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "GPS Tracker is invalid",
+            "data": null
+          }
+  - name: 400 invalid description
+    description: |-
+      [KNOWN BUG] message says "Reason" for the description field (Document/vehicle.md › Known issues).
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:34, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 invalid description.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": 123,
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Reason is invalid",
+            "data": null
+          }
+  - name: 400 description too long
+    description: |-
+      [KNOWN BUG] message says "Reason" for the description field (Document/vehicle.md › Known issues).
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:35, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 description too long.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "{{long501}}",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Reason cannot be more than 500 characters",
+            "data": null
+          }
+  - name: 400 invalid licenseRenewalDate
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:39, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 invalid licenseRenewalDate.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "not-a-date",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "License Renewal Date is invalid",
+            "data": null
+          }
+  - name: 400 invalid insuranceRenewalDate
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:43, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 invalid insuranceRenewalDate.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "not-a-date",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Insurance Renewal Date is invalid",
+            "data": null
+          }
+  - name: 400 invalid gearOil
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:47, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 invalid gearOil.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": 123,
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Gear Oil is invalid",
+            "data": null
+          }
+  - name: 400 gearOil too long
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:48, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 gearOil too long.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "{{long201}}",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Gear Oil cannot be more than 200 characters",
+            "data": null
+          }
+  - name: 400 airFilter too long
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:53, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 airFilter too long.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "{{long201}}",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Air Filter cannot be more than 200 characters",
+            "data": null
+          }
+  - name: 400 oilFilter too long
+    description: |-
+      [KNOWN BUG] oilFilter messages are copy-pasted from airFilter, so the message says "Air Filter" (vehicle.validation.ts:56-59).
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:58, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 oilFilter too long.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "{{long201}}",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Air Filter cannot be more than 200 characters",
+            "data": null
+          }
+  - name: 400 missing initialMileage
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:62, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 missing initialMileage.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Initial Mileage is required",
+            "data": null
+          }
+  - name: 400 invalid initialMileage
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:63, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 invalid initialMileage.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": "abc",
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Initial Mileage is invalid",
+            "data": null
+          }
+  - name: 400 invalid isFreelanceVehicle
+    description: |-
+      No custom message → Joi default text.
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:66, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 invalid isFreelanceVehicle.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": "yes",
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"isFreelanceVehicle\" must be a boolean",
+            "data": null
+          }
+  - name: 400 freelance without rentalFor30Days
+    description: |-
+      [KNOWN BUG] Two chained `.when()` rules: the rental-vehicle message wins even for a freelance vehicle (verified with the installed Joi). Expected text would be "…required for freelance vehicles" (vehicle.validation.ts:68-84).
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:69, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 freelance without rentalFor30Days.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": true,
+            "isRentalVehicle": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Rental For 30 Days is required for rental vehicles",
+            "data": null
+          }
+  - name: 400 rental without rentalFor30Days
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:82, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 rental without rentalFor30Days.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": true
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Rental For 30 Days is required for rental vehicles",
+            "data": null
+          }
+  - name: 400 invalid rentalFor30Days
+    description: |-
+      Joi `vehicleSchema` rule → BadRequestError(error.message) (vehicle.validation.ts:87, vehicle.controller.ts:42-45).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 invalid rentalFor30Days.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": "abc"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Rental For 30 Days must be a number",
+            "data": null
+          }
+  - name: 400 duplicate registrationNumber
+    description: |-
+      Precondition: `201 company vehicle` ran ({{vehicleRegNo}}). Sends it lower-cased — the controller upper-cases before checking ACTIVE+INACTIVE vehicles (vehicle.controller.ts:47-57).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 duplicate registrationNumber.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "{{vehicleRegNoLower}}",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-DUP-REG",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle already exists with this registration number!",
+            "data": null
+          }
+  - name: 400 duplicate gpsTracker
+    description: |-
+      Precondition: `201 company vehicle` ran ({{vehicleGps}}). New registration number, same GPS tracker, company vehicle (vehicle.controller.ts:59-71).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 duplicate gpsTracker.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "{{newVehicleRegNo}}",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "{{vehicleGps}}",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle already exists with this GPS Tracker!",
+            "data": null
+          }
+  - name: 400 null gpsTracker collides
+    description: |-
+      [KNOWN BUG] Joi allows `gpsTracker: null`, but the uniqueness query `{gpsTracker: null}` also matches every non-deleted vehicle without a tracker (here the freelance vehicle created above), so a company vehicle without a tracker can never be created (vehicle.controller.ts:59-71, Document/vehicle.md › Known issues).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 400 null gpsTracker collides.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "{{newVehicleRegNo}}",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": null,
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle already exists with this GPS Tracker!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts UnauthorizedError.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 admin role
+    description: |-
+      POST /vehicle allows SUPERADMIN only (vehicle.route.ts:18-22); ADMIN is rejected.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: Vehicle/Create Vehicle/Create Vehicle - 403 admin role.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "BRU-VALIDATION-1",
+            "capacity": 15,
+            "availableSeats": 14,
+            "gpsTracker": "GPS-VALIDATION-1",
+            "description": "Bruno test vehicle",
+            "licenseRenewalDate": "2027-06-30",
+            "insuranceRenewalDate": "2027-06-30",
+            "gearOil": "75W-90",
+            "airFilter": "AF-100",
+            "oilFilter": "OF-200",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 0
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 201 internal trip vehicle setup (Internal Trip setup)
+    description: |-
+      Setup only (Vehicle module, SUPERADMIN). Dedicated vehicle so internal-trip mileage changes do not affect `{{vehicleId}}`.
+      Stores `{{internalTripVehicleId}}`.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Setup/Create Vehicle - 201 internal trip vehicle setup.yml
+    request:
+      url: "{{baseUrl}}/vehicle/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 2,
+            "vehicleOwner": "SLPD Bruno",
+            "registrationNumber": "{{newVehicleRegNo}}",
+            "capacity": 10,
+            "availableSeats": 9,
+            "gpsTracker": "{{newVehicleGps}}",
+            "initialMileage": 1000,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle created successfully!",
+            "data": {
+              "vehicleType": 2,
+              "vehicleOwner": "SLPD Bruno",
+              "registrationNumber": "BRU-1794990606000",
+              "gpsTracker": "GPS-1794990606000",
+              "capacity": 10,
+              "availableSeats": 9,
+              "initialMileage": 1000,
+              "currentMileage": 1000,
+              "isFreelanceVehicle": false,
+              "rentalFor30Days": 0,
+              "isRentalVehicle": false,
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "_id": "6651a1b2c3d4e5f6a7b8c9d3",
+              "createdAt": "2026-11-18T08:45:00.000Z",
+              "updatedAt": "2026-11-18T08:45:00.000Z"
+            }
+          }
+  - name: 201 setup renewal due (Notification setup)
+    description: |-
+      Setup (SUPERADMIN). Creates an ACTIVE company vehicle (not freelance/rental) whose insurance and licence renewal
+      dates are today+2, so `findVehicleRenewalBy7DaysBefore` (notification.service.ts:15) returns it twice
+      (type 2 and type 3). Stores `{{notifVehicleId}}` / `{{notifVehicleRegNo}}`. Removed by the last request in this folder.
+      Source: vehicle.controller.ts:20 (201 'Vehicle created successfully!').
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Notification/Create Vehicle - 201 setup renewal due.yml
+    request:
+      url: "{{baseUrl}}/vehicle"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 1,
+            "vehicleOwner": "Bruno Notification Test",
+            "registrationNumber": "NTF-{{$timestamp}}",
+            "gpsTracker": "GPS-NTF-{{$timestamp}}",
+            "capacity": 4,
+            "availableSeats": 3,
+            "initialMileage": 0,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false,
+            "insuranceRenewalDate": "{{notifRenewalDate}}",
+            "licenseRenewalDate": "{{notifRenewalDate}}"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle created successfully!",
+            "data": {
+              "vehicleType": 1,
+              "vehicleOwner": "Bruno Notification Test",
+              "registrationNumber": "NTF-1795509000",
+              "gpsTracker": "GPS-NTF-1795509000",
+              "capacity": 4,
+              "availableSeats": 3,
+              "licenseRenewalDate": "2026-11-20T00:00:00.000Z",
+              "insuranceRenewalDate": "2026-11-20T00:00:00.000Z",
+              "initialMileage": 0,
+              "currentMileage": 0,
+              "isFreelanceVehicle": false,
+              "rentalFor30Days": 0,
+              "isRentalVehicle": false,
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c901",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c901",
+              "_id": "6653d4e5f6a7b8c9d0e1f001",
+              "createdAt": "2026-11-18T08:00:00.000Z",
+              "updatedAt": "2026-11-18T08:00:00.000Z"
+            }
+          }
+  - name: 201 setup freelance vehicle (Report setup)
+    description: |-
+      Setup: ACTIVE freelance vehicle → `{{reportFreelanceVehicleId}}` (vehicle.controller.ts:20, 201).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Create Vehicle - 201 setup freelance vehicle.yml
+    request:
+      url: "{{baseUrl}}/vehicle"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 1,
+            "vehicleOwner": "Bruno Report Test",
+            "registrationNumber": "RPT-FL-{{$timestamp}}",
+            "gpsTracker": "GPS-RPT-FL-{{$timestamp}}",
+            "capacity": 4,
+            "availableSeats": 3,
+            "initialMileage": 0,
+            "isFreelanceVehicle": true,
+            "isRentalVehicle": false,
+            "rentalFor30Days": 90000
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle created successfully!",
+            "data": {
+              "vehicleType": 1,
+              "vehicleOwner": "Bruno Report Test",
+              "registrationNumber": "RPT-FL-1795509000",
+              "gpsTracker": "GPS-RPT-FL-1795509000",
+              "capacity": 4,
+              "availableSeats": 3,
+              "initialMileage": 0,
+              "currentMileage": 0,
+              "isFreelanceVehicle": true,
+              "rentalFor30Days": 90000,
+              "isRentalVehicle": false,
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c901",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c901",
+              "_id": "6653d4e5f6a7b8c9d0e1f201",
+              "createdAt": "2026-11-18T08:00:00.000Z",
+              "updatedAt": "2026-11-18T08:00:00.000Z"
+            }
+          }
+  - name: 201 setup company vehicle (Report setup)
+    description: |-
+      Setup: ACTIVE company vehicle (not freelance, not rental, no renewal dates) → `{{reportCompanyVehicleId}}`.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Vehicle Monthly Payment Maintance/Create Vehicle - 201 setup company vehicle.yml
+    request:
+      url: "{{baseUrl}}/vehicle"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "vehicleType": 1,
+            "vehicleOwner": "Bruno Report Test",
+            "registrationNumber": "RPT-CO-{{$timestamp}}",
+            "gpsTracker": "GPS-RPT-CO-{{$timestamp}}",
+            "capacity": 4,
+            "availableSeats": 3,
+            "initialMileage": 0,
+            "isFreelanceVehicle": false,
+            "isRentalVehicle": false
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle created successfully!",
+            "data": {
+              "vehicleType": 1,
+              "vehicleOwner": "Bruno Report Test",
+              "registrationNumber": "RPT-CO-1795509000",
+              "gpsTracker": "GPS-RPT-CO-1795509000",
+              "capacity": 4,
+              "availableSeats": 3,
+              "initialMileage": 0,
+              "currentMileage": 0,
+              "isFreelanceVehicle": false,
+              "rentalFor30Days": 0,
+              "isRentalVehicle": false,
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c901",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c901",
+              "_id": "6653d4e5f6a7b8c9d0e1f202",
+              "createdAt": "2026-11-18T08:00:00.000Z",
+              "updatedAt": "2026-11-18T08:00:00.000Z"
+            }
+          }
+
+docs: |-
+  **POST `/api/v1/vehicle`**
+
+  This request runs the main scenario **201 company vehicle**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 company vehicle | Vehicle created successfully! |
+  | 2 | 201 | 201 throwaway vehicle for delete | Vehicle created successfully! |
+  | 3 | 201 | 201 freelance vehicle without GPS | Vehicle created successfully! |
+  | 4 | 400 | 400 missing vehicleType | Vehicle Type is required! |
+  | 5 | 400 | 400 invalid vehicleType | Vehicle Type is invalid! |
+  | 6 | 400 | 400 missing vehicleOwner | Vehicle Owner is required |
+  | 7 | 400 | 400 invalid vehicleOwner | Vehicle Owner is invalid |
+  | 8 | 400 | 400 missing registrationNumber | Registration Number is required |
+  | 9 | 400 | 400 invalid registrationNumber | Registration Number is invalid |
+  | 10 | 400 | 400 missing capacity | Capacity is required |
+  | 11 | 400 | 400 invalid capacity | Capacity is invalid |
+  | 12 | 400 | 400 missing availableSeats | Available Seats is required |
+  | 13 | 400 | 400 invalid availableSeats | Available Seats is invalid |
+  | 14 | 400 | 400 invalid gpsTracker | GPS Tracker is invalid |
+  | 15 | 400 | 400 invalid description | Reason is invalid |
+  | 16 | 400 | 400 description too long | Reason cannot be more than 500 characters |
+  | 17 | 400 | 400 invalid licenseRenewalDate | License Renewal Date is invalid |
+  | 18 | 400 | 400 invalid insuranceRenewalDate | Insurance Renewal Date is invalid |
+  | 19 | 400 | 400 invalid gearOil | Gear Oil is invalid |
+  | 20 | 400 | 400 gearOil too long | Gear Oil cannot be more than 200 characters |
+  | 21 | 400 | 400 airFilter too long | Air Filter cannot be more than 200 characters |
+  | 22 | 400 | 400 oilFilter too long | Air Filter cannot be more than 200 characters |
+  | 23 | 400 | 400 missing initialMileage | Initial Mileage is required |
+  | 24 | 400 | 400 invalid initialMileage | Initial Mileage is invalid |
+  | 25 | 400 | 400 invalid isFreelanceVehicle | "isFreelanceVehicle" must be a boolean |
+  | 26 | 400 | 400 freelance without rentalFor30Days | Rental For 30 Days is required for rental vehicles |
+  | 27 | 400 | 400 rental without rentalFor30Days | Rental For 30 Days is required for rental vehicles |
+  | 28 | 400 | 400 invalid rentalFor30Days | Rental For 30 Days must be a number |
+  | 29 | 400 | 400 duplicate registrationNumber | Vehicle already exists with this registration number! |
+  | 30 | 400 | 400 duplicate gpsTracker | Vehicle already exists with this GPS Tracker! |
+  | 31 | 400 | 400 null gpsTracker collides | Vehicle already exists with this GPS Tracker! |
+  | 32 | 401 | 401 no token | Authentication invalid! |
+  | 33 | 403 | 403 admin role | You're unauthorized to access this resource! |
+  | 34 | 201 | 201 internal trip vehicle setup (Internal Trip setup) | Vehicle created successfully! |
+  | 35 | 201 | 201 setup renewal due (Notification setup) | Vehicle created successfully! |
+  | 36 | 201 | 201 setup freelance vehicle (Report setup) | Vehicle created successfully! |
+  | 37 | 201 | 201 setup company vehicle (Report setup) | Vehicle created successfully! |
+
+  ## Main scenario notes
+
+  Company vehicle (not freelance, not rental), initialMileage 1000. Stores `{{vehicleId}}`, `{{vehicleRegNo}}`, `{{vehicleGps}}`.
+  Response 201 with the saved document, currentMileage = initialMileage (vehicle.controller.ts:89-103). Role: SUPERADMIN.

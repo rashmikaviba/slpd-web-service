@@ -1,0 +1,1057 @@
+info:
+  name: Create Internal Trip
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/internalTrip/"
+  body:
+    type: json
+    data: |-
+      {
+        "startDate": "2090-01-10T00:00:00.000Z",
+        "endDate": "2090-01-12T00:00:00.000Z",
+        "dateCount": 3,
+        "vehicle": "{{internalTripVehicleId}}",
+        "meterReading": 1100,
+        "driver": "{{driverUserId}}",
+        "reason": "Bruno internal trip"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: if (res.status === 200 || res.status === 201) bru.setVar("internalTripId", res.body.data._id);
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Internal trip created successfully!
+    - expression: res.body.data.calcDistance
+      operator: eq
+      value: "100"
+    - expression: res.body.data.meterReading
+      operator: eq
+      value: "1100"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 201 with meterReading
+    description: |-
+      Precondition: Setup ran (vehicle mileage 1000). meterReading 1100 → calcDistance 100, vehicle mileage → 1100 in the same transaction (internalTrip.controller.ts:14-100).
+      Stores `{{internalTripId}}`.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 201 with meterReading.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Internal trip created successfully!",
+            "data": {
+              "startDate": "2090-01-10T00:00:00.000Z",
+              "endDate": "2090-01-12T00:00:00.000Z",
+              "dateCount": 3,
+              "vehicle": "6651a1b2c3d4e5f6a7b8c9d3",
+              "meterReading": 1100,
+              "calcDistance": 100,
+              "driver": "6650a1b2c3d4e5f6a7b8c9d1",
+              "isMonthEndDone": false,
+              "reason": "Bruno internal trip",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "_id": "6654a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:46:00.000Z",
+              "updatedAt": "2026-11-18T08:46:00.000Z"
+            }
+          }
+  - name: 201 without meterReading
+    description: |-
+      No meterReading → vehicle is not loaded, mileage unchanged. Stores `{{internalTripNoMeterId}}` (used by the update meterReading bug).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 201 without meterReading.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-02-10T00:00:00.000Z",
+            "endDate": "2090-02-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Internal trip created successfully!",
+            "data": {
+              "startDate": "2090-02-10T00:00:00.000Z",
+              "endDate": "2090-02-12T00:00:00.000Z",
+              "dateCount": 3,
+              "vehicle": "6651a1b2c3d4e5f6a7b8c9d3",
+              "meterReading": 0,
+              "calcDistance": 0,
+              "driver": "6650a1b2c3d4e5f6a7b8c9d1",
+              "isMonthEndDone": false,
+              "reason": "Bruno internal trip",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "_id": "6654a1b2c3d4e5f6a7b8c9d1",
+              "createdAt": "2026-11-18T08:46:01.000Z",
+              "updatedAt": "2026-11-18T08:46:01.000Z"
+            }
+          }
+  - name: 201 non-existent vehicle accepted
+    description: |-
+      [KNOWN BUG] Vehicle existence is only checked when meterReading > 0, so a non-existent vehicle id is saved (internalTrip.controller.ts:53-61).
+      Stores `{{internalTripOrphanId}}` (used by update/delete `Vehicle not found!` cases). This record cannot be deleted later.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 201 non-existent vehicle accepted.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{orphanStart}}",
+            "endDate": "{{orphanEnd}}",
+            "dateCount": 1,
+            "vehicle": "{{nonExistingId}}",
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Internal trip created successfully!",
+            "data": {
+              "startDate": "2126-10-25T08:46:02.000Z",
+              "endDate": "2126-10-25T08:47:02.000Z",
+              "dateCount": 1,
+              "vehicle": "000000000000000000000000",
+              "meterReading": 0,
+              "calcDistance": 0,
+              "driver": "6650a1b2c3d4e5f6a7b8c9d1",
+              "isMonthEndDone": false,
+              "reason": "Bruno internal trip",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "_id": "6654a1b2c3d4e5f6a7b8c9d2",
+              "createdAt": "2026-11-18T08:46:02.000Z",
+              "updatedAt": "2026-11-18T08:46:02.000Z"
+            }
+          }
+  - name: 400 missing startDate
+    description: |-
+      Joi `internalTripSchema` → BadRequestError(error.message) (internalTrip.validation.ts:5, internalTrip.controller.ts:18-21).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 missing startDate.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Start Date is required!",
+            "data": null
+          }
+  - name: 400 invalid startDate
+    description: |-
+      Joi `internalTripSchema` → BadRequestError(error.message) (internalTrip.validation.ts:6, internalTrip.controller.ts:18-21).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 invalid startDate.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "not-a-date",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Start Date is invalid!",
+            "data": null
+          }
+  - name: 400 missing endDate
+    description: |-
+      Joi `internalTripSchema` → BadRequestError(error.message) (internalTrip.validation.ts:9, internalTrip.controller.ts:18-21).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 missing endDate.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "End Date is required",
+            "data": null
+          }
+  - name: 400 invalid endDate
+    description: |-
+      Joi `internalTripSchema` → BadRequestError(error.message) (internalTrip.validation.ts:10, internalTrip.controller.ts:18-21).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 invalid endDate.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "not-a-date",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "End Date is invalid",
+            "data": null
+          }
+  - name: 400 missing dateCount
+    description: |-
+      Joi `internalTripSchema` → BadRequestError(error.message) (internalTrip.validation.ts:13, internalTrip.controller.ts:18-21).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 missing dateCount.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Date Count is required",
+            "data": null
+          }
+  - name: 400 invalid dateCount
+    description: |-
+      Joi `internalTripSchema` → BadRequestError(error.message) (internalTrip.validation.ts:14, internalTrip.controller.ts:18-21).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 invalid dateCount.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": "abc",
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Date Count is invalid",
+            "data": null
+          }
+  - name: 400 dateCount less than 1
+    description: |-
+      Joi `internalTripSchema` → BadRequestError(error.message) (internalTrip.validation.ts:15, internalTrip.controller.ts:18-21).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 dateCount less than 1.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 0,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Date Count cannot be less than 1",
+            "data": null
+          }
+  - name: 400 missing vehicle
+    description: |-
+      Joi `internalTripSchema` → BadRequestError(error.message) (internalTrip.validation.ts:19, internalTrip.controller.ts:18-21).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 missing vehicle.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle is required",
+            "data": null
+          }
+  - name: 400 invalid vehicle
+    description: |-
+      Joi `internalTripSchema` → BadRequestError(error.message) (internalTrip.validation.ts:20, internalTrip.controller.ts:18-21).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 invalid vehicle.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": 123,
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle is invalid",
+            "data": null
+          }
+  - name: 400 invalid meterReading
+    description: |-
+      Joi `internalTripSchema` → BadRequestError(error.message) (internalTrip.validation.ts:24, internalTrip.controller.ts:18-21).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 invalid meterReading.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": "abc",
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Meter Reading is invalid",
+            "data": null
+          }
+  - name: 400 missing driver
+    description: |-
+      Joi `internalTripSchema` → BadRequestError(error.message) (internalTrip.validation.ts:28, internalTrip.controller.ts:18-21).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 missing driver.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Driver is required",
+            "data": null
+          }
+  - name: 400 invalid driver
+    description: |-
+      Joi `internalTripSchema` → BadRequestError(error.message) (internalTrip.validation.ts:29, internalTrip.controller.ts:18-21).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 invalid driver.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": 123,
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Driver is invalid",
+            "data": null
+          }
+  - name: 400 missing reason
+    description: |-
+      Joi `internalTripSchema` → BadRequestError(error.message) (internalTrip.validation.ts:33, internalTrip.controller.ts:18-21).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 missing reason.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Reason is required",
+            "data": null
+          }
+  - name: 400 empty reason
+    description: |-
+      No custom `string.empty` message → Joi default text.
+      Joi `internalTripSchema` → BadRequestError(error.message) (internalTrip.validation.ts:32, internalTrip.controller.ts:18-21).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 empty reason.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"reason\" is not allowed to be empty",
+            "data": null
+          }
+  - name: 400 reason too long
+    description: |-
+      Joi `internalTripSchema` → BadRequestError(error.message) (internalTrip.validation.ts:35, internalTrip.controller.ts:18-21).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 reason too long.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "{{long501}}"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Reason cannot be more than 500 characters",
+            "data": null
+          }
+  - name: 400 overlapping date range
+    description: |-
+      Precondition: `201 with meterReading` (2090-01-10 → 2090-01-12) on the same vehicle (internalTrip.controller.ts:23-35, internalTrip.service.ts:80-133).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 overlapping date range.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-11T00:00:00.000Z",
+            "endDate": "2090-01-13T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle already has internal trip or an other trip for this date range!",
+            "data": null
+          }
+  - name: 400 vehicle not found
+    description: |-
+      meterReading > 0 loads the vehicle; non-existent id → error inside the transaction (aborted) (internalTrip.controller.ts:53-61).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 vehicle not found.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-04-10T00:00:00.000Z",
+            "endDate": "2090-04-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{nonExistingId}}",
+            "meterReading": 5000,
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle not found!",
+            "data": null
+          }
+  - name: 400 meterReading not above current mileage
+    description: |-
+      Precondition: vehicle mileage is 1100 after `201 with meterReading`. 900 <= 1100 → error, transaction aborted (internalTrip.controller.ts:63-67).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 meterReading not above current mileage.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-03-10T00:00:00.000Z",
+            "endDate": "2090-03-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 900,
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle current mileage is greater than meter reading!",
+            "data": null
+          }
+  - name: 400 driver invalid id
+    description: |-
+      Driver is never looked up; the malformed id fails Mongoose document validation on save → ValidationError → 400 with
+      the cast message (error.middleware.ts:37-45; text verified with mongoose 8.5.0). No driver existence/role check exists.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 400 driver invalid id.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-05-10T00:00:00.000Z",
+            "endDate": "2090-05-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "driver": "{{invalidId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Cast to ObjectId failed for value \"not-an-object-id\" (type string) at path \"driver\" because of \"BSONError\"",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 driver role
+    description: |-
+      Roles: SUPERADMIN, ADMIN, TRIPMANAGER, FINANCEOFFICER (internalTrip.route.ts:15-24); DRIVER is rejected.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 403 driver role.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{internalTripVehicleId}}",
+            "meterReading": 1100,
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 vehicle invalid id
+    description: |-
+      Joi only checks `vehicle` is a string; the overlap query casts it → CastError → 404 (internalTrip.service.ts:89-104).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Internal Trip/Create Internal Trip/Create Internal Trip - 404 vehicle invalid id.yml
+    request:
+      url: "{{baseUrl}}/internalTrip/"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "2090-01-10T00:00:00.000Z",
+            "endDate": "2090-01-12T00:00:00.000Z",
+            "dateCount": 3,
+            "vehicle": "{{invalidId}}",
+            "driver": "{{driverUserId}}",
+            "reason": "Bruno internal trip"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/internalTrip`**
+
+  This request runs the main scenario **201 with meterReading**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 with meterReading | Internal trip created successfully! |
+  | 2 | 201 | 201 without meterReading | Internal trip created successfully! |
+  | 3 | 201 | 201 non-existent vehicle accepted | Internal trip created successfully! |
+  | 4 | 400 | 400 missing startDate | Start Date is required! |
+  | 5 | 400 | 400 invalid startDate | Start Date is invalid! |
+  | 6 | 400 | 400 missing endDate | End Date is required |
+  | 7 | 400 | 400 invalid endDate | End Date is invalid |
+  | 8 | 400 | 400 missing dateCount | Date Count is required |
+  | 9 | 400 | 400 invalid dateCount | Date Count is invalid |
+  | 10 | 400 | 400 dateCount less than 1 | Date Count cannot be less than 1 |
+  | 11 | 400 | 400 missing vehicle | Vehicle is required |
+  | 12 | 400 | 400 invalid vehicle | Vehicle is invalid |
+  | 13 | 400 | 400 invalid meterReading | Meter Reading is invalid |
+  | 14 | 400 | 400 missing driver | Driver is required |
+  | 15 | 400 | 400 invalid driver | Driver is invalid |
+  | 16 | 400 | 400 missing reason | Reason is required |
+  | 17 | 400 | 400 empty reason | "reason" is not allowed to be empty |
+  | 18 | 400 | 400 reason too long | Reason cannot be more than 500 characters |
+  | 19 | 400 | 400 overlapping date range | Vehicle already has internal trip or an other trip for this date range! |
+  | 20 | 400 | 400 vehicle not found | Vehicle not found! |
+  | 21 | 400 | 400 meterReading not above current mileage | Vehicle current mileage is greater than meter reading! |
+  | 22 | 400 | 400 driver invalid id | Cast to ObjectId failed for value "not-an-object-id" (type string) at path "driver" because of "BSONError" |
+  | 23 | 401 | 401 no token | Authentication invalid! |
+  | 24 | 403 | 403 driver role | You're unauthorized to access this resource! |
+  | 25 | 404 | 404 vehicle invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  Precondition: Setup ran (vehicle mileage 1000). meterReading 1100 → calcDistance 100, vehicle mileage → 1100 in the same transaction (internalTrip.controller.ts:14-100).
+  Stores `{{internalTripId}}`.

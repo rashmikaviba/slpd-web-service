@@ -1,0 +1,368 @@
+info:
+  name: Get Vehicle By Id
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: "{{baseUrl}}/vehicle/{{vehicleId}}"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.data._id
+      operator: eq
+      value: '"{{vehicleId}}"'
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      Raw populated document (all model fields) (vehicle.controller.ts:213-226). Any authenticated role.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Get Vehicle By Id/Get Vehicle By Id - 200.yml
+    request:
+      url: "{{baseUrl}}/vehicle/{{vehicleId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "_id": "6651a1b2c3d4e5f6a7b8c9d0",
+              "vehicleType": 2,
+              "vehicleOwner": "SLPD Bruno",
+              "registrationNumber": "BRU-1794990600000",
+              "gpsTracker": "GPS-1794990600000",
+              "capacity": 15,
+              "availableSeats": 14,
+              "licenseRenewalDate": "2027-06-30T00:00:00.000Z",
+              "insuranceRenewalDate": "2027-06-30T00:00:00.000Z",
+              "gearOil": "75W-90",
+              "airFilter": "AF-100",
+              "oilFilter": "OF-200",
+              "initialMileage": 1000,
+              "currentMileage": 1000,
+              "description": "Bruno test vehicle",
+              "isFreelanceVehicle": false,
+              "rentalFor30Days": 0,
+              "isRentalVehicle": false,
+              "status": 1,
+              "createdBy": {
+                "_id": "6650a1b2c3d4e5f6a7b8c9d0",
+                "fullName": "Kasun Perera",
+                "userName": "superadmin",
+                "gender": "6650a0000000000000000001",
+                "dateOfBirth": "1990-04-12T00:00:00.000Z",
+                "address": "45 Temple Road, Nugegoda",
+                "phoneNumber1": "0771234567",
+                "phoneNumber2": "0112345678",
+                "email": "superadmin@example.lk",
+                "isFreelanceDriver": false,
+                "profileImageUrl": "https://example.com/profile/u1.png",
+                "nic": "199010312345",
+                "nicImageUrl": "https://example.com/nic/u1.png",
+                "gsCertificateUrl": "https://example.com/gs/u1.pdf",
+                "drivingLicenseUrl": "https://example.com/dl/u1.png",
+                "sltdaCertificateUrl": "https://example.com/sltda/u1.pdf",
+                "policeReportUrl": "https://example.com/police/u1.pdf",
+                "bankName": "Bank of Ceylon",
+                "bankId": 1,
+                "branch": "Nugegoda",
+                "accountNumber": "0000123456",
+                "accountHolderName": "Kasun Perera",
+                "accountHolderAddress": "45 Temple Road, Nugegoda",
+                "basicSalary": 85000,
+                "leaveCount": 14,
+                "languages": [
+                  "English",
+                  "Sinhala"
+                ],
+                "role": "6650a0000000000000000011",
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "createdAt": "2026-01-05T04:00:00.000Z",
+                "updatedAt": "2026-01-05T04:00:00.000Z"
+              },
+              "updatedBy": {
+                "_id": "6650a1b2c3d4e5f6a7b8c9d0",
+                "fullName": "Kasun Perera",
+                "userName": "superadmin",
+                "gender": "6650a0000000000000000001",
+                "dateOfBirth": "1990-04-12T00:00:00.000Z",
+                "address": "45 Temple Road, Nugegoda",
+                "phoneNumber1": "0771234567",
+                "phoneNumber2": "0112345678",
+                "email": "superadmin@example.lk",
+                "isFreelanceDriver": false,
+                "profileImageUrl": "https://example.com/profile/u1.png",
+                "nic": "199010312345",
+                "nicImageUrl": "https://example.com/nic/u1.png",
+                "gsCertificateUrl": "https://example.com/gs/u1.pdf",
+                "drivingLicenseUrl": "https://example.com/dl/u1.png",
+                "sltdaCertificateUrl": "https://example.com/sltda/u1.pdf",
+                "policeReportUrl": "https://example.com/police/u1.pdf",
+                "bankName": "Bank of Ceylon",
+                "bankId": 1,
+                "branch": "Nugegoda",
+                "accountNumber": "0000123456",
+                "accountHolderName": "Kasun Perera",
+                "accountHolderAddress": "45 Temple Road, Nugegoda",
+                "basicSalary": 85000,
+                "leaveCount": 14,
+                "languages": [
+                  "English",
+                  "Sinhala"
+                ],
+                "role": "6650a0000000000000000011",
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "createdAt": "2026-01-05T04:00:00.000Z",
+                "updatedAt": "2026-01-05T04:00:00.000Z"
+              },
+              "createdAt": "2026-11-18T08:30:00.000Z",
+              "updatedAt": "2026-11-18T08:30:00.000Z"
+            }
+          }
+  - name: 400 not found
+    description: |-
+      Valid ObjectId that does not exist (vehicle.controller.ts:221-223).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Get Vehicle By Id/Get Vehicle By Id - 400 not found.yml
+    request:
+      url: "{{baseUrl}}/vehicle/{{nonExistingId}}"
+      method: GET
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle not found!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Vehicle/Get Vehicle By Id/Get Vehicle By Id - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/vehicle/{{vehicleId}}"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed id → Mongoose CastError in findOne → error.middleware.ts:57-60.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Get Vehicle By Id/Get Vehicle By Id - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/vehicle/{{invalidId}}"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+  - name: Get Vehicle - 200 setup read current mileage (Trip setup)
+    description: |-
+      Setup: GET /vehicle/:id (vehicle.controller.ts:213-226) → stores `vehicleMileage` and `vehicleIsFreelance`.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Mark Place As Reached/Get Vehicle - 200 setup read current mileage.yml
+    request:
+      url: "{{baseUrl}}/vehicle/{{vehicleId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "_id": "6650a1b2c3d4e5f6a7b8d001",
+              "vehicleType": 2,
+              "vehicleOwner": "Lanka Leisure Tours (Pvt) Ltd",
+              "registrationNumber": "WP CAB-4521",
+              "gpsTracker": "GPS-7781",
+              "capacity": 10,
+              "availableSeats": 9,
+              "licenseRenewalDate": "2027-03-31T00:00:00.000Z",
+              "insuranceRenewalDate": "2027-01-15T00:00:00.000Z",
+              "gearOil": "Castrol 75W-90",
+              "airFilter": "Toyota 17801-30080",
+              "oilFilter": "Toyota 90915-YZZD2",
+              "initialMileage": 40000,
+              "currentMileage": 45230,
+              "description": "KDH high-roof van",
+              "isFreelanceVehicle": false,
+              "rentalFor30Days": 0,
+              "isRentalVehicle": false,
+              "status": 1,
+              "createdBy": {
+                "_id": "6650a1b2c3d4e5f6a7b8c001",
+                "fullName": "Kasun Perera",
+                "userName": "kasunp",
+                "gender": "6650a1b2c3d4e5f6a7b8f001",
+                "dateOfBirth": "1988-04-12T00:00:00.000Z",
+                "address": "25 Temple Road, Nugegoda",
+                "phoneNumber1": "+94710000001",
+                "phoneNumber2": "",
+                "email": "kasun.perera@example.com",
+                "isFreelanceDriver": false,
+                "profileImageUrl": "",
+                "nic": "198810300000",
+                "nicImageUrl": "",
+                "gsCertificateUrl": "",
+                "drivingLicenseUrl": "",
+                "sltdaCertificateUrl": "",
+                "policeReportUrl": "",
+                "bankName": "Bank of Ceylon",
+                "bankId": 7010,
+                "branch": "Nugegoda",
+                "accountNumber": "0000123456",
+                "accountHolderName": "K Perera",
+                "accountHolderAddress": "25 Temple Road, Nugegoda",
+                "basicSalary": 85000,
+                "leaveCount": 14,
+                "languages": [
+                  "Sinhala",
+                  "English"
+                ],
+                "role": "6650a1b2c3d4e5f6a7b8f101",
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "createdAt": "2026-01-05T04:00:00.000Z",
+                "updatedAt": "2026-06-02T05:15:00.000Z"
+              },
+              "updatedBy": {
+                "_id": "6650a1b2c3d4e5f6a7b8c001",
+                "fullName": "Kasun Perera",
+                "userName": "kasunp",
+                "gender": "6650a1b2c3d4e5f6a7b8f001",
+                "dateOfBirth": "1988-04-12T00:00:00.000Z",
+                "address": "25 Temple Road, Nugegoda",
+                "phoneNumber1": "+94710000001",
+                "phoneNumber2": "",
+                "email": "kasun.perera@example.com",
+                "isFreelanceDriver": false,
+                "profileImageUrl": "",
+                "nic": "198810300000",
+                "nicImageUrl": "",
+                "gsCertificateUrl": "",
+                "drivingLicenseUrl": "",
+                "sltdaCertificateUrl": "",
+                "policeReportUrl": "",
+                "bankName": "Bank of Ceylon",
+                "bankId": 7010,
+                "branch": "Nugegoda",
+                "accountNumber": "0000123456",
+                "accountHolderName": "K Perera",
+                "accountHolderAddress": "25 Temple Road, Nugegoda",
+                "basicSalary": 85000,
+                "leaveCount": 14,
+                "languages": [
+                  "Sinhala",
+                  "English"
+                ],
+                "role": "6650a1b2c3d4e5f6a7b8f101",
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "createdAt": "2026-01-05T04:00:00.000Z",
+                "updatedAt": "2026-06-02T05:15:00.000Z"
+              },
+              "createdAt": "2026-02-10T06:00:00.000Z",
+              "updatedAt": "2026-11-17T08:30:14.600Z"
+            }
+          }
+
+docs: |-
+  **GET `/api/v1/vehicle/:id`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | (empty) |
+  | 2 | 400 | 400 not found | Vehicle not found! |
+  | 3 | 401 | 401 no token | Authentication invalid! |
+  | 4 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+  | 5 | 200 | Get Vehicle - 200 setup read current mileage (Trip setup) | (empty) |
+
+  ## Main scenario notes
+
+  Raw populated document (all model fields) (vehicle.controller.ts:213-226). Any authenticated role.

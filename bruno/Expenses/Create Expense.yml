@@ -1,0 +1,840 @@
+info:
+  name: Create Expense
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/expense/{{tripId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "typeId": 1,
+        "typeName": "Fuel",
+        "amount": 1500,
+        "description": "Bruno expense",
+        "date": "{{expenseDate}}",
+        "receiptUrl": ""
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: bru.setVar("expenseDate", new Date().toISOString());
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Expense saved successfully!
+    - expression: res.body.data
+      operator: isNull
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "201"
+    description: |-
+      Adds a 'Fuel' line (1500) to the trip's expense header (created lazily if missing). Precondition: `{{tripId}}` in START (or FINISHED for non-drivers).
+      Roles: SUPERADMIN, ADMIN, TRIPMANAGER, DRIVER. Response is sent before the transaction commits (`src/modules/expenses/expenses.controller.ts:85-92`). `src/modules/expenses/expenses.controller.ts:16`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Create Expense - 201.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "{{expenseDate}}",
+            "receiptUrl": ""
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense saved successfully!",
+            "data": null
+          }
+  - name: 201 as driver
+    description: |-
+      DRIVER may add while trip is START. No check that the driver is assigned to the trip (Known issues). `src/modules/expenses/expenses.controller.ts:59-66`
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Expenses/Create Expense - 201 as driver.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 2,
+            "typeName": "Meals",
+            "amount": 800,
+            "description": "Bruno driver expense",
+            "date": "{{expenseDate}}",
+            "receiptUrl": ""
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense saved successfully!",
+            "data": null
+          }
+  - name: 201 negative amount accepted
+    description: |-
+      [KNOWN BUG] `amount` has no `.min()` (`src/modules/expenses/expenses.validation.ts:11`); a negative expense lowers the trip total. Expected: 400.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Create Expense - 201 negative amount accepted.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Refund",
+            "amount": -100,
+            "description": "Bruno negative amount",
+            "date": "{{expenseDate}}",
+            "receiptUrl": ""
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense saved successfully!",
+            "data": null
+          }
+  - name: 400 driver after trip finished
+    description: |-
+      Precondition: `{{tripId}}` FINISHED and header not month-end. Admins may still add. `src/modules/expenses/expenses.controller.ts:63`
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Expenses/Manual Preconditions/Create Expense - 400 driver after trip finished.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "{{expenseDate}}",
+            "receiptUrl": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Cannot add new expense after trip finished!",
+            "data": null
+          }
+  - name: 400 after month end
+    description: |-
+      Precondition: `{{tripId}}` FINISHED and Month Audit has set `isMonthEndDone` on its expense header. `src/modules/expenses/expenses.controller.ts:54`
+      Not covered: update/delete 'after month end' and 'No expense header found' — month end only closes FINISHED trips while update/delete
+      require START, and START always creates a header, so those branches are unreachable via HTTP.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Manual Preconditions/Create Expense - 400 after month end.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "{{expenseDate}}",
+            "receiptUrl": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Cannot add new expense after month end!",
+            "data": null
+          }
+  - name: 400 missing typeId
+    description: |-
+      Joi `saveExpenseSchema` -> `BadRequestError(error.message)`. `src/modules/expenses/expenses.validation.ts:3-29`, `src/modules/expenses/expenses.controller.ts:23`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Create Expense - 400 missing typeId.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "2026-01-01",
+            "receiptUrl": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Type is required",
+            "data": null
+          }
+  - name: 400 typeId not a number
+    description: |-
+      Joi `saveExpenseSchema` -> `BadRequestError(error.message)`. `src/modules/expenses/expenses.validation.ts:3-29`, `src/modules/expenses/expenses.controller.ts:23`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Create Expense - 400 typeId not a number.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": "abc",
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "2026-01-01",
+            "receiptUrl": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Type is invalid",
+            "data": null
+          }
+  - name: 400 empty typeName
+    description: |-
+      Joi `saveExpenseSchema` -> `BadRequestError(error.message)`. `src/modules/expenses/expenses.validation.ts:3-29`, `src/modules/expenses/expenses.controller.ts:23`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Create Expense - 400 empty typeName.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "2026-01-01",
+            "receiptUrl": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"typeName\" is not allowed to be empty",
+            "data": null
+          }
+  - name: 400 missing amount
+    description: |-
+      Joi `saveExpenseSchema` -> `BadRequestError(error.message)`. `src/modules/expenses/expenses.validation.ts:3-29`, `src/modules/expenses/expenses.controller.ts:23`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Create Expense - 400 missing amount.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "description": "Bruno expense",
+            "date": "2026-01-01",
+            "receiptUrl": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Amount is required",
+            "data": null
+          }
+  - name: 400 amount not a number
+    description: |-
+      Joi `saveExpenseSchema` -> `BadRequestError(error.message)`. `src/modules/expenses/expenses.validation.ts:3-29`, `src/modules/expenses/expenses.controller.ts:23`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Create Expense - 400 amount not a number.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": "abc",
+            "description": "Bruno expense",
+            "date": "2026-01-01",
+            "receiptUrl": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Amount is invalid",
+            "data": null
+          }
+  - name: 400 missing date
+    description: |-
+      Joi `saveExpenseSchema` -> `BadRequestError(error.message)`. `src/modules/expenses/expenses.validation.ts:3-29`, `src/modules/expenses/expenses.controller.ts:23`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Create Expense - 400 missing date.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "receiptUrl": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Date is required",
+            "data": null
+          }
+  - name: 400 invalid date
+    description: |-
+      Joi `saveExpenseSchema` -> `BadRequestError(error.message)`. `src/modules/expenses/expenses.validation.ts:3-29`, `src/modules/expenses/expenses.controller.ts:23`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Create Expense - 400 invalid date.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "not-a-date",
+            "receiptUrl": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Date is invalid",
+            "data": null
+          }
+  - name: 400 description too long
+    description: |-
+      Joi `saveExpenseSchema` -> `BadRequestError(error.message)`. `src/modules/expenses/expenses.validation.ts:3-29`, `src/modules/expenses/expenses.controller.ts:23`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Create Expense - 400 description too long.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "{{longText501}}",
+            "date": "2026-01-01",
+            "receiptUrl": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Description should not be more than 500 characters",
+            "data": null
+          }
+  - name: 400 description not a string
+    description: |-
+      Joi `saveExpenseSchema` -> `BadRequestError(error.message)`. `src/modules/expenses/expenses.validation.ts:3-29`, `src/modules/expenses/expenses.controller.ts:23`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Create Expense - 400 description not a string.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": 5,
+            "date": "2026-01-01",
+            "receiptUrl": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Description is invalid",
+            "data": null
+          }
+  - name: 400 receiptUrl not a string
+    description: |-
+      Joi `saveExpenseSchema` -> `BadRequestError(error.message)`. `src/modules/expenses/expenses.validation.ts:3-29`, `src/modules/expenses/expenses.controller.ts:23`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Create Expense - 400 receiptUrl not a string.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "2026-01-01",
+            "receiptUrl": 5
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Receipt URL is invalid",
+            "data": null
+          }
+  - name: 400 unknown field
+    description: |-
+      Joi `saveExpenseSchema` -> `BadRequestError(error.message)`. `src/modules/expenses/expenses.validation.ts:3-29`, `src/modules/expenses/expenses.controller.ts:23`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Create Expense - 400 unknown field.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "2026-01-01",
+            "receiptUrl": "",
+            "foo": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"foo\" is not allowed",
+            "data": null
+          }
+  - name: 400 trip not found
+    description: |-
+      No START/FINISHED trip with that id. `src/modules/expenses/expenses.controller.ts:36`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Create Expense - 400 trip not found.yml
+    request:
+      url: "{{baseUrl}}/expense/{{nonExistingId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "{{expenseDate}}",
+            "receiptUrl": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No trip found!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Expenses/Create Expense - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "2026-01-01",
+            "receiptUrl": ""
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN, TRIPMANAGER, DRIVER only; `{{financeOfficerToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{financeOfficerToken}}
+
+      Source scenario: Expenses/Create Expense - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/expense/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "2026-01-01",
+            "receiptUrl": ""
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid trip id
+    description: |-
+      `src/modules/expenses/expenses.controller.ts:30`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Create Expense - 404 invalid trip id.yml
+    request:
+      url: "{{baseUrl}}/expense/{{invalidId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1500,
+            "description": "Bruno expense",
+            "date": "2026-01-01",
+            "receiptUrl": ""
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+  - name: Save Expense - 201 setup expense line without driver salary (Trip setup)
+    description: |-
+      Setup: POST /expense/:tripId (expenses.controller.ts:16-100) adds an ACTIVE expense line to the trip header.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Undo/Save Expense - 201 setup expense line without driver salary.yml
+    request:
+      url: "{{baseUrl}}/expense/{{undoTripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "typeId": 1,
+            "typeName": "Fuel",
+            "amount": 1000,
+            "description": "Bruno setup expense",
+            "date": "{{tripStartDate}}"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense saved successfully!",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/expense/:tripId`**
+
+  This request runs the main scenario **201**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 | Expense saved successfully! |
+  | 2 | 201 | 201 as driver | Expense saved successfully! |
+  | 3 | 201 | 201 negative amount accepted | Expense saved successfully! |
+  | 4 | 400 | 400 driver after trip finished | Cannot add new expense after trip finished! |
+  | 5 | 400 | 400 after month end | Cannot add new expense after month end! |
+  | 6 | 400 | 400 missing typeId | Type is required |
+  | 7 | 400 | 400 typeId not a number | Type is invalid |
+  | 8 | 400 | 400 empty typeName | "typeName" is not allowed to be empty |
+  | 9 | 400 | 400 missing amount | Amount is required |
+  | 10 | 400 | 400 amount not a number | Amount is invalid |
+  | 11 | 400 | 400 missing date | Date is required |
+  | 12 | 400 | 400 invalid date | Date is invalid |
+  | 13 | 400 | 400 description too long | Description should not be more than 500 characters |
+  | 14 | 400 | 400 description not a string | Description is invalid |
+  | 15 | 400 | 400 receiptUrl not a string | Receipt URL is invalid |
+  | 16 | 400 | 400 unknown field | "foo" is not allowed |
+  | 17 | 400 | 400 trip not found | No trip found! |
+  | 18 | 401 | 401 no token | Authentication invalid! |
+  | 19 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 20 | 404 | 404 invalid trip id | No item found with ID " |
+  | 21 | 201 | Save Expense - 201 setup expense line without driver salary (Trip setup) | Expense saved successfully! |
+
+  ## Main scenario notes
+
+  Adds a 'Fuel' line (1500) to the trip's expense header (created lazily if missing). Precondition: `{{tripId}}` in START (or FINISHED for non-drivers).
+  Roles: SUPERADMIN, ADMIN, TRIPMANAGER, DRIVER. Response is sent before the transaction commits (`src/modules/expenses/expenses.controller.ts:85-92`). `src/modules/expenses/expenses.controller.ts:16`

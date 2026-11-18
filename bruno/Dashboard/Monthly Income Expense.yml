@@ -1,0 +1,606 @@
+info:
+  name: Monthly Income Expense
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: "{{baseUrl}}/dashboard/monthlyIncomeExpense?year={{dashYear}}"
+  params:
+    - name: year
+      value: "{{dashYear}}"
+      type: query
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: bru.setVar("dashYear", String(new Date().getFullYear()));
+    - type: tests
+      code: |-
+        const data = res.body.data;
+        const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+        test("12 entries January..December with exact fields", function () {
+          expect(data).to.have.length(12);
+          data.forEach((m, i) => {
+            expect(m).to.have.all.keys("monthIndex", "month", "income", "expenses");
+            expect(m.monthIndex).to.equal(i + 1);
+            expect(m.month).to.equal(months[i]);
+            expect(m.income).to.be.a("number");
+            expect(m.expenses).to.be.a("number");
+          });
+        });
+
+        test("months after the current month are not computed (0)", function () {
+          const cur = new Date().getMonth() + 1;
+          data.filter((m) => m.monthIndex > cur).forEach((m) => {
+            expect(m.income).to.equal(0);
+            expect(m.expenses).to.equal(0);
+          });
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 current year
+    description: |-
+      Current year → months 1..current month computed, later months stay 0 (dashboard.controller.ts:226-301).
+      Closed months (before CompanyWorkingInfo.workingDate) are cached for a year under `monthlyIncomeExpense_<y>_<m>`.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Dashboard/Monthly Income Expense - 200 current year.yml
+    request:
+      url: "{{baseUrl}}/dashboard/monthlyIncomeExpense?year={{dashYear}}"
+      method: GET
+      params:
+        - name: year
+          value: "{{dashYear}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "monthIndex": 1,
+                "month": "January",
+                "income": 812000,
+                "expenses": 241500
+              },
+              {
+                "monthIndex": 2,
+                "month": "February",
+                "income": 946500,
+                "expenses": 288300
+              },
+              {
+                "monthIndex": 3,
+                "month": "March",
+                "income": 1104000,
+                "expenses": 312750
+              },
+              {
+                "monthIndex": 4,
+                "month": "April",
+                "income": 698000,
+                "expenses": 205400
+              },
+              {
+                "monthIndex": 5,
+                "month": "May",
+                "income": 455000,
+                "expenses": 168900
+              },
+              {
+                "monthIndex": 6,
+                "month": "June",
+                "income": 389500,
+                "expenses": 152300
+              },
+              {
+                "monthIndex": 7,
+                "month": "July",
+                "income": 742000,
+                "expenses": 226800
+              },
+              {
+                "monthIndex": 8,
+                "month": "August",
+                "income": 1185000,
+                "expenses": 341200
+              },
+              {
+                "monthIndex": 9,
+                "month": "September",
+                "income": 903500,
+                "expenses": 270650
+              },
+              {
+                "monthIndex": 10,
+                "month": "October",
+                "income": 1012000,
+                "expenses": 298400
+              },
+              {
+                "monthIndex": 11,
+                "month": "November",
+                "income": 375000,
+                "expenses": 115950
+              },
+              {
+                "monthIndex": 12,
+                "month": "December",
+                "income": 0,
+                "expenses": 0
+              }
+            ]
+          }
+  - name: 200 past year
+    description: |-
+      Past year → all 12 months computed (dashboard.controller.ts:233-236).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Dashboard/Monthly Income Expense - 200 past year.yml
+    request:
+      url: "{{baseUrl}}/dashboard/monthlyIncomeExpense?year=2025"
+      method: GET
+      params:
+        - name: year
+          value: "2025"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "monthIndex": 1,
+                "month": "January",
+                "income": 765000,
+                "expenses": 228400
+              },
+              {
+                "monthIndex": 2,
+                "month": "February",
+                "income": 884000,
+                "expenses": 259700
+              },
+              {
+                "monthIndex": 3,
+                "month": "March",
+                "income": 1032500,
+                "expenses": 301200
+              },
+              {
+                "monthIndex": 4,
+                "month": "April",
+                "income": 645000,
+                "expenses": 198350
+              },
+              {
+                "monthIndex": 5,
+                "month": "May",
+                "income": 402000,
+                "expenses": 157800
+              },
+              {
+                "monthIndex": 6,
+                "month": "June",
+                "income": 356500,
+                "expenses": 141900
+              },
+              {
+                "monthIndex": 7,
+                "month": "July",
+                "income": 701000,
+                "expenses": 214600
+              },
+              {
+                "monthIndex": 8,
+                "month": "August",
+                "income": 1098000,
+                "expenses": 326500
+              },
+              {
+                "monthIndex": 9,
+                "month": "September",
+                "income": 858000,
+                "expenses": 259300
+              },
+              {
+                "monthIndex": 10,
+                "month": "October",
+                "income": 967500,
+                "expenses": 285100
+              },
+              {
+                "monthIndex": 11,
+                "month": "November",
+                "income": 1124000,
+                "expenses": 318750
+              },
+              {
+                "monthIndex": 12,
+                "month": "December",
+                "income": 1286000,
+                "expenses": 352400
+              }
+            ]
+          }
+  - name: 200 future year all zeros
+    description: |-
+      Future year → all 12 months computed, no trips/expenses → zeros. Not rejected (no validation).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Dashboard/Monthly Income Expense - 200 future year all zeros.yml
+    request:
+      url: "{{baseUrl}}/dashboard/monthlyIncomeExpense?year=2099"
+      method: GET
+      params:
+        - name: year
+          value: "2099"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "monthIndex": 1,
+                "month": "January",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 2,
+                "month": "February",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 3,
+                "month": "March",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 4,
+                "month": "April",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 5,
+                "month": "May",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 6,
+                "month": "June",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 7,
+                "month": "July",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 8,
+                "month": "August",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 9,
+                "month": "September",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 10,
+                "month": "October",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 11,
+                "month": "November",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 12,
+                "month": "December",
+                "income": 0,
+                "expenses": 0
+              }
+            ]
+          }
+  - name: 200 empty year treated as 1900
+    description: |-
+      [KNOWN BUG] `year=` (empty) → `Number("") = 0`, which is not NaN, so `Date.UTC(0, …)` builds 1900 dates and the
+      endpoint returns 12 zero months with 200 instead of a 400 (dashboard.controller.ts:229-236). Also writes
+      `monthlyIncomeExpense_0_<m>` cache keys.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Dashboard/Monthly Income Expense - 200 empty year treated as 1900.yml
+    request:
+      url: "{{baseUrl}}/dashboard/monthlyIncomeExpense?year="
+      method: GET
+      params:
+        - name: year
+          value: ""
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "monthIndex": 1,
+                "month": "January",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 2,
+                "month": "February",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 3,
+                "month": "March",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 4,
+                "month": "April",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 5,
+                "month": "May",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 6,
+                "month": "June",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 7,
+                "month": "July",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 8,
+                "month": "August",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 9,
+                "month": "September",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 10,
+                "month": "October",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 11,
+                "month": "November",
+                "income": 0,
+                "expenses": 0
+              },
+              {
+                "monthIndex": 12,
+                "month": "December",
+                "income": 0,
+                "expenses": 0
+              }
+            ]
+          }
+  - name: 401 no token
+    description: |-
+      auth.middleware.ts:25-26 — no `Authorization: Bearer` header → UnauthorizedError.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Dashboard/Monthly Income Expense - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/dashboard/monthlyIncomeExpense?year=2026"
+      method: GET
+      params:
+        - name: year
+          value: "2026"
+          type: query
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 Trip Manager
+    description: |-
+      TRIPMANAGER not allowed (dashboard.route.ts:18). auth.middleware.ts:68-79 — role not in the route's roles array → ForbiddenError.
+
+      Auth: bearer {{tripManagerToken}}
+
+      Source scenario: Dashboard/Monthly Income Expense - 403 Trip Manager.yml
+    request:
+      url: "{{baseUrl}}/dashboard/monthlyIncomeExpense?year=2026"
+      method: GET
+      params:
+        - name: year
+          value: "2026"
+          type: query
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 500 missing year
+    description: |-
+      [KNOWN BUG] missing year: `Number(year)` is NaN → `new Date(Date.UTC(NaN…)).toISOString()` throws RangeError →
+      caught at dashboard.controller.ts:303-304 → 500 "Error fetching dashboard data" (should be 400).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Dashboard/Monthly Income Expense - 500 missing year.yml
+    request:
+      url: "{{baseUrl}}/dashboard/monthlyIncomeExpense"
+      method: GET
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Error fetching dashboard data",
+            "data": null
+          }
+  - name: 500 invalid year
+    description: |-
+      [KNOWN BUG] invalid year: `Number(year)` is NaN → `new Date(Date.UTC(NaN…)).toISOString()` throws RangeError →
+      caught at dashboard.controller.ts:303-304 → 500 "Error fetching dashboard data" (should be 400).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Dashboard/Monthly Income Expense - 500 invalid year.yml
+    request:
+      url: "{{baseUrl}}/dashboard/monthlyIncomeExpense?year=abc"
+      method: GET
+      params:
+        - name: year
+          value: abc
+          type: query
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Error fetching dashboard data",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/dashboard/monthlyIncomeExpense`**
+
+  This request runs the main scenario **200 current year**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 current year | (empty) |
+  | 2 | 200 | 200 past year | (empty) |
+  | 3 | 200 | 200 future year all zeros | (empty) |
+  | 4 | 200 | 200 empty year treated as 1900 | (empty) |
+  | 5 | 401 | 401 no token | Authentication invalid! |
+  | 6 | 403 | 403 Trip Manager | You're unauthorized to access this resource! |
+  | 7 | 500 | 500 missing year | Error fetching dashboard data |
+  | 8 | 500 | 500 invalid year | Error fetching dashboard data |
+
+  ## Main scenario notes
+
+  Current year → months 1..current month computed, later months stay 0 (dashboard.controller.ts:226-301).
+  Closed months (before CompanyWorkingInfo.workingDate) are cached for a year under `monthlyIncomeExpense_<y>_<m>`.
