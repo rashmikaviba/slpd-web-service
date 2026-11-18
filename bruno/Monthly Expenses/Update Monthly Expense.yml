@@ -1,0 +1,470 @@
+info:
+  name: Update Monthly Expense
+  type: http
+  seq: 4
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/monthlyExpenses/update/{{monthlyExpensesId}}/expense/{{monthlyExpenseLineToDeleteId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "expenseType": 2,
+        "expenseTypeName": "Water",
+        "date": "{{monthlyExpensesMonth}}",
+        "description": "Edited after delete",
+        "amount": 999
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("deleted line edited, still status 3", function () {
+          const l = res.body.data.expenses.find((e) => e._id === bru.getVar("monthlyExpenseLineToDeleteId"));
+          expect(l.status).to.equal(3);
+          expect(l.amount).to.equal(999);
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Expense updated successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "201"
+    description: |-
+      [KNOWN BUG] Update responds 201 CREATED instead of 200 (monthlyExpenses.controller.ts:154).
+      Overwrites the line and recomputes totalExpenses (monthlyExpenses.controller.ts:91-164).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Update Monthly Expense/Update Monthly Expense - 201.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/update/{{monthlyExpensesId}}/expense/{{monthlyExpenseLineId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Updated by Bruno",
+            "amount": 3000
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense updated successfully!",
+            "data": {
+              "_id": "6655a1b2c3d4e5f6a7b8c9d0",
+              "month": "2026-11-01T00:00:00.000Z",
+              "year": 2026,
+              "monthName": 11,
+              "expenses": [
+                {
+                  "expenseType": "1",
+                  "expenseTypeName": "Electricity",
+                  "date": "2026-11-01T00:00:00.000Z",
+                  "description": "Updated by Bruno",
+                  "amount": 3000,
+                  "status": 1,
+                  "createdAt": "2026-11-18T08:50:00.000Z",
+                  "updatedAt": "2026-11-18T08:51:00.000Z",
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "_id": "6655b1b2c3d4e5f6a7b8c9d0"
+                },
+                {
+                  "expenseType": "2",
+                  "expenseTypeName": "Water",
+                  "date": "2026-11-01T00:00:00.000Z",
+                  "description": "Bruno line to delete",
+                  "amount": 750,
+                  "status": 1,
+                  "createdAt": "2026-11-18T08:50:05.000Z",
+                  "updatedAt": "2026-11-18T08:50:05.000Z",
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "_id": "6655b1b2c3d4e5f6a7b8c9d1"
+                }
+              ],
+              "totalExpenses": 3750,
+              "status": 1,
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-01T02:00:00.000Z",
+              "updatedAt": "2026-11-18T08:51:00.000Z"
+            }
+          }
+  - name: 201 deleted line can be edited
+    description: |-
+      [KNOWN BUG] Update does not check the line status: a DELETED line is edited (monthlyExpenses.controller.ts:122-134). Also 201 instead of 200.
+      Precondition: line deleted above.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Delete Monthly Expense/Update Monthly Expense - 201 deleted line can be edited.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/update/{{monthlyExpensesId}}/expense/{{monthlyExpenseLineToDeleteId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 2,
+            "expenseTypeName": "Water",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Edited after delete",
+            "amount": 999
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense updated successfully!",
+            "data": {
+              "_id": "6655a1b2c3d4e5f6a7b8c9d0",
+              "month": "2026-11-01T00:00:00.000Z",
+              "year": 2026,
+              "monthName": 11,
+              "expenses": [
+                {
+                  "expenseType": "1",
+                  "expenseTypeName": "Electricity",
+                  "date": "2026-11-01T00:00:00.000Z",
+                  "description": "Updated by Bruno",
+                  "amount": 3000,
+                  "status": 1,
+                  "createdAt": "2026-11-18T08:50:00.000Z",
+                  "updatedAt": "2026-11-18T08:51:00.000Z",
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "_id": "6655b1b2c3d4e5f6a7b8c9d0"
+                },
+                {
+                  "expenseType": "2",
+                  "expenseTypeName": "Water",
+                  "date": "2026-11-01T00:00:00.000Z",
+                  "description": "Edited after delete",
+                  "amount": 999,
+                  "status": 3,
+                  "createdAt": "2026-11-18T08:50:05.000Z",
+                  "updatedAt": "2026-11-18T08:53:00.000Z",
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "_id": "6655b1b2c3d4e5f6a7b8c9d1"
+                }
+              ],
+              "totalExpenses": 3000,
+              "status": 1,
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-01T02:00:00.000Z",
+              "updatedAt": "2026-11-18T08:53:00.000Z"
+            }
+          }
+  - name: 400 missing amount
+    description: |-
+      Same Joi schema as save (all rules covered there) (monthlyExpenses.validation.ts:22, monthlyExpenses.controller.ts:104-108).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Update Monthly Expense/Update Monthly Expense - 400 missing amount.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/update/{{monthlyExpensesId}}/expense/{{monthlyExpenseLineId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Updated by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Amount is required",
+            "data": null
+          }
+  - name: 400 month end done
+    description: |-
+      Precondition: `{{closedMonthlyExpensesId}}` from Advance Search setup. Header guard runs before the line lookup (monthlyExpenses.controller.ts:114-116).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Update Monthly Expense/Update Monthly Expense - 400 month end done.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/update/{{closedMonthlyExpensesId}}/expense/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Updated by Bruno",
+            "amount": 3000
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Cannot update monthly expense after month end!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Monthly Expenses/Update Monthly Expense/Update Monthly Expense - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/update/{{monthlyExpensesId}}/expense/{{monthlyExpenseLineId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Updated by Bruno",
+            "amount": 3000
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 driver role
+    description: |-
+      monthlyExpenses.route.ts:46-55.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Monthly Expenses/Update Monthly Expense/Update Monthly Expense - 403 driver role.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/update/{{monthlyExpensesId}}/expense/{{monthlyExpenseLineId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Updated by Bruno",
+            "amount": 3000
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 monthly expense not found
+    description: |-
+      monthlyExpenses.controller.ts:110-113.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Update Monthly Expense/Update Monthly Expense - 404 monthly expense not found.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/update/{{nonExistingId}}/expense/{{monthlyExpenseLineId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Updated by Bruno",
+            "amount": 3000
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Monthly expense not found!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed header id → CastError → 404.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Update Monthly Expense/Update Monthly Expense - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/update/{{invalidId}}/expense/{{monthlyExpenseLineId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Updated by Bruno",
+            "amount": 3000
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+  - name: 404 expense line not found
+    description: |-
+      Line id compared as string, so a malformed line id gives the same 404 (monthlyExpenses.controller.ts:122-126).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Monthly Expenses/Update Monthly Expense/Update Monthly Expense - 404 expense line not found.yml
+    request:
+      url: "{{baseUrl}}/monthlyExpenses/update/{{monthlyExpensesId}}/expense/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "expenseType": 1,
+            "expenseTypeName": "Electricity",
+            "date": "{{monthlyExpensesMonth}}",
+            "description": "Updated by Bruno",
+            "amount": 3000
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense not found in this monthly expense!",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/monthlyExpenses/update/:id/expense/:expenseId`**
+
+  This request runs the main scenario **201 deleted line can be edited**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 | Expense updated successfully! |
+  | 2 | 201 | 201 deleted line can be edited | Expense updated successfully! |
+  | 3 | 400 | 400 missing amount | Amount is required |
+  | 4 | 400 | 400 month end done | Cannot update monthly expense after month end! |
+  | 5 | 401 | 401 no token | Authentication invalid! |
+  | 6 | 403 | 403 driver role | You're unauthorized to access this resource! |
+  | 7 | 404 | 404 monthly expense not found | Monthly expense not found! |
+  | 8 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+  | 9 | 404 | 404 expense line not found | Expense not found in this monthly expense! |
+
+  ## Main scenario notes
+
+  [KNOWN BUG] Update does not check the line status: a DELETED line is edited (monthlyExpenses.controller.ts:122-134). Also 201 instead of 200.
+  Precondition: line deleted above.

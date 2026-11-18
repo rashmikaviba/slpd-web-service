@@ -1,0 +1,305 @@
+info:
+  name: Get Vehicles By Passenger Count
+  type: http
+  seq: 7
+
+http:
+  method: GET
+  url: "{{baseUrl}}/vehicle/passengerCount/10"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("main vehicle (14 seats) is available", function () {
+          expect(res.body.data.map((v) => v._id)).to.include(bru.getVar("vehicleId"));
+        });
+        test("typeName added", function () {
+          expect(res.body.data[0]).to.have.property("typeName");
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.data
+      operator: isArray
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 no date range
+    description: |-
+      ACTIVE vehicles with availableSeats >= 10; no trip exclusion without dates (vehicle.controller.ts:329-353, vehicle.service.ts:86-140).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Get Vehicles By Passenger Count/Get Vehicles By Passenger Count - 200 no date range.yml
+    request:
+      url: "{{baseUrl}}/vehicle/passengerCount/10"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6651a1b2c3d4e5f6a7b8c9d0",
+                "vehicleType": 2,
+                "vehicleOwner": "SLPD Bruno",
+                "registrationNumber": "BRU-1794990600000",
+                "gpsTracker": "GPS-1794990600000",
+                "capacity": 15,
+                "availableSeats": 14,
+                "licenseRenewalDate": "2027-06-30T00:00:00.000Z",
+                "insuranceRenewalDate": "2027-06-30T00:00:00.000Z",
+                "gearOil": "75W-90",
+                "airFilter": "AF-100",
+                "oilFilter": "OF-200",
+                "initialMileage": 1000,
+                "currentMileage": 1000,
+                "description": "Updated by Bruno",
+                "isFreelanceVehicle": false,
+                "rentalFor30Days": 0,
+                "isRentalVehicle": false,
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "createdAt": "2026-11-18T08:30:00.000Z",
+                "updatedAt": "2026-11-18T08:31:00.000Z",
+                "typeName": "Van"
+              },
+              {
+                "_id": "6651a1b2c3d4e5f6a7b8c9d2",
+                "vehicleType": 2,
+                "vehicleOwner": "SLPD Bruno",
+                "registrationNumber": "BRU-1794990602400",
+                "capacity": 15,
+                "availableSeats": 14,
+                "licenseRenewalDate": "2027-06-30T00:00:00.000Z",
+                "insuranceRenewalDate": "2027-06-30T00:00:00.000Z",
+                "gearOil": "75W-90",
+                "airFilter": "AF-100",
+                "oilFilter": "OF-200",
+                "initialMileage": 1000,
+                "currentMileage": 1000,
+                "description": "Bruno test vehicle",
+                "isFreelanceVehicle": true,
+                "rentalFor30Days": 60000,
+                "isRentalVehicle": false,
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "createdAt": "2026-11-18T08:30:02.000Z",
+                "updatedAt": "2026-11-18T08:30:02.000Z",
+                "typeName": "Van"
+              }
+            ]
+          }
+  - name: 200 with date range and tripId
+    description: |-
+      With both dates, vehicles on overlapping ACTIVE internal trips / PENDING-START trips are excluded. `tripId` must be a valid ObjectId (see next request).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Get Vehicles By Passenger Count/Get Vehicles By Passenger Count - 200 with date range and tripId.yml
+    request:
+      url: "{{baseUrl}}/vehicle/passengerCount/10?startDate=2090-06-01&endDate=2090-06-05&tripId={{nonExistingId}}"
+      method: GET
+      params:
+        - name: startDate
+          value: 2090-06-01
+          type: query
+        - name: endDate
+          value: 2090-06-05
+          type: query
+        - name: tripId
+          value: "{{nonExistingId}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6651a1b2c3d4e5f6a7b8c9d0",
+                "vehicleType": 2,
+                "vehicleOwner": "SLPD Bruno",
+                "registrationNumber": "BRU-1794990600000",
+                "gpsTracker": "GPS-1794990600000",
+                "capacity": 15,
+                "availableSeats": 14,
+                "licenseRenewalDate": "2027-06-30T00:00:00.000Z",
+                "insuranceRenewalDate": "2027-06-30T00:00:00.000Z",
+                "gearOil": "75W-90",
+                "airFilter": "AF-100",
+                "oilFilter": "OF-200",
+                "initialMileage": 1000,
+                "currentMileage": 1000,
+                "description": "Updated by Bruno",
+                "isFreelanceVehicle": false,
+                "rentalFor30Days": 0,
+                "isRentalVehicle": false,
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "createdAt": "2026-11-18T08:30:00.000Z",
+                "updatedAt": "2026-11-18T08:31:00.000Z",
+                "typeName": "Van"
+              },
+              {
+                "_id": "6651a1b2c3d4e5f6a7b8c9d2",
+                "vehicleType": 2,
+                "vehicleOwner": "SLPD Bruno",
+                "registrationNumber": "BRU-1794990602400",
+                "capacity": 15,
+                "availableSeats": 14,
+                "licenseRenewalDate": "2027-06-30T00:00:00.000Z",
+                "insuranceRenewalDate": "2027-06-30T00:00:00.000Z",
+                "gearOil": "75W-90",
+                "airFilter": "AF-100",
+                "oilFilter": "OF-200",
+                "initialMileage": 1000,
+                "currentMileage": 1000,
+                "description": "Bruno test vehicle",
+                "isFreelanceVehicle": true,
+                "rentalFor30Days": 60000,
+                "isRentalVehicle": false,
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "createdAt": "2026-11-18T08:30:02.000Z",
+                "updatedAt": "2026-11-18T08:30:02.000Z",
+                "typeName": "Van"
+              }
+            ]
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Vehicle/Get Vehicles By Passenger Count/Get Vehicles By Passenger Count - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/vehicle/passengerCount/10"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 date range without tripId
+    description: |-
+      [KNOWN BUG] `tripId` defaults to `''`; `_id: { $ne: '' }` throws a CastError, so the lookup used when creating a new trip always fails (vehicle.service.ts:113, Document/vehicle.md › Known issues).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Get Vehicles By Passenger Count/Get Vehicles By Passenger Count - 404 date range without tripId.yml
+    request:
+      url: "{{baseUrl}}/vehicle/passengerCount/10?startDate=2090-06-01&endDate=2090-06-05"
+      method: GET
+      params:
+        - name: startDate
+          value: 2090-06-01
+          type: query
+        - name: endDate
+          value: 2090-06-05
+          type: query
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"\"!",
+            "data": null
+          }
+  - name: 404 non-numeric count
+    description: |-
+      [KNOWN BUG] `+count` is NaN → CastError on `availableSeats` → 404 instead of 400 (vehicle.controller.ts:337).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Get Vehicles By Passenger Count/Get Vehicles By Passenger Count - 404 non-numeric count.yml
+    request:
+      url: "{{baseUrl}}/vehicle/passengerCount/abc"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"NaN\"!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/vehicle/passengerCount/:count`**
+
+  This request runs the main scenario **200 no date range**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 no date range | (empty) |
+  | 2 | 200 | 200 with date range and tripId | (empty) |
+  | 3 | 401 | 401 no token | Authentication invalid! |
+  | 4 | 404 | 404 date range without tripId | No item found with ID ""! |
+  | 5 | 404 | 404 non-numeric count | No item found with ID "NaN"! |
+
+  ## Main scenario notes
+
+  ACTIVE vehicles with availableSeats >= 10; no trip exclusion without dates (vehicle.controller.ts:329-353, vehicle.service.ts:86-140).

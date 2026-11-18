@@ -73,7 +73,7 @@ export const superAdminMenu = [
         id: 15,
         name: 'Super Admin Vehicle Maintenance',
         status: 1,
-    }
+    },
 ];
 
 export const adminMenu = [

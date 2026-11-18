@@ -1,0 +1,339 @@
+info:
+  name: Approve Expense Request
+  type: http
+  seq: 2
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/expenseRequest/approve/{{expenseRequestId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "approvedAmount": 3000
+      }
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Expense request approved successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      PENDING -> APPROVED; trip still START, so `trip.estimatedExpense += 3000` in the same transaction. Emits `expense-request-approved`.
+      Response is sent before commit (`src/modules/expenseRequest/expenseRequest.controller.ts:184-191`). `src/modules/expenseRequest/expenseRequest.controller.ts:101`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expense Request/Approve Expense Request - 200.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest/approve/{{expenseRequestId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "approvedAmount": 3000
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense request approved successfully!",
+            "data": null
+          }
+  - name: 400 missing approvedAmount
+    description: |-
+      Joi `approveExpenseRequestSchema`. `src/modules/expenseRequest/expenseRequest.controller.ts:110`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expense Request/Approve Expense Request - 400 missing approvedAmount.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest/approve/{{expenseRequestId}}"
+      method: PUT
+      body:
+        type: json
+        data: "{}"
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Approved Amount is required",
+            "data": null
+          }
+  - name: 400 approvedAmount not a number
+    description: |-
+      `src/modules/expenseRequest/expenseRequest.controller.ts:110`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expense Request/Approve Expense Request - 400 approvedAmount not a number.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest/approve/{{expenseRequestId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "approvedAmount": "abc"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Approved Amount is invalid",
+            "data": null
+          }
+  - name: 400 not found
+    description: |-
+      Typo in message is real. `src/modules/expenseRequest/expenseRequest.controller.ts:127`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expense Request/Approve Expense Request - 400 not found.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest/approve/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "approvedAmount": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No expense requests were not found.!",
+            "data": null
+          }
+  - name: 400 already approved
+    description: |-
+      Precondition: `Approve Expense Request - 200`. `src/modules/expenseRequest/expenseRequest.controller.ts:131`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expense Request/Approve Expense Request - 400 already approved.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest/approve/{{expenseRequestId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "approvedAmount": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense request already approved!",
+            "data": null
+          }
+  - name: 400 already rejected
+    description: |-
+      Precondition: `Reject Expense Request - 200`. `src/modules/expenseRequest/expenseRequest.controller.ts:133`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expense Request/Approve Expense Request - 400 already rejected.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest/approve/{{rejectedExpenseRequestId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "approvedAmount": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Expense request already rejected!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Expense Request/Approve Expense Request - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest/approve/{{expenseRequestId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "approvedAmount": 1
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN, TRIPMANAGER, FINANCEOFFICER only; `{{driverToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Expense Request/Approve Expense Request - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest/approve/{{expenseRequestId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "approvedAmount": 1
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      `src/modules/expenseRequest/expenseRequest.controller.ts:118`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expense Request/Approve Expense Request - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/expenseRequest/approve/{{invalidId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "approvedAmount": 1
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/expenseRequest/approve/:id`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | Expense request approved successfully! |
+  | 2 | 400 | 400 missing approvedAmount | Approved Amount is required |
+  | 3 | 400 | 400 approvedAmount not a number | Approved Amount is invalid |
+  | 4 | 400 | 400 not found | No expense requests were not found.! |
+  | 5 | 400 | 400 already approved | Expense request already approved! |
+  | 6 | 400 | 400 already rejected | Expense request already rejected! |
+  | 7 | 401 | 401 no token | Authentication invalid! |
+  | 8 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 9 | 404 | 404 invalid id | No item found with ID " |
+
+  ## Main scenario notes
+
+  PENDING -> APPROVED; trip still START, so `trip.estimatedExpense += 3000` in the same transaction. Emits `expense-request-approved`.
+  Response is sent before commit (`src/modules/expenseRequest/expenseRequest.controller.ts:184-191`). `src/modules/expenseRequest/expenseRequest.controller.ts:101`

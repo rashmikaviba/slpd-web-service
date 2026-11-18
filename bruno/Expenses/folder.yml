@@ -1,0 +1,17 @@
+info:
+  name: Expenses
+  type: folder
+  seq: 13
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    `/expense` — `src/modules/expenses/`. See `Document/expenses.md`.
+
+    **Precondition:** `{{tripId}}` (created by the Trip folder) is in **START** status (the trip START creates the empty expense header).
+    Runtime vars set here: `expenseId` (admin "Fuel" line), `driverExpenseId` (driver "Meals" line, soft-deleted).
+    Responses carry `data: null` for create/update/delete, so ids are read back via `Get Expenses By Trip - 200`.
+    Driver-salary success and month-end / finished-trip cases need a FINISHED trip: see sub-folder **Manual Preconditions**.
+  type: text/markdown

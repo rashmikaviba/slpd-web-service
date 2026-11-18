@@ -1,0 +1,493 @@
+info:
+  name: Update Leave
+  type: http
+  seq: 8
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/leave/update/{{leaveId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "startDate": "{{leaveFrom1}}",
+        "endDate": "{{leaveTo1}}",
+        "dateCount": 2,
+        "reason": "Bruno test leave (updated)"
+      }
+  auth:
+    type: bearer
+    token: "{{driverToken}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns updated raw leave", function () {
+          expect(res.body.data._id).to.equal(bru.getVar("leaveId"));
+          expect(res.body.data.reason).to.equal("Bruno test leave (updated)");
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Leave updated successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 driver
+    description: |-
+      Same dates (own leave excluded from overlap), new reason (leave.controller.ts:142-234). Returns the raw document (not the DTO).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Update Leave/Update Leave - 200 driver.yml
+    request:
+      url: "{{baseUrl}}/leave/update/{{leaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom1}}",
+            "endDate": "{{leaveTo1}}",
+            "dateCount": 2,
+            "reason": "Bruno test leave (updated)"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave updated successfully!",
+            "data": {
+              "startDate": "2437-01-11T00:00:00.000Z",
+              "endDate": "2437-01-12T00:00:00.000Z",
+              "dateCount": 2,
+              "reason": "Bruno test leave (updated)",
+              "status": 1,
+              "appliedUser": {
+                "fullName": "Ruwan Bandara",
+                "userName": "ruwan.driver",
+                "gender": "6650a1b2c3d4e5f6a7b8e001",
+                "dateOfBirth": "1987-11-02T00:00:00.000Z",
+                "address": "78 Peradeniya Road, Kandy",
+                "phoneNumber1": "0761234503",
+                "phoneNumber2": "0812234503",
+                "email": "ruwan.bandara@example.com",
+                "isFreelanceDriver": false,
+                "profileImageUrl": "",
+                "nic": "198730601234",
+                "drivingLicenseUrl": "http://localhost:9060/uploads/DrivingLicense/1767600000000-ruwan-dl.jpg",
+                "bankName": "Bank of Ceylon",
+                "bankId": 1,
+                "branch": "Kandy",
+                "accountNumber": "0076543210",
+                "accountHolderName": "Ruwan Bandara",
+                "accountHolderAddress": "78 Peradeniya Road, Kandy",
+                "basicSalary": 60000,
+                "languages": [
+                  "Sinhala",
+                  "English",
+                  "German"
+                ],
+                "role": "6650a1b2c3d4e5f6a7b8d003",
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "_id": "6650a1b2c3d4e5f6a7b8c003",
+                "createdAt": "2026-01-06T05:00:00.000Z",
+                "updatedAt": "2026-03-10T06:20:00.000Z"
+              },
+              "approveBy": null,
+              "rejectBy": null,
+              "createdBy": {
+                "fullName": "Ruwan Bandara",
+                "userName": "ruwan.driver",
+                "gender": "6650a1b2c3d4e5f6a7b8e001",
+                "dateOfBirth": "1987-11-02T00:00:00.000Z",
+                "address": "78 Peradeniya Road, Kandy",
+                "phoneNumber1": "0761234503",
+                "phoneNumber2": "0812234503",
+                "email": "ruwan.bandara@example.com",
+                "isFreelanceDriver": false,
+                "profileImageUrl": "",
+                "nic": "198730601234",
+                "drivingLicenseUrl": "http://localhost:9060/uploads/DrivingLicense/1767600000000-ruwan-dl.jpg",
+                "bankName": "Bank of Ceylon",
+                "bankId": 1,
+                "branch": "Kandy",
+                "accountNumber": "0076543210",
+                "accountHolderName": "Ruwan Bandara",
+                "accountHolderAddress": "78 Peradeniya Road, Kandy",
+                "basicSalary": 60000,
+                "languages": [
+                  "Sinhala",
+                  "English",
+                  "German"
+                ],
+                "role": "6650a1b2c3d4e5f6a7b8d003",
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "_id": "6650a1b2c3d4e5f6a7b8c003",
+                "createdAt": "2026-01-06T05:00:00.000Z",
+                "updatedAt": "2026-03-10T06:20:00.000Z"
+              },
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c003",
+              "_id": "6650a1b2c3d4e5f6a7b8f001",
+              "createdAt": "2026-11-18T08:31:00.120Z",
+              "updatedAt": "2026-11-18T08:31:01.340Z"
+            }
+          }
+  - name: 400 overlapping dates
+    description: |-
+      Moving `{{leaveId}}` onto slot 2 overlaps `{{cancelLeaveId}}` (PENDING) (leave.controller.ts:153-165). Note the trailing `.!` in this message.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Update Leave/Update Leave - 400 overlapping dates.yml
+    request:
+      url: "{{baseUrl}}/leave/update/{{leaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom2}}",
+            "endDate": "{{leaveTo2}}",
+            "dateCount": 2,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave is already applied for the given dates.!",
+            "data": null
+          }
+  - name: 400 [KNOWN BUG] admin within limit rejected
+    description: |-
+      [KNOWN BUG] Inverted check: with 0 approved days and the new count within the limit
+      (`0 == 0 && 0 - L + 1 <= L`) it throws "exceeded" (leave.controller.ts:253-260, Document/leave.md #2).
+      Expected: 200. Precondition: `{{adminLeaveId}}` PENDING, admin has no approved days in `{{leaveYear}}`.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: Leave/Update Leave/Update Leave - 400 [KNOWN BUG] admin within limit rejected.yml
+    request:
+      url: "{{baseUrl}}/leave/update/{{adminLeaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom3}}",
+            "endDate": "{{leaveTo3}}",
+            "dateCount": 1,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You have exceeded the leave limit for 2437 year!",
+            "data": null
+          }
+  - name: 400 missing startDate
+    description: |-
+      Same Joi `leaveSchema` as apply (leave.controller.ts:147-151). Full rule set is covered in Apply Leave.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Update Leave/Update Leave - 400 missing startDate.yml
+    request:
+      url: "{{baseUrl}}/leave/update/{{leaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "endDate": "{{leaveTo1}}",
+            "dateCount": 2,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Start Date is required!",
+            "data": null
+          }
+  - name: 400 dateCount 0
+    description: |-
+      Same Joi `leaveSchema` as apply (leave.controller.ts:147-151). Full rule set is covered in Apply Leave.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Update Leave/Update Leave - 400 dateCount 0.yml
+    request:
+      url: "{{baseUrl}}/leave/update/{{leaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom1}}",
+            "endDate": "{{leaveTo1}}",
+            "dateCount": 0,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Date Count cannot be less than 1",
+            "data": null
+          }
+  - name: 400 reason too long
+    description: |-
+      Same Joi `leaveSchema` as apply (leave.controller.ts:147-151). Full rule set is covered in Apply Leave.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Update Leave/Update Leave - 400 reason too long.yml
+    request:
+      url: "{{baseUrl}}/leave/update/{{leaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom1}}",
+            "endDate": "{{leaveTo1}}",
+            "dateCount": 2,
+            "reason": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Reason cannot be more than 500 characters",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. leave.route.ts:67-71.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Leave/Update Leave/Update Leave - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/leave/update/{{leaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom1}}",
+            "endDate": "{{leaveTo1}}",
+            "dateCount": 2,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 rejected leave
+    description: |-
+      Only PENDING leaves can be updated (leave.controller.ts:167-173).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/State Checks/Update Leave - 404 rejected leave.yml
+    request:
+      url: "{{baseUrl}}/leave/update/{{leaveId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom1}}",
+            "endDate": "{{leaveTo1}}",
+            "dateCount": 2,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave not found!",
+            "data": null
+          }
+  - name: 404 not found
+    description: |-
+      Free dates (slot 5) pass the overlap check, then no PENDING leave → `NotFoundError` (leave.controller.ts:167-173).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Update Leave/Update Leave - 404 not found.yml
+    request:
+      url: "{{baseUrl}}/leave/update/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom5}}",
+            "endDate": "{{leaveTo5}}",
+            "dateCount": 2,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave not found!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      `_id: { $ne: "not-an-object-id" }` in the overlap query → CastError → 404 (leave.service.ts:26-46).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Update Leave/Update Leave - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/leave/update/{{invalidId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom5}}",
+            "endDate": "{{leaveTo5}}",
+            "dateCount": 2,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/leave/update/:id`**
+
+  This request runs the main scenario **200 driver**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 driver | Leave updated successfully! |
+  | 2 | 400 | 400 overlapping dates | Leave is already applied for the given dates.! |
+  | 3 | 400 | 400 [KNOWN BUG] admin within limit rejected | You have exceeded the leave limit for 2437 year! |
+  | 4 | 400 | 400 missing startDate | Start Date is required! |
+  | 5 | 400 | 400 dateCount 0 | Date Count cannot be less than 1 |
+  | 6 | 400 | 400 reason too long | Reason cannot be more than 500 characters |
+  | 7 | 401 | 401 no token | Authentication invalid! |
+  | 8 | 404 | 404 rejected leave | Leave not found! |
+  | 9 | 404 | 404 not found | Leave not found! |
+  | 10 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  Same dates (own leave excluded from overlap), new reason (leave.controller.ts:142-234). Returns the raw document (not the DTO).

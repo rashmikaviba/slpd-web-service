@@ -1,0 +1,852 @@
+info:
+  name: Save Check List
+  type: http
+  seq: 7
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/trip/checkList/{{undoTripId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "1": 1,
+        "2": 1,
+        "3": 1,
+        "4": 1,
+        "5": 1,
+        "6": 1,
+        "7": 1,
+        "8": 1,
+        "9": 1,
+        "10": 1,
+        "11": 1,
+        "12": 1,
+        "13": 1,
+        "14": 1,
+        "umbrellaCount": 2,
+        "isTermsConditionsChecked1": true,
+        "isTermsConditionsChecked2": true,
+        "vehicleDamageImages": []
+      }
+  auth:
+    type: bearer
+    token: "{{driverToken}}"
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Answers saved successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 main trip
+    description: |-
+      Stores the whole body as checkListAnswers and checkListCheckBy = driver (src/modules/trip/trip.controller.ts:1086-1089). No check that the caller is the trip's driver (Document/trip.md Known issue 8).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Save Check List/Save Check List - 200 main trip.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "umbrellaCount": 2,
+            "isTermsConditionsChecked1": true,
+            "isTermsConditionsChecked2": true,
+            "vehicleDamageImages": []
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Answers saved successfully!",
+            "data": null
+          }
+  - name: 200 undo trip
+    description: |-
+      Checklist on the undo trip, later cleared by the driver undo.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Save Check List/Save Check List - 200 undo trip.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{undoTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "umbrellaCount": 2,
+            "isTermsConditionsChecked1": true,
+            "isTermsConditionsChecked2": true,
+            "vehicleDamageImages": []
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Answers saved successfully!",
+            "data": null
+          }
+  - name: 200 setup re-save checklist
+    description: |-
+      Setup for the admin-undo checklist bug.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Undo/Save Check List - 200 setup re-save checklist.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{undoTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "umbrellaCount": 2,
+            "isTermsConditionsChecked1": true,
+            "isTermsConditionsChecked2": true,
+            "vehicleDamageImages": []
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Answers saved successfully!",
+            "data": null
+          }
+  - name: 400 trip not pending
+    description: |-
+      `noDriverTripId` was started in the Assign Driver And Vehicle folder → not PENDING (src/modules/trip/trip.controller.ts:1076-1084).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Save Check List/Save Check List - 400 trip not pending.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{noDriverTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "umbrellaCount": 2,
+            "isTermsConditionsChecked1": true,
+            "isTermsConditionsChecked2": true,
+            "vehicleDamageImages": []
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid trip or trip is not in pending status!",
+            "data": null
+          }
+  - name: 400 trip not found
+    description: |-
+      src/modules/trip/trip.controller.ts:1080-1084.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Save Check List/Save Check List - 400 trip not found.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "umbrellaCount": 2,
+            "isTermsConditionsChecked1": true,
+            "isTermsConditionsChecked2": true,
+            "vehicleDamageImages": []
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid trip or trip is not in pending status!",
+            "data": null
+          }
+  - name: 400 finished trip
+    description: |-
+      src/modules/trip/trip.controller.ts:1076-1084.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Change Trip Status - Finish/Save Check List - 400 finished trip.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{finishedTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "umbrellaCount": 2,
+            "isTermsConditionsChecked1": true,
+            "isTermsConditionsChecked2": true,
+            "vehicleDamageImages": []
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid trip or trip is not in pending status!",
+            "data": null
+          }
+  - name: 400 missing terms and conditions 1
+    description: |-
+      Joi `checkListAnswerSchema` (trip.validation.ts:281-346) → src/modules/trip/trip.controller.ts:1070-1073.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Save Check List/Save Check List - 400 missing terms and conditions 1.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "umbrellaCount": 2,
+            "isTermsConditionsChecked2": true,
+            "vehicleDamageImages": []
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "terms and conditions is required",
+            "data": null
+          }
+  - name: 400 terms and conditions 1 not boolean
+    description: |-
+      Joi `checkListAnswerSchema` (trip.validation.ts:281-346) → src/modules/trip/trip.controller.ts:1070-1073.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Save Check List/Save Check List - 400 terms and conditions 1 not boolean.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "umbrellaCount": 2,
+            "isTermsConditionsChecked1": "maybe",
+            "isTermsConditionsChecked2": true,
+            "vehicleDamageImages": []
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "terms and conditions is invalid",
+            "data": null
+          }
+  - name: 400 missing terms and conditions 2
+    description: |-
+      Joi `checkListAnswerSchema` (trip.validation.ts:281-346) → src/modules/trip/trip.controller.ts:1070-1073.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Save Check List/Save Check List - 400 missing terms and conditions 2.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "umbrellaCount": 2,
+            "isTermsConditionsChecked1": true,
+            "vehicleDamageImages": []
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "terms and conditions is required",
+            "data": null
+          }
+  - name: 400 answer not number
+    description: |-
+      Joi `checkListAnswerSchema` (trip.validation.ts:281-346) → src/modules/trip/trip.controller.ts:1070-1073.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Save Check List/Save Check List - 400 answer not number.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "1": "abc",
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "umbrellaCount": 2,
+            "isTermsConditionsChecked1": true,
+            "isTermsConditionsChecked2": true,
+            "vehicleDamageImages": []
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Answer is invalid",
+            "data": null
+          }
+  - name: 400 umbrellaCount not number
+    description: |-
+      Joi `checkListAnswerSchema` (trip.validation.ts:281-346) → src/modules/trip/trip.controller.ts:1070-1073.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Save Check List/Save Check List - 400 umbrellaCount not number.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "umbrellaCount": "abc",
+            "isTermsConditionsChecked1": true,
+            "isTermsConditionsChecked2": true,
+            "vehicleDamageImages": []
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Answer is invalid",
+            "data": null
+          }
+  - name: 400 vehicleDamageImages not array
+    description: |-
+      Joi `checkListAnswerSchema` (trip.validation.ts:281-346) → src/modules/trip/trip.controller.ts:1070-1073.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Save Check List/Save Check List - 400 vehicleDamageImages not array.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "umbrellaCount": 2,
+            "isTermsConditionsChecked1": true,
+            "isTermsConditionsChecked2": true,
+            "vehicleDamageImages": "x"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle Damage Images is invalid",
+            "data": null
+          }
+  - name: 400 unknown field
+    description: |-
+      Joi `checkListAnswerSchema` (trip.validation.ts:281-346) → src/modules/trip/trip.controller.ts:1070-1073.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Save Check List/Save Check List - 400 unknown field.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "umbrellaCount": 2,
+            "isTermsConditionsChecked1": true,
+            "isTermsConditionsChecked2": true,
+            "vehicleDamageImages": [],
+            "foo": "bar"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"foo\" is not allowed",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → `authorize()` throws UnauthorizedError (src/middleware/auth.middleware.ts:24-26).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Trip/Save Check List/Save Check List - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "umbrellaCount": 2,
+            "isTermsConditionsChecked1": true,
+            "isTermsConditionsChecked2": true,
+            "vehicleDamageImages": []
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows DRIVER only (src/modules/trip/trip.route.ts:81-85); the collection default token (super admin) is rejected (src/middleware/auth.middleware.ts:66-74).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Save Check List/Save Check List - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{tripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "umbrellaCount": 2,
+            "isTermsConditionsChecked1": true,
+            "isTermsConditionsChecked2": true,
+            "vehicleDamageImages": []
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed ObjectId reaches `Trip.findOne({_id})` → Mongoose CastError → error middleware returns 404 (src/middleware/error.middleware.ts, CastError branch). Controller: src/modules/trip/trip.controller.ts:1076.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Save Check List/Save Check List - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{invalidId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1,
+            "9": 1,
+            "10": 1,
+            "11": 1,
+            "12": 1,
+            "13": 1,
+            "14": 1,
+            "umbrellaCount": 2,
+            "isTermsConditionsChecked1": true,
+            "isTermsConditionsChecked2": true,
+            "vehicleDamageImages": []
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/trip/checkList/:id`**
+
+  This request runs the main scenario **200 setup re-save checklist**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 main trip | Answers saved successfully! |
+  | 2 | 200 | 200 undo trip | Answers saved successfully! |
+  | 3 | 200 | 200 setup re-save checklist | Answers saved successfully! |
+  | 4 | 400 | 400 trip not pending | Invalid trip or trip is not in pending status! |
+  | 5 | 400 | 400 trip not found | Invalid trip or trip is not in pending status! |
+  | 6 | 400 | 400 finished trip | Invalid trip or trip is not in pending status! |
+  | 7 | 400 | 400 missing terms and conditions 1 | terms and conditions is required |
+  | 8 | 400 | 400 terms and conditions 1 not boolean | terms and conditions is invalid |
+  | 9 | 400 | 400 missing terms and conditions 2 | terms and conditions is required |
+  | 10 | 400 | 400 answer not number | Answer is invalid |
+  | 11 | 400 | 400 umbrellaCount not number | Answer is invalid |
+  | 12 | 400 | 400 vehicleDamageImages not array | Vehicle Damage Images is invalid |
+  | 13 | 400 | 400 unknown field | "foo" is not allowed |
+  | 14 | 401 | 401 no token | Authentication invalid! |
+  | 15 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 16 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  Setup for the admin-undo checklist bug.

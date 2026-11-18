@@ -1,0 +1,16 @@
+info:
+  name: Notification
+  type: folder
+  seq: 17
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    GET /api/v1/notification — on-demand list built from pending expense requests, vehicle renewals (≤ today+7),
+    pending trips missing driver/vehicle (start ≤ today+3) and pending leaves (start ≤ today+3).
+    Route uses `authorize([])` (any role) so there is no 403 case; the list differs by role instead.
+    Seq 1 creates a company vehicle with both renewal dates = today+2 so types 2 and 3 are guaranteed to appear;
+    the last request soft-deletes it again. See Document/notification.md.
+  type: text/markdown

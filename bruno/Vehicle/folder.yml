@@ -1,0 +1,15 @@
+info:
+  name: Vehicle
+  type: folder
+  seq: 6
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    Vehicle master data (`src/modules/vehicle/`, Document/vehicle.md).
+    Create/update/delete/activeInactive: SUPERADMIN only. Reads: any authenticated role.
+    `Create Vehicle - 201 company vehicle` sets `{{vehicleId}}` (used by Vehicle Maintenance, Trip, Report…) — never delete it here.
+    Delete / activeInactive tests use the throwaway `{{vehicleToDeleteId}}`.
+  type: text/markdown

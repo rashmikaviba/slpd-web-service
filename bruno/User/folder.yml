@@ -1,0 +1,20 @@
+info:
+  name: User
+  type: folder
+  seq: 4
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    /api/v1/user/* — user master data (user.router.ts, user.controller.ts, user.service.ts). See Document/user.md.
+
+    - Run order: Create User (sets `{{createdUserId}}` — a DRIVER, role 3) → reads → update → validate → block →
+      unblock → userByRole → getDriversForTrip → delete. `{{createdUserId}}` is left ACTIVE and unblocked for other
+      modules; Delete User works on its own throwaway user `{{deleteUserId}}`.
+    - No Joi file: input is only checked by the uniqueness/role/gender checks in the controller and the Mongoose
+      schema (ValidationError → 400 with the first validator message, error.middleware.ts:38-47).
+    - There is **no unique index** on userName/email/nic, so duplicates give 400 (application check), never 409.
+    - `:id` is a User `_id`; malformed ids reach a Mongoose query → CastError → 404 `No item found with ID "…"!`.
+  type: text/markdown

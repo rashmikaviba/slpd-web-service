@@ -1,0 +1,864 @@
+info:
+  name: Get All Trips
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: "{{baseUrl}}/trip?startDate={{listFrom}}&endDate={{listTo}}"
+  params:
+    - name: startDate
+      value: "{{listFrom}}"
+      type: query
+    - name: endDate
+      value: "{{listTo}}"
+      type: query
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        // body dates: today (UTC midnight) .. +3 days; list range: yesterday .. +7 days
+        const day0 = new Date();
+        day0.setUTCHours(0, 0, 0, 0);
+        const iso = (n) => new Date(day0.getTime() + n * 86400000).toISOString();
+        bru.setVar("tripStartDate", iso(0));
+        bru.setVar("tripDay2", iso(1));
+        bru.setVar("tripDay3", iso(2));
+        bru.setVar("tripEndDate", iso(3));
+        bru.setVar("listFrom", iso(-1).slice(0, 10));
+        bru.setVar("listTo", iso(7).slice(0, 10));
+    - type: tests
+      code: |-
+        test("returns an array", function () {
+          expect(res.body.data).to.be.an("array");
+        });
+
+        test("main trip is listed", function () {
+          expect(res.body.data.map((t) => t.id)).to.include(bru.getVar("tripId"));
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 default (pending, started, finished)
+    description: |-
+      status defaults to -1 → PENDING, START, FINISHED whose startDate or endDate is in range (trip.service.ts:27-56). Sorted by status priority then startDate (src/modules/trip/trip.controller.ts:673-684).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Get All Trips/Get All Trips - 200 default (pending, started, finished).yml
+    request:
+      url: "{{baseUrl}}/trip?startDate={{listFrom}}&endDate={{listTo}}"
+      method: GET
+      params:
+        - name: startDate
+          value: "{{listFrom}}"
+          type: query
+        - name: endDate
+          value: "{{listTo}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "id": "6651b2c3d4e5f6a7b8c9d001",
+                "startDate": "2026-11-18T00:00:00.000Z",
+                "endDate": "2026-11-21T00:00:00.000Z",
+                "dateCount": 4,
+                "totalCost": 1500,
+                "requestedVehicle": "Van",
+                "totalCostLocalCurrency": 450000,
+                "paymentMode": "Cash",
+                "isActiveDriver": false,
+                "isCheckListDone": false,
+                "isPaymentCollected": false,
+                "email": "guest@example.com",
+                "phoneNumber": "+94770000000",
+                "status": 1,
+                "passengersCount": 1,
+                "statusName": "PENDING",
+                "tripConfirmedNumber": "BRUNO-MAIN-1794990601118",
+                "contactPerson": "Bruno Tester",
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "startedBy": null,
+                "isMonthEndDone": false,
+                "isDriverSalaryDone": false,
+                "endedBy": null,
+                "createdUser": "Kasun Perera",
+                "updatedUser": "Kasun Perera",
+                "startedUser": null,
+                "endedUser": null,
+                "canUndo": false,
+                "createdAt": "2026-11-18T08:30:01.125Z",
+                "updatedAt": "2026-11-18T08:30:01.125Z",
+                "paidByCompanyCount": 0,
+                "activeVehicleId": "",
+                "activeRegistrationNumber": "",
+                "activeDriverId": "",
+                "activeDriverName": "",
+                "drivers": [],
+                "vehicles": []
+              },
+              {
+                "id": "6651a0c3d4e5f6a7b8c9d011",
+                "startDate": "2026-11-18T00:00:00.000Z",
+                "endDate": "2026-11-21T00:00:00.000Z",
+                "dateCount": 4,
+                "totalCost": 1500,
+                "requestedVehicle": "Van",
+                "totalCostLocalCurrency": 450000,
+                "paymentMode": "Cash",
+                "isActiveDriver": false,
+                "isCheckListDone": true,
+                "isPaymentCollected": false,
+                "email": "guest@example.com",
+                "phoneNumber": "+94770000000",
+                "status": 3,
+                "passengersCount": 1,
+                "statusName": "START",
+                "tripConfirmedNumber": "BRUNO-MAIN-1794904200760",
+                "contactPerson": "Bruno Updated",
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c002",
+                "isMonthEndDone": false,
+                "isDriverSalaryDone": false,
+                "endedBy": null,
+                "createdUser": "Kasun Perera",
+                "updatedUser": "Kasun Perera",
+                "startedUser": "Nimal Silva",
+                "endedUser": null,
+                "canUndo": false,
+                "createdAt": "2026-11-17T08:30:00.768Z",
+                "updatedAt": "2026-11-17T08:30:19.902Z",
+                "paidByCompanyCount": 0,
+                "activeVehicleId": "6650a1b2c3d4e5f6a7b8d001",
+                "activeRegistrationNumber": "WP CAB-4521",
+                "activeDriverId": "6650a1b2c3d4e5f6a7b8c002",
+                "activeDriverName": "Nimal Silva (nimals)",
+                "drivers": [
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c002",
+                    "driverName": "Nimal Silva",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "driverAssignedByName": "",
+                    "isActive": true
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6650a1b2c3d4e5f6a7b8d001",
+                    "registrationNumber": "WP CAB-4521",
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "licenseRenewalDate": "2027-03-31T00:00:00.000Z",
+                    "insuranceRenewalDate": "2027-01-15T00:00:00.000Z",
+                    "isActive": true
+                  }
+                ]
+              },
+              {
+                "id": "6651a0c3d4e5f6a7b8c9d010",
+                "startDate": "2026-11-18T00:00:00.000Z",
+                "endDate": "2026-11-21T00:00:00.000Z",
+                "dateCount": 4,
+                "totalCost": 1500,
+                "requestedVehicle": "Van",
+                "totalCostLocalCurrency": 450000,
+                "paymentMode": "Cash",
+                "isActiveDriver": false,
+                "isCheckListDone": false,
+                "isPaymentCollected": false,
+                "email": "guest@example.com",
+                "phoneNumber": "+94770000000",
+                "status": 4,
+                "passengersCount": 1,
+                "statusName": "FINISHED",
+                "tripConfirmedNumber": "BRUNO-FIN-1794904201033",
+                "contactPerson": "Bruno Tester",
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c002",
+                "isMonthEndDone": false,
+                "isDriverSalaryDone": false,
+                "endedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "createdUser": "Kasun Perera",
+                "updatedUser": "Kasun Perera",
+                "startedUser": "Nimal Silva",
+                "endedUser": "Kasun Perera",
+                "canUndo": false,
+                "createdAt": "2026-11-17T08:30:01.040Z",
+                "updatedAt": "2026-11-17T08:31:02.118Z",
+                "paidByCompanyCount": 0,
+                "activeVehicleId": "6650a1b2c3d4e5f6a7b8d001",
+                "activeRegistrationNumber": "WP CAB-4521",
+                "activeDriverId": "6650a1b2c3d4e5f6a7b8c002",
+                "activeDriverName": "Nimal Silva (nimals)",
+                "drivers": [
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c002",
+                    "driverName": "Nimal Silva",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "driverAssignedByName": "",
+                    "isActive": true
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6650a1b2c3d4e5f6a7b8d001",
+                    "registrationNumber": "WP CAB-4521",
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "licenseRenewalDate": "2027-03-31T00:00:00.000Z",
+                    "insuranceRenewalDate": "2027-01-15T00:00:00.000Z",
+                    "isActive": true
+                  }
+                ]
+              }
+            ]
+          }
+  - name: 200 status pending
+    description: |-
+      status=1 → PENDING only (src/modules/trip/trip.controller.ts:586-587).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Get All Trips/Get All Trips - 200 status pending.yml
+    request:
+      url: "{{baseUrl}}/trip?status=1&startDate={{listFrom}}&endDate={{listTo}}"
+      method: GET
+      params:
+        - name: status
+          value: "1"
+          type: query
+        - name: startDate
+          value: "{{listFrom}}"
+          type: query
+        - name: endDate
+          value: "{{listTo}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "id": "6651b2c3d4e5f6a7b8c9d001",
+                "startDate": "2026-11-18T00:00:00.000Z",
+                "endDate": "2026-11-21T00:00:00.000Z",
+                "dateCount": 4,
+                "totalCost": 1500,
+                "requestedVehicle": "Van",
+                "totalCostLocalCurrency": 450000,
+                "paymentMode": "Cash",
+                "isActiveDriver": false,
+                "isCheckListDone": false,
+                "isPaymentCollected": false,
+                "email": "guest@example.com",
+                "phoneNumber": "+94770000000",
+                "status": 1,
+                "passengersCount": 1,
+                "statusName": "PENDING",
+                "tripConfirmedNumber": "BRUNO-MAIN-1794990601118",
+                "contactPerson": "Bruno Tester",
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "startedBy": null,
+                "isMonthEndDone": false,
+                "isDriverSalaryDone": false,
+                "endedBy": null,
+                "createdUser": "Kasun Perera",
+                "updatedUser": "Kasun Perera",
+                "startedUser": null,
+                "endedUser": null,
+                "canUndo": false,
+                "createdAt": "2026-11-18T08:30:01.125Z",
+                "updatedAt": "2026-11-18T08:30:01.125Z",
+                "paidByCompanyCount": 0,
+                "activeVehicleId": "",
+                "activeRegistrationNumber": "",
+                "activeDriverId": "",
+                "activeDriverName": "",
+                "drivers": [],
+                "vehicles": []
+              },
+              {
+                "id": "6651b2c3d4e5f6a7b8c9d005",
+                "startDate": "2026-11-18T00:00:00.000Z",
+                "endDate": "2026-11-21T00:00:00.000Z",
+                "dateCount": 4,
+                "totalCost": 1500,
+                "requestedVehicle": "Van",
+                "totalCostLocalCurrency": 450000,
+                "paymentMode": "Cash",
+                "isActiveDriver": false,
+                "isCheckListDone": false,
+                "isPaymentCollected": false,
+                "email": "guest@example.com",
+                "phoneNumber": "+94770000000",
+                "status": 1,
+                "passengersCount": 1,
+                "statusName": "PENDING",
+                "tripConfirmedNumber": "BRUNO-PAY-1794990602226",
+                "contactPerson": "Bruno Tester",
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "startedBy": null,
+                "isMonthEndDone": false,
+                "isDriverSalaryDone": false,
+                "endedBy": null,
+                "createdUser": "Kasun Perera",
+                "updatedUser": "Kasun Perera",
+                "startedUser": null,
+                "endedUser": null,
+                "canUndo": false,
+                "createdAt": "2026-11-18T08:30:02.232Z",
+                "updatedAt": "2026-11-18T08:30:02.232Z",
+                "paidByCompanyCount": 2,
+                "activeVehicleId": "",
+                "activeRegistrationNumber": "",
+                "activeDriverId": "",
+                "activeDriverName": "",
+                "drivers": [],
+                "vehicles": []
+              }
+            ]
+          }
+  - name: 200 status started
+    description: |-
+      status=3 → START only (src/modules/trip/trip.controller.ts:588-589). Empty until Change Trip Status - Start has run.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Get All Trips/Get All Trips - 200 status started.yml
+    request:
+      url: "{{baseUrl}}/trip?status=3&startDate={{listFrom}}&endDate={{listTo}}"
+      method: GET
+      params:
+        - name: status
+          value: "3"
+          type: query
+        - name: startDate
+          value: "{{listFrom}}"
+          type: query
+        - name: endDate
+          value: "{{listTo}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "id": "6651a0c3d4e5f6a7b8c9d011",
+                "startDate": "2026-11-18T00:00:00.000Z",
+                "endDate": "2026-11-21T00:00:00.000Z",
+                "dateCount": 4,
+                "totalCost": 1500,
+                "requestedVehicle": "Van",
+                "totalCostLocalCurrency": 450000,
+                "paymentMode": "Cash",
+                "isActiveDriver": false,
+                "isCheckListDone": true,
+                "isPaymentCollected": false,
+                "email": "guest@example.com",
+                "phoneNumber": "+94770000000",
+                "status": 3,
+                "passengersCount": 1,
+                "statusName": "START",
+                "tripConfirmedNumber": "BRUNO-MAIN-1794904200760",
+                "contactPerson": "Bruno Updated",
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c002",
+                "isMonthEndDone": false,
+                "isDriverSalaryDone": false,
+                "endedBy": null,
+                "createdUser": "Kasun Perera",
+                "updatedUser": "Kasun Perera",
+                "startedUser": "Nimal Silva",
+                "endedUser": null,
+                "canUndo": false,
+                "createdAt": "2026-11-17T08:30:00.768Z",
+                "updatedAt": "2026-11-17T08:30:19.902Z",
+                "paidByCompanyCount": 0,
+                "activeVehicleId": "6650a1b2c3d4e5f6a7b8d001",
+                "activeRegistrationNumber": "WP CAB-4521",
+                "activeDriverId": "6650a1b2c3d4e5f6a7b8c002",
+                "activeDriverName": "Nimal Silva (nimals)",
+                "drivers": [
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c002",
+                    "driverName": "Nimal Silva",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "driverAssignedByName": "",
+                    "isActive": true
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6650a1b2c3d4e5f6a7b8d001",
+                    "registrationNumber": "WP CAB-4521",
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "licenseRenewalDate": "2027-03-31T00:00:00.000Z",
+                    "insuranceRenewalDate": "2027-01-15T00:00:00.000Z",
+                    "isActive": true
+                  }
+                ]
+              }
+            ]
+          }
+  - name: 200 status finished without driver salary
+    description: |-
+      status=4 → FINISHED trips where isDriverSalaryDone == false (src/modules/trip/trip.controller.ts:590, :641-642).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Get All Trips/Get All Trips - 200 status finished without driver salary.yml
+    request:
+      url: "{{baseUrl}}/trip?status=4&startDate={{listFrom}}&endDate={{listTo}}"
+      method: GET
+      params:
+        - name: status
+          value: "4"
+          type: query
+        - name: startDate
+          value: "{{listFrom}}"
+          type: query
+        - name: endDate
+          value: "{{listTo}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "id": "6651a0c3d4e5f6a7b8c9d010",
+                "startDate": "2026-11-18T00:00:00.000Z",
+                "endDate": "2026-11-21T00:00:00.000Z",
+                "dateCount": 4,
+                "totalCost": 1500,
+                "requestedVehicle": "Van",
+                "totalCostLocalCurrency": 450000,
+                "paymentMode": "Cash",
+                "isActiveDriver": false,
+                "isCheckListDone": false,
+                "isPaymentCollected": false,
+                "email": "guest@example.com",
+                "phoneNumber": "+94770000000",
+                "status": 4,
+                "passengersCount": 1,
+                "statusName": "FINISHED",
+                "tripConfirmedNumber": "BRUNO-FIN-1794904201033",
+                "contactPerson": "Bruno Tester",
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c002",
+                "isMonthEndDone": false,
+                "isDriverSalaryDone": false,
+                "endedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "createdUser": "Kasun Perera",
+                "updatedUser": "Kasun Perera",
+                "startedUser": "Nimal Silva",
+                "endedUser": "Kasun Perera",
+                "canUndo": false,
+                "createdAt": "2026-11-17T08:30:01.040Z",
+                "updatedAt": "2026-11-17T08:31:02.118Z",
+                "paidByCompanyCount": 0,
+                "activeVehicleId": "6650a1b2c3d4e5f6a7b8d001",
+                "activeRegistrationNumber": "WP CAB-4521",
+                "activeDriverId": "6650a1b2c3d4e5f6a7b8c002",
+                "activeDriverName": "Nimal Silva (nimals)",
+                "drivers": [
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c002",
+                    "driverName": "Nimal Silva",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "driverAssignedByName": "",
+                    "isActive": true
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6650a1b2c3d4e5f6a7b8d001",
+                    "registrationNumber": "WP CAB-4521",
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "licenseRenewalDate": "2027-03-31T00:00:00.000Z",
+                    "insuranceRenewalDate": "2027-01-15T00:00:00.000Z",
+                    "isActive": true
+                  }
+                ]
+              }
+            ]
+          }
+  - name: 200 status finished with driver salary
+    description: |-
+      status=5 → FINISHED trips where every assigned driver has a salary line (src/modules/trip/trip.controller.ts:590, :639-640). Items still carry status 4.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Get All Trips/Get All Trips - 200 status finished with driver salary.yml
+    request:
+      url: "{{baseUrl}}/trip?status=5&startDate={{listFrom}}&endDate={{listTo}}"
+      method: GET
+      params:
+        - name: status
+          value: "5"
+          type: query
+        - name: startDate
+          value: "{{listFrom}}"
+          type: query
+        - name: endDate
+          value: "{{listTo}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "id": "6651a0c3d4e5f6a7b8c9d010",
+                "startDate": "2026-11-18T00:00:00.000Z",
+                "endDate": "2026-11-21T00:00:00.000Z",
+                "dateCount": 4,
+                "totalCost": 1500,
+                "requestedVehicle": "Van",
+                "totalCostLocalCurrency": 450000,
+                "paymentMode": "Cash",
+                "isActiveDriver": false,
+                "isCheckListDone": false,
+                "isPaymentCollected": false,
+                "email": "guest@example.com",
+                "phoneNumber": "+94770000000",
+                "status": 4,
+                "passengersCount": 1,
+                "statusName": "FINISHED",
+                "tripConfirmedNumber": "BRUNO-FIN-1794904201033",
+                "contactPerson": "Bruno Tester",
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c002",
+                "isMonthEndDone": false,
+                "isDriverSalaryDone": true,
+                "endedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "createdUser": "Kasun Perera",
+                "updatedUser": "Kasun Perera",
+                "startedUser": "Nimal Silva",
+                "endedUser": "Kasun Perera",
+                "canUndo": false,
+                "createdAt": "2026-11-17T08:30:01.040Z",
+                "updatedAt": "2026-11-17T08:31:02.118Z",
+                "paidByCompanyCount": 0,
+                "activeVehicleId": "6650a1b2c3d4e5f6a7b8d001",
+                "activeRegistrationNumber": "WP CAB-4521",
+                "activeDriverId": "6650a1b2c3d4e5f6a7b8c002",
+                "activeDriverName": "Nimal Silva (nimals)",
+                "drivers": [
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c002",
+                    "driverName": "Nimal Silva",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "driverAssignedByName": "",
+                    "isActive": true
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6650a1b2c3d4e5f6a7b8d001",
+                    "registrationNumber": "WP CAB-4521",
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "licenseRenewalDate": "2027-03-31T00:00:00.000Z",
+                    "insuranceRenewalDate": "2027-01-15T00:00:00.000Z",
+                    "isActive": true
+                  }
+                ]
+              }
+            ]
+          }
+  - name: 200 unsupported status returns empty list
+    description: |-
+      status=2 (CANCELED) is not mapped → statusArr = [] → no trips (src/modules/trip/trip.controller.ts:579-592, Document/trip.md Known issue 14). Cancelled trips can never be listed.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Get All Trips/Get All Trips - 200 unsupported status returns empty list.yml
+    request:
+      url: "{{baseUrl}}/trip?status=2&startDate={{listFrom}}&endDate={{listTo}}"
+      method: GET
+      params:
+        - name: status
+          value: "2"
+          type: query
+        - name: startDate
+          value: "{{listFrom}}"
+          type: query
+        - name: endDate
+          value: "{{listTo}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": []
+          }
+  - name: 200 driver sees own trips
+    description: |-
+      DRIVER branch: trips where `drivers.driver` = caller and isMonthEndDone=false, no date filter; adds isActiveDriver (src/modules/trip/trip.controller.ts:647-666). Before Assign Driver And Vehicle runs this is [].
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Get All Trips/Get All Trips - 200 driver sees own trips.yml
+    request:
+      url: "{{baseUrl}}/trip"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "id": "6651a0c3d4e5f6a7b8c9d011",
+                "startDate": "2026-11-18T00:00:00.000Z",
+                "endDate": "2026-11-21T00:00:00.000Z",
+                "dateCount": 4,
+                "totalCost": 1500,
+                "requestedVehicle": "Van",
+                "totalCostLocalCurrency": 450000,
+                "paymentMode": "Cash",
+                "isActiveDriver": true,
+                "isCheckListDone": true,
+                "isPaymentCollected": false,
+                "email": "guest@example.com",
+                "phoneNumber": "+94770000000",
+                "status": 3,
+                "passengersCount": 1,
+                "statusName": "START",
+                "tripConfirmedNumber": "BRUNO-MAIN-1794904200760",
+                "contactPerson": "Bruno Updated",
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "startedBy": "6650a1b2c3d4e5f6a7b8c002",
+                "isMonthEndDone": false,
+                "isDriverSalaryDone": false,
+                "endedBy": null,
+                "createdUser": "Kasun Perera",
+                "updatedUser": "Kasun Perera",
+                "startedUser": "Nimal Silva",
+                "endedUser": null,
+                "canUndo": false,
+                "createdAt": "2026-11-17T08:30:00.768Z",
+                "updatedAt": "2026-11-17T08:30:19.902Z",
+                "paidByCompanyCount": 0,
+                "activeVehicleId": "6650a1b2c3d4e5f6a7b8d001",
+                "activeRegistrationNumber": "WP CAB-4521",
+                "activeDriverId": "6650a1b2c3d4e5f6a7b8c002",
+                "activeDriverName": "Nimal Silva (nimals)",
+                "drivers": [
+                  {
+                    "driver": "6650a1b2c3d4e5f6a7b8c002",
+                    "driverName": "Nimal Silva",
+                    "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "driverAssignedByName": "",
+                    "isActive": true
+                  }
+                ],
+                "vehicles": [
+                  {
+                    "vehicle": "6650a1b2c3d4e5f6a7b8d001",
+                    "registrationNumber": "WP CAB-4521",
+                    "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                    "licenseRenewalDate": "2027-03-31T00:00:00.000Z",
+                    "insuranceRenewalDate": "2027-01-15T00:00:00.000Z",
+                    "isActive": true
+                  }
+                ]
+              }
+            ]
+          }
+  - name: 200 finance officer gets empty list
+    description: |-
+      FINANCEOFFICER matches neither branch → `[]` (src/modules/trip/trip.controller.ts:596-602, :647; Document/trip.md Known issue 14).
+
+      Auth: bearer {{financeOfficerToken}}
+
+      Source scenario: Trip/Get All Trips/Get All Trips - 200 finance officer gets empty list.yml
+    request:
+      url: "{{baseUrl}}/trip?startDate={{listFrom}}&endDate={{listTo}}"
+      method: GET
+      params:
+        - name: startDate
+          value: "{{listFrom}}"
+          type: query
+        - name: endDate
+          value: "{{listTo}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": []
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → `authorize()` throws UnauthorizedError (src/middleware/auth.middleware.ts:24-26).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Trip/Get All Trips/Get All Trips - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/trip"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 [KNOWN BUG] missing date range
+    description: |-
+      [KNOWN BUG] Office roles without startDate/endDate: `new Date(undefined)` → Invalid Date in the query (trip.service.ts:32-42) → Mongoose CastError → 404 with this odd message (Document/trip.md Known issue 14). Should default the range or return 400.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Get All Trips/Get All Trips - 404 [KNOWN BUG] missing date range.yml
+    request:
+      url: "{{baseUrl}}/trip"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"Invalid Date\"!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/trip`**
+
+  This request runs the main scenario **200 default (pending, started, finished)**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 default (pending, started, finished) | (empty) |
+  | 2 | 200 | 200 status pending | (empty) |
+  | 3 | 200 | 200 status started | (empty) |
+  | 4 | 200 | 200 status finished without driver salary | (empty) |
+  | 5 | 200 | 200 status finished with driver salary | (empty) |
+  | 6 | 200 | 200 unsupported status returns empty list | (empty) |
+  | 7 | 200 | 200 driver sees own trips | (empty) |
+  | 8 | 200 | 200 finance officer gets empty list | (empty) |
+  | 9 | 401 | 401 no token | Authentication invalid! |
+  | 10 | 404 | 404 [KNOWN BUG] missing date range | No item found with ID "Invalid Date"! |
+
+  ## Main scenario notes
+
+  status defaults to -1 → PENDING, START, FINISHED whose startDate or endDate is in range (trip.service.ts:27-56). Sorted by status priority then startDate (src/modules/trip/trip.controller.ts:673-684).

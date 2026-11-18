@@ -1,0 +1,257 @@
+info:
+  name: Cancel GRN
+  type: http
+  seq: 7
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/inventory/grn/{{pendingGrnId}}"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Good Receipt Note cancelled successfully!
+    - expression: res.body.data.status
+      operator: eq
+      value: "4"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "201"
+    description: |-
+      [DESTRUCTIVE] PENDING -> CANCELLED (terminal). Placed last because the update error cases need `{{pendingGrnId}}` pending. Responds 201. `src/modules/inventory/grn/grn.controller.ts:300`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Cancel GRN - 201.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/{{pendingGrnId}}"
+      method: DELETE
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Good Receipt Note cancelled successfully!",
+            "data": {
+              "_id": "6731f1a2b4c5d6e7f8a9b0d5",
+              "grnNumber": 26,
+              "grnNumberWithPrefix": "GRN-026",
+              "grnDate": "2026-11-18T08:31:03.410Z",
+              "grnRemarks": "Bruno GRN pending",
+              "products": [
+                {
+                  "productId": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "enteredMeasureUnitId": 13,
+                  "actualMeasureUnitId": 13,
+                  "siConvertedQuantity": 5000,
+                  "quantity": 5,
+                  "remarks": "",
+                  "_id": "6731f1a2b4c5d6e7f8a9b0d6"
+                }
+              ],
+              "status": 4,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "approvedBy": null,
+              "rejectedBy": null,
+              "approvedDate": null,
+              "rejectedDate": null,
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:31:03.410Z",
+              "updatedAt": "2026-11-18T08:31:20.442Z"
+            }
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Inventory/GRN/Cancel GRN - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/{{pendingGrnId}}"
+      method: DELETE
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN only; `{{financeOfficerToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{financeOfficerToken}}
+
+      Source scenario: Inventory/GRN/Cancel GRN - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/{{pendingGrnId}}"
+      method: DELETE
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 not found
+    description: |-
+      `src/modules/inventory/grn/grn.controller.ts:307`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Cancel GRN - 404 not found.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/{{nonExistingId}}"
+      method: DELETE
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pending Good Receipt Note not found for cancel!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      `src/modules/inventory/grn/grn.controller.ts:304`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Cancel GRN - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/{{invalidId}}"
+      method: DELETE
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+  - name: 404 approved GRN
+    description: |-
+      Approved GRNs cannot be cancelled. `src/modules/inventory/grn/grn.controller.ts:307`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Cancel GRN - 404 approved GRN.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/{{grnId}}"
+      method: DELETE
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pending Good Receipt Note not found for cancel!",
+            "data": null
+          }
+  - name: 404 already cancelled
+    description: |-
+      Precondition: `Cancel GRN - 201`. `src/modules/inventory/grn/grn.controller.ts:307`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Cancel GRN - 404 already cancelled.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/{{pendingGrnId}}"
+      method: DELETE
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pending Good Receipt Note not found for cancel!",
+            "data": null
+          }
+
+docs: |-
+  **DELETE `/api/v1/inventory/grn/:id`**
+
+  This request runs the main scenario **201**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 | Good Receipt Note cancelled successfully! |
+  | 2 | 401 | 401 no token | Authentication invalid! |
+  | 3 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 4 | 404 | 404 not found | Pending Good Receipt Note not found for cancel! |
+  | 5 | 404 | 404 invalid id | No item found with ID " |
+  | 6 | 404 | 404 approved GRN | Pending Good Receipt Note not found for cancel! |
+  | 7 | 404 | 404 already cancelled | Pending Good Receipt Note not found for cancel! |
+
+  ## Main scenario notes
+
+  [DESTRUCTIVE] PENDING -> CANCELLED (terminal). Placed last because the update error cases need `{{pendingGrnId}}` pending. Responds 201. `src/modules/inventory/grn/grn.controller.ts:300`

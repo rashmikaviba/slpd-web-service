@@ -1,0 +1,202 @@
+info:
+  name: Unblock User
+  type: http
+  seq: 5
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/user/unblock/{{createdUserId}}"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: User unblocked successfully!
+    - expression: res.body.data
+      operator: isNull
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 created user
+    description: |-
+      Precondition: Block User ran. Sets `isBlocked = false` (user.controller.ts:322-345).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Unblock User/Unblock User - 200 created user.yml
+    request:
+      url: "{{baseUrl}}/user/unblock/{{createdUserId}}"
+      method: PUT
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "User unblocked successfully!",
+            "data": null
+          }
+  - name: 400 already unblocked
+    description: |-
+      user.controller.ts:330.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Unblock User/Unblock User - 400 already unblocked.yml
+    request:
+      url: "{{baseUrl}}/user/unblock/{{createdUserId}}"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "User already unblocked!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. user.router.ts:48-52.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: User/Unblock User/Unblock User - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/user/unblock/{{createdUserId}}"
+      method: PUT
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 admin
+    description: |-
+      Route allows SUPERADMIN only; `{{adminToken}}` is rejected by auth.middleware.ts:73-77. user.router.ts:48-52.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: User/Unblock User/Unblock User - 403 admin.yml
+    request:
+      url: "{{baseUrl}}/user/unblock/{{createdUserId}}"
+      method: PUT
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 not found
+    description: |-
+      user.controller.ts:326-328.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Unblock User/Unblock User - 404 not found.yml
+    request:
+      url: "{{baseUrl}}/user/unblock/{{nonExistingId}}"
+      method: PUT
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "User not found!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      CastError in `Auth.findOne` → 404.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Unblock User/Unblock User - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/user/unblock/{{invalidId}}"
+      method: PUT
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/user/unblock/:id`**
+
+  This request runs the main scenario **200 created user**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 created user | User unblocked successfully! |
+  | 2 | 400 | 400 already unblocked | User already unblocked! |
+  | 3 | 401 | 401 no token | Authentication invalid! |
+  | 4 | 403 | 403 admin | You're unauthorized to access this resource! |
+  | 5 | 404 | 404 not found | User not found! |
+  | 6 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  Precondition: Block User ran. Sets `isBlocked = false` (user.controller.ts:322-345).

@@ -1,0 +1,610 @@
+info:
+  name: Get All Notifications
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/notification"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        const data = res.body.data;
+        const base = ["_id", "type", "typeName", "description", "createdAt"];
+        const extra = {
+          1: ["tripId", "requestedAmount", "requestedUserId", "requestedUserName", "tripConfirmedNumber"],
+          2: ["vehicleName", "expiryDate"],
+          3: ["vehicleName", "expiryDate"],
+          4: ["tripConfirmedNumber", "startDate"],
+          5: ["appliedBy", "startDate"],
+        };
+        const names = {
+          1: "Expense Extension Request",
+          2: "Insurance Renewal",
+          3: "License Renewal",
+          4: "Driver and Vehicle assign",
+          5: "Approve or Reject Leave",
+        };
+        test("data is an array", function () {
+          expect(data).to.be.an("array");
+        });
+        test("every item has exactly the fields of its type", function () {
+          data.forEach((n) => {
+            expect([1, 2, 3, 4, 5]).to.include(n.type);
+            expect(n).to.have.all.keys(base.concat(extra[n.type]));
+            expect(n.typeName).to.equal(names[n.type]);
+            expect(n.description).to.be.a("string");
+            expect(new Date(n.createdAt).toString()).to.not.equal("Invalid Date");
+          });
+        });
+        test("type 1 field types", function () {
+          data.filter((n) => n.type === 1).forEach((n) => {
+            expect(n.requestedAmount).to.be.a("number");
+            expect(n.requestedUserName).to.be.a("string");
+          });
+        });
+        test("types 2-5 have empty description", function () {
+          data.filter((n) => n.type !== 1).forEach((n) => expect(n.description).to.equal(""));
+        });
+        test("sorted newest first by createdAt", function () {
+          for (let i = 1; i < data.length; i++) {
+            expect(new Date(data[i - 1].createdAt).getTime()).to.be.at.least(new Date(data[i].createdAt).getTime());
+          }
+        });
+        test("setup vehicle listed as insurance (2) and licence (3) renewal", function () {
+          const mine = data.filter((n) => n._id === bru.getVar("notifVehicleId"));
+          expect(mine.map((n) => n.type).sort()).to.eql([2, 3]);
+          mine.forEach((n) => expect(n.vehicleName).to.equal(bru.getVar("notifVehicleRegNo")));
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.data
+      operator: isArray
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 Super Admin
+    description: |-
+      Role 1 (Super Admin) gets all 4 collectors concatenated (types 1-5), sorted by `createdAt` desc
+      (notification.controller.ts:13-38, sort :48). Tests check every item field-by-field per type
+      (notification.util.ts:7/35/73/91) and that the setup vehicle (seq 1) shows up as types 2 and 3.
+      Preconditions: seq 1 ran. Other types appear only if pending expense requests / trips / leaves exist.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Notification/Get All Notifications - 200 Super Admin.yml
+    request:
+      url: "{{baseUrl}}/notification"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6658c9d0e1f2a3b4c5d6e001",
+                "tripId": "6651b2c3d4e5f6a7b8c9d002",
+                "type": 1,
+                "typeName": "Expense Extension Request",
+                "description": "Additional fuel for extended route to Ella",
+                "requestedAmount": 15000,
+                "requestedUserId": "6650a1b2c3d4e5f6a7b8c904",
+                "requestedUserName": "Ruwan Bandara (driver.ruwan)",
+                "tripConfirmedNumber": "SLPD-2026-1116",
+                "createdAt": "2026-11-17T10:15:00.000Z"
+              },
+              {
+                "_id": "6651b2c3d4e5f6a7b8c9d003",
+                "type": 4,
+                "tripConfirmedNumber": "SLPD-2026-1120",
+                "typeName": "Driver and Vehicle assign",
+                "description": "",
+                "startDate": "2026-11-20T00:00:00.000Z",
+                "createdAt": "2026-11-17T00:00:00.000Z"
+              },
+              {
+                "_id": "6654e5f6a7b8c9d0e1f2a001",
+                "type": 5,
+                "appliedBy": "Sunil Jayasinghe",
+                "typeName": "Approve or Reject Leave",
+                "description": "",
+                "startDate": "2026-11-19T00:00:00.000Z",
+                "createdAt": "2026-11-16T00:00:00.000Z"
+              },
+              {
+                "_id": "6653d4e5f6a7b8c9d0e1f001",
+                "type": 2,
+                "expiryDate": "2026-11-20T00:00:00.000Z",
+                "typeName": "Insurance Renewal",
+                "vehicleName": "NTF-1795509000",
+                "createdAt": "2026-11-13T00:00:00.000Z",
+                "description": ""
+              },
+              {
+                "_id": "6653d4e5f6a7b8c9d0e1f001",
+                "type": 3,
+                "expiryDate": "2026-11-20T00:00:00.000Z",
+                "typeName": "License Renewal",
+                "vehicleName": "NTF-1795509000",
+                "createdAt": "2026-11-13T00:00:00.000Z",
+                "description": ""
+              }
+            ]
+          }
+  - name: 200 Admin
+    description: |-
+      Role 2 (Admin) gets all 4 collectors concatenated (types 1-5), sorted by `createdAt` desc
+      (notification.controller.ts:13-38, sort :48). Tests check every item field-by-field per type
+      (notification.util.ts:7/35/73/91) and that the setup vehicle (seq 1) shows up as types 2 and 3.
+      Preconditions: seq 1 ran. Other types appear only if pending expense requests / trips / leaves exist.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: Notification/Get All Notifications - 200 Admin.yml
+    request:
+      url: "{{baseUrl}}/notification"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6658c9d0e1f2a3b4c5d6e001",
+                "tripId": "6651b2c3d4e5f6a7b8c9d002",
+                "type": 1,
+                "typeName": "Expense Extension Request",
+                "description": "Additional fuel for extended route to Ella",
+                "requestedAmount": 15000,
+                "requestedUserId": "6650a1b2c3d4e5f6a7b8c904",
+                "requestedUserName": "Ruwan Bandara (driver.ruwan)",
+                "tripConfirmedNumber": "SLPD-2026-1116",
+                "createdAt": "2026-11-17T10:15:00.000Z"
+              },
+              {
+                "_id": "6651b2c3d4e5f6a7b8c9d003",
+                "type": 4,
+                "tripConfirmedNumber": "SLPD-2026-1120",
+                "typeName": "Driver and Vehicle assign",
+                "description": "",
+                "startDate": "2026-11-20T00:00:00.000Z",
+                "createdAt": "2026-11-17T00:00:00.000Z"
+              },
+              {
+                "_id": "6654e5f6a7b8c9d0e1f2a001",
+                "type": 5,
+                "appliedBy": "Sunil Jayasinghe",
+                "typeName": "Approve or Reject Leave",
+                "description": "",
+                "startDate": "2026-11-19T00:00:00.000Z",
+                "createdAt": "2026-11-16T00:00:00.000Z"
+              },
+              {
+                "_id": "6653d4e5f6a7b8c9d0e1f001",
+                "type": 2,
+                "expiryDate": "2026-11-20T00:00:00.000Z",
+                "typeName": "Insurance Renewal",
+                "vehicleName": "NTF-1795509000",
+                "createdAt": "2026-11-13T00:00:00.000Z",
+                "description": ""
+              },
+              {
+                "_id": "6653d4e5f6a7b8c9d0e1f001",
+                "type": 3,
+                "expiryDate": "2026-11-20T00:00:00.000Z",
+                "typeName": "License Renewal",
+                "vehicleName": "NTF-1795509000",
+                "createdAt": "2026-11-13T00:00:00.000Z",
+                "description": ""
+              }
+            ]
+          }
+  - name: 200 Finance Officer
+    description: |-
+      Role 4 (Finance Officer) gets all 4 collectors concatenated (types 1-5), sorted by `createdAt` desc
+      (notification.controller.ts:13-38, sort :48). Tests check every item field-by-field per type
+      (notification.util.ts:7/35/73/91) and that the setup vehicle (seq 1) shows up as types 2 and 3.
+      Preconditions: seq 1 ran. Other types appear only if pending expense requests / trips / leaves exist.
+
+      Auth: bearer {{financeOfficerToken}}
+
+      Source scenario: Notification/Get All Notifications - 200 Finance Officer.yml
+    request:
+      url: "{{baseUrl}}/notification"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6658c9d0e1f2a3b4c5d6e001",
+                "tripId": "6651b2c3d4e5f6a7b8c9d002",
+                "type": 1,
+                "typeName": "Expense Extension Request",
+                "description": "Additional fuel for extended route to Ella",
+                "requestedAmount": 15000,
+                "requestedUserId": "6650a1b2c3d4e5f6a7b8c904",
+                "requestedUserName": "Ruwan Bandara (driver.ruwan)",
+                "tripConfirmedNumber": "SLPD-2026-1116",
+                "createdAt": "2026-11-17T10:15:00.000Z"
+              },
+              {
+                "_id": "6651b2c3d4e5f6a7b8c9d003",
+                "type": 4,
+                "tripConfirmedNumber": "SLPD-2026-1120",
+                "typeName": "Driver and Vehicle assign",
+                "description": "",
+                "startDate": "2026-11-20T00:00:00.000Z",
+                "createdAt": "2026-11-17T00:00:00.000Z"
+              },
+              {
+                "_id": "6654e5f6a7b8c9d0e1f2a001",
+                "type": 5,
+                "appliedBy": "Sunil Jayasinghe",
+                "typeName": "Approve or Reject Leave",
+                "description": "",
+                "startDate": "2026-11-19T00:00:00.000Z",
+                "createdAt": "2026-11-16T00:00:00.000Z"
+              },
+              {
+                "_id": "6653d4e5f6a7b8c9d0e1f001",
+                "type": 2,
+                "expiryDate": "2026-11-20T00:00:00.000Z",
+                "typeName": "Insurance Renewal",
+                "vehicleName": "NTF-1795509000",
+                "createdAt": "2026-11-13T00:00:00.000Z",
+                "description": ""
+              },
+              {
+                "_id": "6653d4e5f6a7b8c9d0e1f001",
+                "type": 3,
+                "expiryDate": "2026-11-20T00:00:00.000Z",
+                "typeName": "License Renewal",
+                "vehicleName": "NTF-1795509000",
+                "createdAt": "2026-11-13T00:00:00.000Z",
+                "description": ""
+              }
+            ]
+          }
+  - name: 200 Trip Manager
+    description: |-
+      Role 5 (Trip Manager) gets all 4 collectors concatenated (types 1-5), sorted by `createdAt` desc
+      (notification.controller.ts:13-38, sort :48). Tests check every item field-by-field per type
+      (notification.util.ts:7/35/73/91) and that the setup vehicle (seq 1) shows up as types 2 and 3.
+      Preconditions: seq 1 ran. Other types appear only if pending expense requests / trips / leaves exist.
+
+      Auth: bearer {{tripManagerToken}}
+
+      Source scenario: Notification/Get All Notifications - 200 Trip Manager.yml
+    request:
+      url: "{{baseUrl}}/notification"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6658c9d0e1f2a3b4c5d6e001",
+                "tripId": "6651b2c3d4e5f6a7b8c9d002",
+                "type": 1,
+                "typeName": "Expense Extension Request",
+                "description": "Additional fuel for extended route to Ella",
+                "requestedAmount": 15000,
+                "requestedUserId": "6650a1b2c3d4e5f6a7b8c904",
+                "requestedUserName": "Ruwan Bandara (driver.ruwan)",
+                "tripConfirmedNumber": "SLPD-2026-1116",
+                "createdAt": "2026-11-17T10:15:00.000Z"
+              },
+              {
+                "_id": "6651b2c3d4e5f6a7b8c9d003",
+                "type": 4,
+                "tripConfirmedNumber": "SLPD-2026-1120",
+                "typeName": "Driver and Vehicle assign",
+                "description": "",
+                "startDate": "2026-11-20T00:00:00.000Z",
+                "createdAt": "2026-11-17T00:00:00.000Z"
+              },
+              {
+                "_id": "6654e5f6a7b8c9d0e1f2a001",
+                "type": 5,
+                "appliedBy": "Sunil Jayasinghe",
+                "typeName": "Approve or Reject Leave",
+                "description": "",
+                "startDate": "2026-11-19T00:00:00.000Z",
+                "createdAt": "2026-11-16T00:00:00.000Z"
+              },
+              {
+                "_id": "6653d4e5f6a7b8c9d0e1f001",
+                "type": 2,
+                "expiryDate": "2026-11-20T00:00:00.000Z",
+                "typeName": "Insurance Renewal",
+                "vehicleName": "NTF-1795509000",
+                "createdAt": "2026-11-13T00:00:00.000Z",
+                "description": ""
+              },
+              {
+                "_id": "6653d4e5f6a7b8c9d0e1f001",
+                "type": 3,
+                "expiryDate": "2026-11-20T00:00:00.000Z",
+                "typeName": "License Renewal",
+                "vehicleName": "NTF-1795509000",
+                "createdAt": "2026-11-13T00:00:00.000Z",
+                "description": ""
+              }
+            ]
+          }
+  - name: 200 Driver empty
+    description: |-
+      Role 3 (Driver) is allowed (`authorize([])`) but always gets `[]` — empty DRIVER branch (notification.controller.ts:29).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Notification/Get All Notifications - 200 Driver empty.yml
+    request:
+      url: "{{baseUrl}}/notification"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": []
+          }
+  - name: 200 Driver Assistant empty
+    description: |-
+      Role 6 (Driver Assistant) is allowed (`authorize([])`) but always gets `[]` — no branch for this role (notification.controller.ts:13-46 falls through).
+
+      Auth: bearer {{driverAssistantToken}}
+
+      Source scenario: Notification/Get All Notifications - 200 Driver Assistant empty.yml
+    request:
+      url: "{{baseUrl}}/notification"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": []
+          }
+  - name: 200 Trip Assistant empty
+    description: |-
+      Role 7 (Trip Assistant) is allowed (`authorize([])`) but always gets `[]` — no branch for this role (notification.controller.ts:13-46 falls through).
+
+      Auth: bearer {{tripAssistantToken}}
+
+      Source scenario: Notification/Get All Notifications - 200 Trip Assistant empty.yml
+    request:
+      url: "{{baseUrl}}/notification"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": []
+          }
+  - name: 401 no token
+    description: |-
+      auth.middleware.ts:25-26 — no `Authorization: Bearer` header → UnauthorizedError.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Notification/Get All Notifications - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/notification"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: Find Expense Request Id - 200 via notifications (Expense Request setup)
+    description: |-
+      Helper: `GET /notification` (SUPERADMIN) lists PENDING expense-extension requests (type 1). Stores the one for `{{tripId}}` as `{{expenseRequestId}}`.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expense Request/Find Expense Request Id - 200 via notifications.yml
+    request:
+      url: "{{baseUrl}}/notification"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6731f4a2b4c5d6e7f8a9b101",
+                "tripId": "6731e5a2b4c5d6e7f8a9b0a1",
+                "type": 1,
+                "typeName": "Expense Extension Request",
+                "description": "Bruno needs more fuel money",
+                "requestedAmount": 5000,
+                "requestedUserId": "6650a1b2c3d4e5f6a7b8c9d1",
+                "requestedUserName": "Nuwan Bandara (nuwan.driver)",
+                "tripConfirmedNumber": "BRUNO-MAIN-1794990790000",
+                "createdAt": "2026-11-18T08:42:00.512Z"
+              },
+              {
+                "_id": "6731e6b2c4d5e6f7a8b9c0d2",
+                "type": 4,
+                "tripConfirmedNumber": "SLPD-2026-1187",
+                "typeName": "Driver and Vehicle assign",
+                "description": "",
+                "startDate": "2026-11-20T03:30:00.000Z",
+                "createdAt": "2026-11-16T18:30:00.000Z"
+              }
+            ]
+          }
+  - name: Find Expense Request Id - 200 second request (Expense Request setup)
+    description: |-
+      Helper: stores the new PENDING request for `{{tripId}}` as `{{rejectedExpenseRequestId}}`.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expense Request/Find Expense Request Id - 200 second request.yml
+    request:
+      url: "{{baseUrl}}/notification"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6731f4a2b4c5d6e7f8a9b102",
+                "tripId": "6731e5a2b4c5d6e7f8a9b0a1",
+                "type": 1,
+                "typeName": "Expense Extension Request",
+                "description": "Bruno second request",
+                "requestedAmount": 2000,
+                "requestedUserId": "6650a1b2c3d4e5f6a7b8c9d1",
+                "requestedUserName": "Nuwan Bandara (nuwan.driver)",
+                "tripConfirmedNumber": "BRUNO-MAIN-1794990790000",
+                "createdAt": "2026-11-18T08:42:03.207Z"
+              },
+              {
+                "_id": "6731e6b2c4d5e6f7a8b9c0d2",
+                "type": 4,
+                "tripConfirmedNumber": "SLPD-2026-1187",
+                "typeName": "Driver and Vehicle assign",
+                "description": "",
+                "startDate": "2026-11-20T03:30:00.000Z",
+                "createdAt": "2026-11-16T18:30:00.000Z"
+              }
+            ]
+          }
+
+docs: |-
+  **GET `/api/v1/notification`**
+
+  This request runs the main scenario **200 Super Admin**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 Super Admin | (empty) |
+  | 2 | 200 | 200 Admin | (empty) |
+  | 3 | 200 | 200 Finance Officer | (empty) |
+  | 4 | 200 | 200 Trip Manager | (empty) |
+  | 5 | 200 | 200 Driver empty | (empty) |
+  | 6 | 200 | 200 Driver Assistant empty | (empty) |
+  | 7 | 200 | 200 Trip Assistant empty | (empty) |
+  | 8 | 401 | 401 no token | Authentication invalid! |
+  | 9 | 200 | Find Expense Request Id - 200 via notifications (Expense Request setup) | (empty) |
+  | 10 | 200 | Find Expense Request Id - 200 second request (Expense Request setup) | (empty) |
+
+  ## Main scenario notes
+
+  Role 1 (Super Admin) gets all 4 collectors concatenated (types 1-5), sorted by `createdAt` desc
+  (notification.controller.ts:13-38, sort :48). Tests check every item field-by-field per type
+  (notification.util.ts:7/35/73/91) and that the setup vehicle (seq 1) shows up as types 2 and 3.
+  Preconditions: seq 1 ran. Other types appear only if pending expense requests / trips / leaves exist.

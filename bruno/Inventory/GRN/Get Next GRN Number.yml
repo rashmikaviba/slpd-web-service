@@ -1,0 +1,101 @@
+info:
+  name: Get Next GRN Number
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/inventory/grn/getNextGrnNumber"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("GRN-xxx", function () {
+          expect(res.body.data).to.match(/^GRN-\d{3,}$/);
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      Any role. Preview only (max grnNumber + 1, zero-padded to 3). `src/modules/inventory/grn/grn.controller.ts:370`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Get Next GRN Number - 200.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/getNextGrnNumber"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": "GRN-024"
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Inventory/GRN/Get Next GRN Number - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/getNextGrnNumber"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/inventory/grn/getNextGrnNumber`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | (empty) |
+  | 2 | 401 | 401 no token | Authentication invalid! |
+
+  ## Main scenario notes
+
+  Any role. Preview only (max grnNumber + 1, zero-padded to 3). `src/modules/inventory/grn/grn.controller.ts:370`

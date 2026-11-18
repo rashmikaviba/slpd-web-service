@@ -1,0 +1,288 @@
+info:
+  name: Cancel Leave
+  type: http
+  seq: 7
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/leave/cancel/{{cancelLeaveId}}"
+  auth:
+    type: bearer
+    token: "{{driverToken}}"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("cancelled", function () {
+          expect(res.body.data.statusName).to.equal("CANCELLED");
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Leave cancelled successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 201 driver cancels pending leave
+    description: |-
+      PENDING → CANCELLED (leave.controller.ts:549-584).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Cancel Leave/Cancel Leave - 201 driver cancels pending leave.yml
+    request:
+      url: "{{baseUrl}}/leave/cancel/{{cancelLeaveId}}"
+      method: PUT
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave cancelled successfully!",
+            "data": {
+              "_id": "6650a1b2c3d4e5f6a7b8f002",
+              "startDate": "2437-01-21T00:00:00.000Z",
+              "endDate": "2437-01-22T00:00:00.000Z",
+              "dateCount": 2,
+              "reason": "Bruno test leave",
+              "status": 4,
+              "statusName": "CANCELLED",
+              "appliedUser": "6650a1b2c3d4e5f6a7b8c003",
+              "appliedUserName": "Ruwan Bandara",
+              "appliedUserRole": "",
+              "availableLeaveCount": "",
+              "approveBy": null,
+              "approvedUser": "",
+              "approveDate": null,
+              "approveRemark": "",
+              "rejectBy": null,
+              "rejectedUser": "",
+              "rejectDate": null,
+              "rejectReason": "",
+              "isMonthEndDone": false,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c003",
+              "createdUser": "Ruwan Bandara",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c003",
+              "updatedUser": "",
+              "createdAt": "2026-11-18T08:31:00.410Z",
+              "updatedAt": "2026-11-18T08:31:03.810Z"
+            }
+          }
+  - name: 201 admin leave (cleanup)
+    description: |-
+      Cleanup: cancels the still-PENDING `{{adminLeaveId2}}`.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: Leave/Cancel Leave/Cancel Leave - 201 admin leave (cleanup).yml
+    request:
+      url: "{{baseUrl}}/leave/cancel/{{adminLeaveId2}}"
+      method: PUT
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave cancelled successfully!",
+            "data": {
+              "_id": "6650a1b2c3d4e5f6a7b8f004",
+              "startDate": "2437-02-10T00:00:00.000Z",
+              "endDate": "2437-02-11T00:00:00.000Z",
+              "dateCount": 14,
+              "reason": "Bruno test leave",
+              "status": 4,
+              "statusName": "CANCELLED",
+              "appliedUser": "6650a1b2c3d4e5f6a7b8c002",
+              "appliedUserName": "Nadeesha Fernando",
+              "appliedUserRole": "",
+              "availableLeaveCount": "",
+              "approveBy": null,
+              "approvedUser": "",
+              "approveDate": null,
+              "approveRemark": "",
+              "rejectBy": null,
+              "rejectedUser": "",
+              "rejectDate": null,
+              "rejectReason": "",
+              "isMonthEndDone": false,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c002",
+              "createdUser": "Nadeesha Fernando",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c002",
+              "updatedUser": "",
+              "createdAt": "2026-11-18T08:31:00.998Z",
+              "updatedAt": "2026-11-18T08:31:04.150Z"
+            }
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. leave.route.ts:61-65.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Leave/Cancel Leave/Cancel Leave - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/leave/cancel/{{cancelLeaveId}}"
+      method: PUT
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 already cancelled
+    description: |-
+      Only PENDING (leave.controller.ts:553-557).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Cancel Leave/Cancel Leave - 404 already cancelled.yml
+    request:
+      url: "{{baseUrl}}/leave/cancel/{{cancelLeaveId}}"
+      method: PUT
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave not found!",
+            "data": null
+          }
+  - name: 404 rejected leave
+    description: |-
+      `{{leaveId}}` is REJECTED → not PENDING (leave.controller.ts:553-557).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Cancel Leave/Cancel Leave - 404 rejected leave.yml
+    request:
+      url: "{{baseUrl}}/leave/cancel/{{leaveId}}"
+      method: PUT
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave not found!",
+            "data": null
+          }
+  - name: 404 not found
+    description: |-
+      leave.controller.ts:557.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Cancel Leave/Cancel Leave - 404 not found.yml
+    request:
+      url: "{{baseUrl}}/leave/cancel/{{nonExistingId}}"
+      method: PUT
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave not found!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      CastError in `Leave.findOne` → 404.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Cancel Leave/Cancel Leave - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/leave/cancel/{{invalidId}}"
+      method: PUT
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/leave/cancel/:id`**
+
+  This request runs the main scenario **201 driver cancels pending leave**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 driver cancels pending leave | Leave cancelled successfully! |
+  | 2 | 201 | 201 admin leave (cleanup) | Leave cancelled successfully! |
+  | 3 | 401 | 401 no token | Authentication invalid! |
+  | 4 | 404 | 404 already cancelled | Leave not found! |
+  | 5 | 404 | 404 rejected leave | Leave not found! |
+  | 6 | 404 | 404 not found | Leave not found! |
+  | 7 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  PENDING → CANCELLED (leave.controller.ts:549-584).

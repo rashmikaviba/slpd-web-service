@@ -1,0 +1,13 @@
+info:
+  name: Product
+  type: folder
+  seq: 1
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    `/inventory/product` — `src/modules/inventory/product/`.
+    Runtime vars set here: `productId`, `productName`, `productShortCode` (main kg product), `tempProductId` (pc product that is toggled then deleted).
+  type: text/markdown

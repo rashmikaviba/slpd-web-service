@@ -1,0 +1,210 @@
+info:
+  name: Get Destination Summary
+  type: http
+  seq: 16
+
+http:
+  method: GET
+  url: "{{baseUrl}}/trip/destinationSummary/{{tripId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("raw places", function () {
+          expect(res.body.data.length).to.equal(3);
+          expect(res.body.data[0].isReached).to.equal(true);
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 main trip
+    description: |-
+      trip.places as stored.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Get Destination Summary/Get Destination Summary - 200 main trip.yml
+    request:
+      url: "{{baseUrl}}/trip/destinationSummary/{{tripId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "description": "Kandy",
+                "dates": [
+                  "2026-11-18T00:00:00.000Z"
+                ],
+                "isReached": true,
+                "index": 1,
+                "reachedDate": "2026-11-18T08:30:14.512Z",
+                "calcDistance": 10,
+                "startMilage": 45230,
+                "endMilage": 45240,
+                "location": {
+                  "lat": 7.2906,
+                  "lng": 80.6337
+                },
+                "reachedBy": {
+                  "_id": "6650a1b2c3d4e5f6a7b8c002",
+                  "fullName": "Nimal Silva",
+                  "userName": "nimals"
+                },
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "_id": "6651b2c3d4e5f6a7b8c9e101"
+              },
+              {
+                "description": "Ella",
+                "dates": [
+                  "2026-11-19T00:00:00.000Z"
+                ],
+                "isReached": false,
+                "index": 2,
+                "reachedDate": null,
+                "calcDistance": 0,
+                "startMilage": 0,
+                "endMilage": 0,
+                "location": null,
+                "reachedBy": null,
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "_id": "6651b2c3d4e5f6a7b8c9e102"
+              },
+              {
+                "description": "Galle",
+                "dates": [
+                  "2026-11-20T00:00:00.000Z"
+                ],
+                "isReached": false,
+                "index": 3,
+                "reachedDate": null,
+                "calcDistance": 0,
+                "startMilage": 0,
+                "endMilage": 0,
+                "location": null,
+                "reachedBy": null,
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "_id": "6651b2c3d4e5f6a7b8c9e103"
+              }
+            ]
+          }
+  - name: 400 not found
+    description: |-
+      src/modules/trip/trip.controller.ts:1386-1388.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Get Destination Summary/Get Destination Summary - 400 not found.yml
+    request:
+      url: "{{baseUrl}}/trip/destinationSummary/{{nonExistingId}}"
+      method: GET
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid trip!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → `authorize()` throws UnauthorizedError (src/middleware/auth.middleware.ts:24-26).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Trip/Get Destination Summary/Get Destination Summary - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/trip/destinationSummary/{{tripId}}"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed ObjectId reaches `Trip.findOne({_id})` → Mongoose CastError → error middleware returns 404 (src/middleware/error.middleware.ts, CastError branch). Controller: src/modules/trip/trip.controller.ts:1380.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Get Destination Summary/Get Destination Summary - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/trip/destinationSummary/{{invalidId}}"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/trip/destinationSummary/:id`**
+
+  This request runs the main scenario **200 main trip**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 main trip | (empty) |
+  | 2 | 400 | 400 not found | Invalid trip! |
+  | 3 | 401 | 401 no token | Authentication invalid! |
+  | 4 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  trip.places as stored.

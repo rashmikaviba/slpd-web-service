@@ -1,0 +1,14 @@
+info:
+  name: Dashboard
+  type: folder
+  seq: 18
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    GET /api/v1/dashboard/* — SUPERADMIN and ADMIN only (dashboard.route.ts:9-19). No Joi validation:
+    bad/missing query params are caught by the handler's try/catch and return 500 "Error fetching dashboard data"
+    ([KNOWN BUG] dashboard.md › Known issues 5). See Document/dashboard.md.
+  type: text/markdown

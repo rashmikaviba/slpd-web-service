@@ -1,0 +1,576 @@
+info:
+  name: Update User
+  type: http
+  seq: 3
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/user/{{createdUserId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "fullName": "Bruno Test User (updated)",
+        "userName": "{{createdUserName}}",
+        "gender": 1,
+        "dateOfBirth": "1990-01-15",
+        "address": "1 Test Street, Colombo",
+        "phoneNumber1": "0771234567",
+        "phoneNumber2": "",
+        "email": "{{createdUserEmail}}",
+        "profileImageUrl": "",
+        "nic": "{{createdUserNic}}",
+        "bankName": "Test Bank",
+        "bankId": 1,
+        "branch": "Colombo",
+        "accountNumber": "000111222333",
+        "accountHolderName": "Bruno Test User",
+        "accountHolderAddress": "1 Test Street, Colombo",
+        "basicSalary": 50000,
+        "leaveCount": 14,
+        "languages": ["English", "Sinhala"],
+        "role": 3,
+        "isFreelanceDriver": false
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("returns updated raw user", function () {
+          expect(res.body.data._id).to.equal(bru.getVar("createdUserId"));
+          expect(res.body.data.fullName).to.equal("Bruno Test User (updated)");
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: User updated successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 created user
+    description: |-
+      Same userName/email/nic (own values are excluded from the uniqueness check), new fullName (user.controller.ts:155-294).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Update User/Update User - 200 created user.yml
+    request:
+      url: "{{baseUrl}}/user/{{createdUserId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User (updated)",
+            "userName": "{{createdUserName}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "{{createdUserEmail}}",
+            "profileImageUrl": "",
+            "nic": "{{createdUserNic}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "User updated successfully!",
+            "data": {
+              "fullName": "Bruno Test User (updated)",
+              "userName": "bru_user_1794990600482",
+              "gender": "6650a1b2c3d4e5f6a7b8e001",
+              "dateOfBirth": "1990-01-15T00:00:00.000Z",
+              "address": "1 Test Street, Colombo",
+              "phoneNumber1": "0771234567",
+              "phoneNumber2": "",
+              "email": "bru1794990600482@example.com",
+              "isFreelanceDriver": false,
+              "profileImageUrl": "",
+              "nic": "BRU1794990600482",
+              "bankName": "Test Bank",
+              "bankId": 1,
+              "branch": "Colombo",
+              "accountNumber": "000111222333",
+              "accountHolderName": "Bruno Test User",
+              "accountHolderAddress": "1 Test Street, Colombo",
+              "basicSalary": 50000,
+              "leaveCount": 14,
+              "languages": [
+                "English",
+                "Sinhala"
+              ],
+              "role": "6650a1b2c3d4e5f6a7b8d003",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "_id": "6650a1b2c3d4e5f6a7b8c010",
+              "createdAt": "2026-11-18T08:30:00.512Z",
+              "updatedAt": "2026-11-18T08:30:03.118Z"
+            }
+          }
+  - name: 400 duplicate userName
+    description: |-
+      userName of another ACTIVE user (`_id $ne :id`) → 400 (user.controller.ts:188-214). Email/NIC duplicates use the same code path.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Update User/Update User - 400 duplicate userName.yml
+    request:
+      url: "{{baseUrl}}/user/{{createdUserId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User (updated)",
+            "userName": "{{superAdminUserName}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "{{createdUserEmail}}",
+            "profileImageUrl": "",
+            "nic": "{{createdUserNic}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "User Name already exists!",
+            "data": null
+          }
+  - name: 400 invalid role
+    description: |-
+      user.controller.ts:217-220.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Update User/Update User - 400 invalid role.yml
+    request:
+      url: "{{baseUrl}}/user/{{createdUserId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User (updated)",
+            "userName": "{{createdUserName}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "{{createdUserEmail}}",
+            "profileImageUrl": "",
+            "nic": "{{createdUserNic}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 99,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Valid Role is required!",
+            "data": null
+          }
+  - name: 400 invalid gender
+    description: |-
+      user.controller.ts:218,221.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Update User/Update User - 400 invalid gender.yml
+    request:
+      url: "{{baseUrl}}/user/{{createdUserId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User (updated)",
+            "userName": "{{createdUserName}}",
+            "gender": 99,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "{{createdUserEmail}}",
+            "profileImageUrl": "",
+            "nic": "{{createdUserNic}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Valid Gender is required!",
+            "data": null
+          }
+  - name: 400 missing bankId
+    description: |-
+      `user.bankId = undefined` then save → ValidationError → 400; transaction aborted so nothing changes
+      (user.controller.ts:251,264, user.model.ts:103-106). Shows that partial bodies wipe fields (Document/user.md #6).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Update User/Update User - 400 missing bankId.yml
+    request:
+      url: "{{baseUrl}}/user/{{createdUserId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User (updated)",
+            "userName": "{{createdUserName}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "{{createdUserEmail}}",
+            "profileImageUrl": "",
+            "nic": "{{createdUserNic}}",
+            "bankName": "Test Bank",
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Bank Id is required",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. user.router.ts:36-40.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: User/Update User/Update User - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/user/{{createdUserId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User (updated)",
+            "userName": "{{createdUserName}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "{{createdUserEmail}}",
+            "profileImageUrl": "",
+            "nic": "{{createdUserNic}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 admin
+    description: |-
+      Route allows SUPERADMIN only; `{{adminToken}}` is rejected by auth.middleware.ts:73-77. user.router.ts:36-40.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: User/Update User/Update User - 403 admin.yml
+    request:
+      url: "{{baseUrl}}/user/{{createdUserId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User (updated)",
+            "userName": "{{createdUserName}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "{{createdUserEmail}}",
+            "profileImageUrl": "",
+            "nic": "{{createdUserNic}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 not found
+    description: |-
+      Fresh unique values pass the checks, then `userService.findById` → null → `NotFoundError` (user.controller.ts:232-234).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Update User/Update User - 404 not found.yml
+    request:
+      url: "{{baseUrl}}/user/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "User not found!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      `_id: { $ne: "not-an-object-id" }` in the uniqueness query → CastError → 404 (user.service.ts:43-54).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Update User/Update User - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/user/{{invalidId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "fullName": "Bruno Test User",
+            "userName": "bru_user_{{$timestamp}}{{$randomInt}}",
+            "gender": 1,
+            "dateOfBirth": "1990-01-15",
+            "address": "1 Test Street, Colombo",
+            "phoneNumber1": "0771234567",
+            "phoneNumber2": "",
+            "email": "bru{{$timestamp}}{{$randomInt}}@example.com",
+            "profileImageUrl": "",
+            "nic": "BRU{{$timestamp}}{{$randomInt}}",
+            "bankName": "Test Bank",
+            "bankId": 1,
+            "branch": "Colombo",
+            "accountNumber": "000111222333",
+            "accountHolderName": "Bruno Test User",
+            "accountHolderAddress": "1 Test Street, Colombo",
+            "basicSalary": 50000,
+            "leaveCount": 14,
+            "languages": ["English", "Sinhala"],
+            "role": 3,
+            "isFreelanceDriver": false
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/user/:id`**
+
+  This request runs the main scenario **200 created user**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 created user | User updated successfully! |
+  | 2 | 400 | 400 duplicate userName | User Name already exists! |
+  | 3 | 400 | 400 invalid role | Valid Role is required! |
+  | 4 | 400 | 400 invalid gender | Valid Gender is required! |
+  | 5 | 400 | 400 missing bankId | Bank Id is required |
+  | 6 | 401 | 401 no token | Authentication invalid! |
+  | 7 | 403 | 403 admin | You're unauthorized to access this resource! |
+  | 8 | 404 | 404 not found | User not found! |
+  | 9 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  Same userName/email/nic (own values are excluded from the uniqueness check), new fullName (user.controller.ts:155-294).

@@ -1,0 +1,154 @@
+info:
+  name: Get Product Audit Log
+  type: http
+  seq: 7
+
+http:
+  method: GET
+  url: "{{baseUrl}}/inventory/product/productAuditLog/{{productId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("logs array", function () {
+          expect(res.body.data).to.be.an("array");
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      Any role. Returns `inventoryLogs` sorted newest first (empty until GRN approval / POS). `src/modules/inventory/product/product.controller.ts:260`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Get Product Audit Log - 200.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/productAuditLog/{{productId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": []
+          }
+  - name: 200 undefined for unknown id
+    description: |-
+      Unknown id -> `productLogs?.inventoryLogs` is undefined, so `data` is dropped from the JSON (200, no 404). `src/modules/inventory/product/product.controller.ts:266` (Known issues).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Get Product Audit Log - 200 undefined for unknown id.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/productAuditLog/{{nonExistingId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": ""
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Inventory/Product/Get Product Audit Log - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/productAuditLog/{{productId}}"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      `src/modules/inventory/product/product.controller.ts:263`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Get Product Audit Log - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/productAuditLog/{{invalidId}}"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/inventory/product/productAuditLog/:id`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | (empty) |
+  | 2 | 200 | 200 undefined for unknown id | (empty) |
+  | 3 | 401 | 401 no token | Authentication invalid! |
+  | 4 | 404 | 404 invalid id | No item found with ID " |
+
+  ## Main scenario notes
+
+  Any role. Returns `inventoryLogs` sorted newest first (empty until GRN approval / POS). `src/modules/inventory/product/product.controller.ts:260`

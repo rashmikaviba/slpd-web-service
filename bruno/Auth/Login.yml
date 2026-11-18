@@ -1,0 +1,1139 @@
+info:
+  name: Login
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/login"
+  body:
+    type: json
+    data: |-
+      {
+        "userName": "{{superAdminUserName}}",
+        "password": "{{superAdminPassword}}"
+      }
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        // Stores <role>Token and <role>UserId for whichever role logs in.
+        // To log in as another role, change userName/password in the body (e.g. {{driverUserName}} / {{driverPassword}}).
+        const roleKeys = {1:"superAdmin",2:"admin",3:"driver",4:"financeOfficer",5:"tripManager",6:"driverAssistant",7:"tripAssistant"};
+        if (res.status === 200) {
+          const key = roleKeys[res.body.data.role];
+          bru.setVar(key + "Token", res.body.data.token.replace(/^Bearer /, ""));
+          bru.setVar(key + "UserId", res.body.data.user._id);
+        }
+    - type: tests
+      code: |-
+        test("token is a Bearer JWT", function () {
+          expect(res.body.data.token).to.match(/^Bearer [\w-]+\.[\w-]+\.[\w-]+$/);
+        });
+        test("menu modules match moduleIds", function () {
+          expect(res.body.data.moduleIds).to.eql(res.body.data.modules.map((m) => m.id));
+        });
+        test("working period returned", function () {
+          expect(res.body.data).to.have.property("workingMonth");
+          expect(res.body.data).to.have.property("workingYear");
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Login Successful!
+    - expression: res.body.data.role
+      operator: eq
+      value: "1"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 Super Admin
+    description: |-
+      Logs in as role 1 (Super Admin). Stores `{{superAdminToken}}` and `{{superAdminUserId}}` runtime vars.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Auth/Login/Login - 200 Super Admin.yml
+    request:
+      url: "{{baseUrl}}/auth/login"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "userName": "{{superAdminUserName}}",
+            "password": "{{superAdminPassword}}"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Login Successful!",
+            "data": {
+              "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature",
+              "user": {
+                "fullName": "Kasun Perera",
+                "userName": "kasun.perera",
+                "gender": "6650a1b2c3d4e5f6a7b8e001",
+                "dateOfBirth": "1984-03-12T00:00:00.000Z",
+                "address": "45 Galle Road, Colombo 03",
+                "phoneNumber1": "0771234501",
+                "phoneNumber2": "",
+                "email": "kasun.perera@example.com",
+                "isFreelanceDriver": false,
+                "profileImageUrl": "",
+                "nic": "198407201234",
+                "bankName": "Commercial Bank PLC",
+                "bankId": 4,
+                "branch": "Kollupitiya",
+                "accountNumber": "1000234501",
+                "accountHolderName": "Kasun Perera",
+                "accountHolderAddress": "45 Galle Road, Colombo 03",
+                "basicSalary": 250000,
+                "leaveCount": 21,
+                "languages": [
+                  "Sinhala",
+                  "English"
+                ],
+                "role": "6650a1b2c3d4e5f6a7b8d001",
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "_id": "6650a1b2c3d4e5f6a7b8c001",
+                "createdAt": "2026-01-06T05:00:00.000Z",
+                "updatedAt": "2026-03-10T06:20:00.000Z"
+              },
+              "role": 1,
+              "modules": [
+                {
+                  "id": 1,
+                  "name": "User Management",
+                  "status": 1
+                },
+                {
+                  "id": 2,
+                  "name": "Super Admin Leave Management",
+                  "status": 1
+                },
+                {
+                  "id": 3,
+                  "name": "Month Audit",
+                  "status": 1
+                },
+                {
+                  "id": 4,
+                  "name": "Super Admin Dashboard",
+                  "status": 1
+                },
+                {
+                  "id": 5,
+                  "name": "Super Admin Vehicle Tracking",
+                  "status": 1
+                },
+                {
+                  "id": 6,
+                  "name": "Super Admin Vehicle Management",
+                  "status": 1
+                },
+                {
+                  "id": 7,
+                  "name": "Super Admin Trip Management",
+                  "status": 1
+                },
+                {
+                  "id": 8,
+                  "name": "Super Admin Report Management",
+                  "status": 1
+                },
+                {
+                  "id": 9,
+                  "name": "Super Admin Inventory Management",
+                  "status": 1
+                },
+                {
+                  "id": 10,
+                  "name": "Super Admin Product Management",
+                  "status": 1
+                },
+                {
+                  "id": 11,
+                  "name": "Super Admin Good Received Note",
+                  "status": 1
+                },
+                {
+                  "id": 12,
+                  "name": "Super Admin Monthly Expenses Management",
+                  "status": 1
+                },
+                {
+                  "id": 13,
+                  "name": "Super Admin Master Configuration",
+                  "status": 1
+                },
+                {
+                  "id": 14,
+                  "name": "Super Admin Garage Management",
+                  "status": 1
+                },
+                {
+                  "id": 15,
+                  "name": "Super Admin Vehicle Maintenance",
+                  "status": 1
+                }
+              ],
+              "moduleIds": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15
+              ],
+              "workingMonth": 11,
+              "workingYear": 2026,
+              "workingDate": "2026-10-31T18:30:00.000Z"
+            }
+          }
+  - name: 200 Admin
+    description: |-
+      Logs in as role 2 (Admin). Stores `{{adminToken}}` and `{{adminUserId}}` runtime vars.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Auth/Login/Login - 200 Admin.yml
+    request:
+      url: "{{baseUrl}}/auth/login"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "userName": "{{adminUserName}}",
+            "password": "{{adminPassword}}"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Login Successful!",
+            "data": {
+              "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature",
+              "user": {
+                "fullName": "Nadeesha Fernando",
+                "userName": "nadeesha.f",
+                "gender": "6650a1b2c3d4e5f6a7b8e002",
+                "dateOfBirth": "1990-07-24T00:00:00.000Z",
+                "address": "12 Temple Road, Nugegoda",
+                "phoneNumber1": "0712345602",
+                "phoneNumber2": "",
+                "email": "nadeesha.fernando@example.com",
+                "isFreelanceDriver": false,
+                "profileImageUrl": "",
+                "nic": "199070601234",
+                "bankName": "Sampath Bank PLC",
+                "bankId": 16,
+                "branch": "Nugegoda",
+                "accountNumber": "1029384756",
+                "accountHolderName": "Nadeesha Fernando",
+                "accountHolderAddress": "12 Temple Road, Nugegoda",
+                "basicSalary": 120000,
+                "leaveCount": 14,
+                "languages": [
+                  "Sinhala",
+                  "English"
+                ],
+                "role": "6650a1b2c3d4e5f6a7b8d002",
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "_id": "6650a1b2c3d4e5f6a7b8c002",
+                "createdAt": "2026-01-06T05:00:00.000Z",
+                "updatedAt": "2026-03-10T06:20:00.000Z"
+              },
+              "role": 2,
+              "modules": [
+                {
+                  "id": 30,
+                  "name": "Admin Leave Management",
+                  "status": 1
+                },
+                {
+                  "id": 31,
+                  "name": "Admin Vehicle Management",
+                  "status": 1
+                },
+                {
+                  "id": 32,
+                  "name": "Admin Trip Management",
+                  "status": 1
+                },
+                {
+                  "id": 33,
+                  "name": "Admin Report Management",
+                  "status": 1
+                },
+                {
+                  "id": 34,
+                  "name": "Admin Inventory Management",
+                  "status": 1
+                },
+                {
+                  "id": 35,
+                  "name": "Admin Product Management",
+                  "status": 1
+                },
+                {
+                  "id": 36,
+                  "name": "Admin Good Received Note",
+                  "status": 1
+                },
+                {
+                  "id": 37,
+                  "name": "Admin Monthly Expenses Management",
+                  "status": 1
+                },
+                {
+                  "id": 38,
+                  "name": "Admin Dashboard",
+                  "status": 1
+                },
+                {
+                  "id": 39,
+                  "name": "Admin Master Configuration",
+                  "status": 1
+                },
+                {
+                  "id": 40,
+                  "name": "Admin Garage Management",
+                  "status": 1
+                },
+                {
+                  "id": 41,
+                  "name": "Admin Vehicle Maintenance",
+                  "status": 1
+                }
+              ],
+              "moduleIds": [
+                30,
+                31,
+                32,
+                33,
+                34,
+                35,
+                36,
+                37,
+                38,
+                39,
+                40,
+                41
+              ],
+              "workingMonth": 11,
+              "workingYear": 2026,
+              "workingDate": "2026-10-31T18:30:00.000Z"
+            }
+          }
+  - name: 200 Driver
+    description: |-
+      Logs in as role 3 (Driver). Stores `{{driverToken}}` and `{{driverUserId}}` runtime vars.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Auth/Login/Login - 200 Driver.yml
+    request:
+      url: "{{baseUrl}}/auth/login"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "userName": "{{driverUserName}}",
+            "password": "{{driverPassword}}"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Login Successful!",
+            "data": {
+              "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature",
+              "user": {
+                "fullName": "Ruwan Bandara",
+                "userName": "ruwan.driver",
+                "gender": "6650a1b2c3d4e5f6a7b8e001",
+                "dateOfBirth": "1987-11-02T00:00:00.000Z",
+                "address": "78 Peradeniya Road, Kandy",
+                "phoneNumber1": "0761234503",
+                "phoneNumber2": "0812234503",
+                "email": "ruwan.bandara@example.com",
+                "isFreelanceDriver": false,
+                "profileImageUrl": "",
+                "nic": "198730601234",
+                "drivingLicenseUrl": "http://localhost:9060/uploads/DrivingLicense/1767600000000-ruwan-dl.jpg",
+                "bankName": "Bank of Ceylon",
+                "bankId": 1,
+                "branch": "Kandy",
+                "accountNumber": "0076543210",
+                "accountHolderName": "Ruwan Bandara",
+                "accountHolderAddress": "78 Peradeniya Road, Kandy",
+                "basicSalary": 60000,
+                "languages": [
+                  "Sinhala",
+                  "English",
+                  "German"
+                ],
+                "role": "6650a1b2c3d4e5f6a7b8d003",
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "_id": "6650a1b2c3d4e5f6a7b8c003",
+                "createdAt": "2026-01-06T05:00:00.000Z",
+                "updatedAt": "2026-03-10T06:20:00.000Z"
+              },
+              "role": 3,
+              "modules": [
+                {
+                  "id": 60,
+                  "name": "Driver Leave Management",
+                  "status": 1
+                },
+                {
+                  "id": 61,
+                  "name": "Driver Trip Management",
+                  "status": 1
+                },
+                {
+                  "id": 62,
+                  "name": "Recommended Garage",
+                  "status": 1
+                }
+              ],
+              "moduleIds": [
+                60,
+                61,
+                62
+              ],
+              "workingMonth": 11,
+              "workingYear": 2026,
+              "workingDate": "2026-10-31T18:30:00.000Z"
+            }
+          }
+  - name: 200 Finance Officer
+    description: |-
+      Logs in as role 4 (Finance Officer). Stores `{{financeOfficerToken}}` and `{{financeOfficerUserId}}` runtime vars.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Auth/Login/Login - 200 Finance Officer.yml
+    request:
+      url: "{{baseUrl}}/auth/login"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "userName": "{{financeOfficerUserName}}",
+            "password": "{{financeOfficerPassword}}"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Login Successful!",
+            "data": {
+              "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature",
+              "user": {
+                "fullName": "Dilani Jayasinghe",
+                "userName": "dilani.j",
+                "gender": "6650a1b2c3d4e5f6a7b8e002",
+                "dateOfBirth": "1992-02-15T00:00:00.000Z",
+                "address": "9 Lake Drive, Kurunegala",
+                "phoneNumber1": "0701234504",
+                "phoneNumber2": "",
+                "email": "dilani.jayasinghe@example.com",
+                "isFreelanceDriver": false,
+                "profileImageUrl": "",
+                "nic": "199254601234",
+                "bankName": "Hatton National Bank PLC",
+                "bankId": 6,
+                "branch": "Kurunegala",
+                "accountNumber": "0450123456",
+                "accountHolderName": "Dilani Jayasinghe",
+                "accountHolderAddress": "9 Lake Drive, Kurunegala",
+                "basicSalary": 110000,
+                "leaveCount": 14,
+                "languages": [
+                  "Sinhala",
+                  "English"
+                ],
+                "role": "6650a1b2c3d4e5f6a7b8d004",
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "_id": "6650a1b2c3d4e5f6a7b8c004",
+                "createdAt": "2026-01-06T05:00:00.000Z",
+                "updatedAt": "2026-03-10T06:20:00.000Z"
+              },
+              "role": 4,
+              "modules": [
+                {
+                  "id": 30,
+                  "name": "Admin Leave Management",
+                  "status": 1
+                },
+                {
+                  "id": 33,
+                  "name": "Admin Report Management",
+                  "status": 1
+                },
+                {
+                  "id": 34,
+                  "name": "Admin Inventory Management",
+                  "status": 1
+                },
+                null,
+                {
+                  "id": 36,
+                  "name": "Admin Good Received Note",
+                  "status": 1
+                },
+                {
+                  "id": 37,
+                  "name": "Admin Monthly Expenses Management",
+                  "status": 1
+                },
+                {
+                  "id": 38,
+                  "name": "Admin Dashboard",
+                  "status": 1
+                },
+                {
+                  "id": 41,
+                  "name": "Admin Vehicle Maintenance",
+                  "status": 1
+                }
+              ],
+              "moduleIds": [
+                30,
+                33,
+                34,
+                null,
+                36,
+                37,
+                38,
+                41
+              ],
+              "workingMonth": 11,
+              "workingYear": 2026,
+              "workingDate": "2026-10-31T18:30:00.000Z"
+            }
+          }
+  - name: 200 Trip Manager
+    description: |-
+      Logs in as role 5 (Trip Manager). Stores `{{tripManagerToken}}` and `{{tripManagerUserId}}` runtime vars.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Auth/Login/Login - 200 Trip Manager.yml
+    request:
+      url: "{{baseUrl}}/auth/login"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "userName": "{{tripManagerUserName}}",
+            "password": "{{tripManagerPassword}}"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Login Successful!",
+            "data": {
+              "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature",
+              "user": {
+                "fullName": "Chaminda Silva",
+                "userName": "chaminda.s",
+                "gender": "6650a1b2c3d4e5f6a7b8e001",
+                "dateOfBirth": "1985-09-30T00:00:00.000Z",
+                "address": "23 Main Street, Negombo",
+                "phoneNumber1": "0751234505",
+                "phoneNumber2": "",
+                "email": "chaminda.silva@example.com",
+                "isFreelanceDriver": false,
+                "profileImageUrl": "",
+                "nic": "198527401234",
+                "bankName": "Peoples Bank",
+                "bankId": 10,
+                "branch": "Negombo",
+                "accountNumber": "2041234567",
+                "accountHolderName": "Chaminda Silva",
+                "accountHolderAddress": "23 Main Street, Negombo",
+                "basicSalary": 115000,
+                "leaveCount": 14,
+                "languages": [
+                  "Sinhala",
+                  "English"
+                ],
+                "role": "6650a1b2c3d4e5f6a7b8d005",
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "_id": "6650a1b2c3d4e5f6a7b8c005",
+                "createdAt": "2026-01-06T05:00:00.000Z",
+                "updatedAt": "2026-03-10T06:20:00.000Z"
+              },
+              "role": 5,
+              "modules": [
+                {
+                  "id": 30,
+                  "name": "Admin Leave Management",
+                  "status": 1
+                },
+                {
+                  "id": 31,
+                  "name": "Admin Vehicle Management",
+                  "status": 1
+                },
+                {
+                  "id": 32,
+                  "name": "Admin Trip Management",
+                  "status": 1
+                },
+                {
+                  "id": 33,
+                  "name": "Admin Report Management",
+                  "status": 1
+                },
+                {
+                  "id": 34,
+                  "name": "Admin Inventory Management",
+                  "status": 1
+                },
+                {
+                  "id": 36,
+                  "name": "Admin Good Received Note",
+                  "status": 1
+                },
+                {
+                  "id": 37,
+                  "name": "Admin Monthly Expenses Management",
+                  "status": 1
+                },
+                {
+                  "id": 39,
+                  "name": "Admin Master Configuration",
+                  "status": 1
+                },
+                {
+                  "id": 40,
+                  "name": "Admin Garage Management",
+                  "status": 1
+                },
+                {
+                  "id": 41,
+                  "name": "Admin Vehicle Maintenance",
+                  "status": 1
+                }
+              ],
+              "moduleIds": [
+                30,
+                31,
+                32,
+                33,
+                34,
+                36,
+                37,
+                39,
+                40,
+                41
+              ],
+              "workingMonth": 11,
+              "workingYear": 2026,
+              "workingDate": "2026-10-31T18:30:00.000Z"
+            }
+          }
+  - name: 200 Driver Assistant
+    description: |-
+      Logs in as role 6 (Driver Assistant). Stores `{{driverAssistantToken}}` and `{{driverAssistantUserId}}` runtime vars.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Auth/Login/Login - 200 Driver Assistant.yml
+    request:
+      url: "{{baseUrl}}/auth/login"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "userName": "{{driverAssistantUserName}}",
+            "password": "{{driverAssistantPassword}}"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Login Successful!",
+            "data": {
+              "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature",
+              "user": {
+                "fullName": "Tharindu Wickramasinghe",
+                "userName": "tharindu.w",
+                "gender": "6650a1b2c3d4e5f6a7b8e001",
+                "dateOfBirth": "1996-05-08T00:00:00.000Z",
+                "address": "5 Station Road, Matara",
+                "phoneNumber1": "0781234506",
+                "phoneNumber2": "",
+                "email": "tharindu.w@example.com",
+                "isFreelanceDriver": false,
+                "profileImageUrl": "",
+                "nic": "199612901234",
+                "bankName": "Bank of Ceylon",
+                "bankId": 1,
+                "branch": "Matara",
+                "accountNumber": "0081234506",
+                "accountHolderName": "Tharindu Wickramasinghe",
+                "accountHolderAddress": "5 Station Road, Matara",
+                "basicSalary": 45000,
+                "languages": [
+                  "Sinhala",
+                  "English"
+                ],
+                "role": "6650a1b2c3d4e5f6a7b8d006",
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "_id": "6650a1b2c3d4e5f6a7b8c006",
+                "createdAt": "2026-01-06T05:00:00.000Z",
+                "updatedAt": "2026-03-10T06:20:00.000Z"
+              },
+              "role": 6,
+              "modules": [
+                {
+                  "id": 150,
+                  "name": "Driver Assistant Leave Management",
+                  "status": 1
+                },
+                {
+                  "id": 151,
+                  "name": "Driver Assistant Master Configuration",
+                  "status": 1
+                },
+                {
+                  "id": 152,
+                  "name": "Driver Assistant Garage Management",
+                  "status": 1
+                },
+                {
+                  "id": 153,
+                  "name": "Driver Assistant Trip Management",
+                  "status": 1
+                },
+                {
+                  "id": 154,
+                  "name": "Driver Assistant Vehicle Maintenance",
+                  "status": 1
+                }
+              ],
+              "moduleIds": [
+                150,
+                151,
+                152,
+                153,
+                154
+              ],
+              "workingMonth": 11,
+              "workingYear": 2026,
+              "workingDate": "2026-10-31T18:30:00.000Z"
+            }
+          }
+  - name: 200 Trip Assistant
+    description: |-
+      Logs in as role 7 (Trip Assistant). Stores `{{tripAssistantToken}}` and `{{tripAssistantUserId}}` runtime vars.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Auth/Login/Login - 200 Trip Assistant.yml
+    request:
+      url: "{{baseUrl}}/auth/login"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "userName": "{{tripAssistantUserName}}",
+            "password": "{{tripAssistantPassword}}"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Login Successful!",
+            "data": {
+              "token": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.signature",
+              "user": {
+                "fullName": "Sanduni Rathnayake",
+                "userName": "sanduni.r",
+                "gender": "6650a1b2c3d4e5f6a7b8e002",
+                "dateOfBirth": "1998-12-19T00:00:00.000Z",
+                "address": "17 Hill Street, Nuwara Eliya",
+                "phoneNumber1": "0721234507",
+                "phoneNumber2": "",
+                "email": "sanduni.r@example.com",
+                "isFreelanceDriver": false,
+                "profileImageUrl": "",
+                "nic": "199885401234",
+                "bankName": "Seylan Bank PLC",
+                "bankId": 17,
+                "branch": "Nuwara Eliya",
+                "accountNumber": "0170123456",
+                "accountHolderName": "Sanduni Rathnayake",
+                "accountHolderAddress": "17 Hill Street, Nuwara Eliya",
+                "basicSalary": 48000,
+                "languages": [
+                  "Sinhala",
+                  "English"
+                ],
+                "role": "6650a1b2c3d4e5f6a7b8d007",
+                "status": 1,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                "_id": "6650a1b2c3d4e5f6a7b8c007",
+                "createdAt": "2026-01-06T05:00:00.000Z",
+                "updatedAt": "2026-03-10T06:20:00.000Z"
+              },
+              "role": 7,
+              "modules": [
+                {
+                  "id": 100,
+                  "name": "Trip Assistant Leave Management",
+                  "status": 1
+                },
+                {
+                  "id": 101,
+                  "name": "Trip Assistant Master Configuration",
+                  "status": 1
+                },
+                {
+                  "id": 102,
+                  "name": "Trip Assistant Garage Management",
+                  "status": 1
+                },
+                {
+                  "id": 103,
+                  "name": "Trip Assistant Trip Management",
+                  "status": 1
+                },
+                {
+                  "id": 104,
+                  "name": "Trip Assistant Vehicle Maintenance",
+                  "status": 1
+                }
+              ],
+              "moduleIds": [
+                100,
+                101,
+                102,
+                103,
+                104
+              ],
+              "workingMonth": 11,
+              "workingYear": 2026,
+              "workingDate": "2026-10-31T18:30:00.000Z"
+            }
+          }
+  - name: 400 invalid username
+    description: |-
+      No ACTIVE Auth with that userName.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Auth/Login/Login - 400 invalid username.yml
+    request:
+      url: "{{baseUrl}}/auth/login"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "userName": "no-such-user-{{$timestamp}}",
+            "password": "anything"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid username, Please try again with correct username!",
+            "data": null
+          }
+  - name: 400 invalid password
+    description: |-
+      bcrypt compare fails.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Auth/Login/Login - 400 invalid password.yml
+    request:
+      url: "{{baseUrl}}/auth/login"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "userName": "{{superAdminUserName}}",
+            "password": "wrong-password"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid password, Please try again with correct password!",
+            "data": null
+          }
+  - name: 400 blocked user
+    description: |-
+      Needs a user blocked via PUT /user/block/:id. Checked before the password.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Auth/Login/Login - 400 blocked user.yml
+    request:
+      url: "{{baseUrl}}/auth/login"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "userName": "{{blockedUserName}}",
+            "password": "{{blockedUserPassword}}"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "User is blocked, Please contact admin!",
+            "data": null
+          }
+  - name: 500 empty body
+    description: |-
+      [KNOWN BUG] No validation on login. `userName: undefined` is dropped from the Mongo filter so findOne returns the first active Auth, then bcrypt.compare(undefined, hash) throws → 500 (auth.controller.ts:22-37).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Auth/Login/Login - 500 empty body.yml
+    request:
+      url: "{{baseUrl}}/auth/login"
+      method: POST
+      body:
+        type: json
+        data: "{}"
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Illegal arguments: undefined, string",
+            "data": null
+          }
+  - name: 400 blocked created user (User setup)
+    description: |-
+      Effect of the block: login checks `isBlocked` before the password (auth.controller.ts:33-34), so no real password
+      is needed.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: User/Block User/Login - 400 blocked created user.yml
+    request:
+      url: "{{baseUrl}}/auth/login"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "userName": "{{createdUserName}}",
+            "password": "any-password"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "User is blocked, Please contact admin!",
+            "data": null
+          }
+  - name: 400 unblocked user reaches password check (User setup)
+    description: |-
+      Effect of the unblock: login no longer stops at the blocked check and fails on the (deliberately wrong) password instead (auth.controller.ts:36-44).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: User/Unblock User/Login - 400 unblocked user reaches password check.yml
+    request:
+      url: "{{baseUrl}}/auth/login"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "userName": "{{createdUserName}}",
+            "password": "wrong-password"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid password, Please try again with correct password!",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/auth/login`**
+
+  This request runs the main scenario **200 Super Admin**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 Super Admin | Login Successful! |
+  | 2 | 200 | 200 Admin | Login Successful! |
+  | 3 | 200 | 200 Driver | Login Successful! |
+  | 4 | 200 | 200 Finance Officer | Login Successful! |
+  | 5 | 200 | 200 Trip Manager | Login Successful! |
+  | 6 | 200 | 200 Driver Assistant | Login Successful! |
+  | 7 | 200 | 200 Trip Assistant | Login Successful! |
+  | 8 | 400 | 400 invalid username | Invalid username, Please try again with correct username! |
+  | 9 | 400 | 400 invalid password | Invalid password, Please try again with correct password! |
+  | 10 | 400 | 400 blocked user | User is blocked, Please contact admin! |
+  | 11 | 500 | 500 empty body | Illegal arguments: undefined, string |
+  | 12 | 400 | 400 blocked created user (User setup) | User is blocked, Please contact admin! |
+  | 13 | 400 | 400 unblocked user reaches password check (User setup) | Invalid password, Please try again with correct password! |
+
+  ## Main scenario notes
+
+  Logs in as role 1 (Super Admin). Stores `{{superAdminToken}}` and `{{superAdminUserId}}` runtime vars.

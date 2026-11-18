@@ -1,0 +1,18 @@
+info:
+  name: Vehicle Maintenance
+  type: folder
+  seq: 8
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    Vehicle maintenance records (`src/modules/vehicleMaintain/`, Document/vehicleMaintenance.md).
+    Write routes: every role except DRIVER. Reads: any authenticated role.
+    Depends on `{{vehicleId}}` (Vehicle folder) and `{{garageId}}` (Garage folder).
+    `maintenanceDate` must fall inside the company working month, so `Setup / Get Working Info - 200 setup` runs first and
+    computes `{{vmDate}}` (15th of the working month) and friends.
+    `{{vehicleMaintenanceId}}` is kept; delete tests use `{{vehicleMaintenanceToDeleteId}}`.
+    Month-end-closed cases need `{{closedVehicleMaintenanceId}}`, found by `Get All Vehicle Maintenances - 200 closed month lookup`.
+  type: text/markdown

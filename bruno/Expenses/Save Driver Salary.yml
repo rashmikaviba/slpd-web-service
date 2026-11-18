@@ -1,0 +1,611 @@
+info:
+  name: Save Driver Salary
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{baseUrl}}/expense/saveSalary/{{tripId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "driver": "{{driverUserId}}",
+        "salaryPerDay": 3000,
+        "noOfDays": 2,
+        "totalAddition": 500,
+        "totalDeduction": 0,
+        "isRemainingToDriver": false
+      }
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Driver salary saved successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      Precondition: `{{tripId}}` FINISHED and `{{driverUserId}}` listed in `trip.drivers`. Upserts the driver's salary entry
+      (re-running overwrites it). `isMonthEndDone` is not checked. `src/modules/expenses/expenses.controller.ts:299`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Manual Preconditions/Save Driver Salary - 200.yml
+    request:
+      url: "{{baseUrl}}/expense/saveSalary/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "driver": "{{driverUserId}}",
+            "salaryPerDay": 3000,
+            "noOfDays": 2,
+            "totalAddition": 500,
+            "totalDeduction": 0,
+            "isRemainingToDriver": false
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Driver salary saved successfully!",
+            "data": null
+          }
+  - name: 400 driver not in trip
+    description: |-
+      Precondition: `{{tripId}}` FINISHED. `src/modules/expenses/expenses.controller.ts:333`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Manual Preconditions/Save Driver Salary - 400 driver not in trip.yml
+    request:
+      url: "{{baseUrl}}/expense/saveSalary/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "driver": "{{nonExistingId}}",
+            "salaryPerDay": 3000,
+            "noOfDays": 2,
+            "totalAddition": 500,
+            "totalDeduction": 0,
+            "isRemainingToDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Driver not found in trip!",
+            "data": null
+          }
+  - name: 400 missing driver
+    description: |-
+      Joi `saveDriverSalarySchema`. `src/modules/expenses/expenses.validation.ts:59-84`, `src/modules/expenses/expenses.controller.ts:306`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Save Driver Salary - 400 missing driver.yml
+    request:
+      url: "{{baseUrl}}/expense/saveSalary/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "salaryPerDay": 3000,
+            "noOfDays": 2,
+            "totalAddition": 500,
+            "totalDeduction": 0,
+            "isRemainingToDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Driver Id is required",
+            "data": null
+          }
+  - name: 400 driver not a string
+    description: |-
+      Joi `saveDriverSalarySchema`. `src/modules/expenses/expenses.validation.ts:59-84`, `src/modules/expenses/expenses.controller.ts:306`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Save Driver Salary - 400 driver not a string.yml
+    request:
+      url: "{{baseUrl}}/expense/saveSalary/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "driver": 5,
+            "salaryPerDay": 3000,
+            "noOfDays": 2,
+            "totalAddition": 500,
+            "totalDeduction": 0,
+            "isRemainingToDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Driver Id is invalid",
+            "data": null
+          }
+  - name: 400 missing salaryPerDay
+    description: |-
+      Joi `saveDriverSalarySchema`. `src/modules/expenses/expenses.validation.ts:59-84`, `src/modules/expenses/expenses.controller.ts:306`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Save Driver Salary - 400 missing salaryPerDay.yml
+    request:
+      url: "{{baseUrl}}/expense/saveSalary/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "driver": "{{driverUserId}}",
+            "noOfDays": 2,
+            "totalAddition": 500,
+            "totalDeduction": 0,
+            "isRemainingToDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Salary Per Day is required",
+            "data": null
+          }
+  - name: 400 salaryPerDay not a number
+    description: |-
+      Joi `saveDriverSalarySchema`. `src/modules/expenses/expenses.validation.ts:59-84`, `src/modules/expenses/expenses.controller.ts:306`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Save Driver Salary - 400 salaryPerDay not a number.yml
+    request:
+      url: "{{baseUrl}}/expense/saveSalary/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "driver": "{{driverUserId}}",
+            "salaryPerDay": "abc",
+            "noOfDays": 2,
+            "totalAddition": 500,
+            "totalDeduction": 0,
+            "isRemainingToDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Salary Per Day is invalid",
+            "data": null
+          }
+  - name: 400 missing noOfDays
+    description: |-
+      Joi `saveDriverSalarySchema`. `src/modules/expenses/expenses.validation.ts:59-84`, `src/modules/expenses/expenses.controller.ts:306`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Save Driver Salary - 400 missing noOfDays.yml
+    request:
+      url: "{{baseUrl}}/expense/saveSalary/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "driver": "{{driverUserId}}",
+            "salaryPerDay": 3000,
+            "totalAddition": 500,
+            "totalDeduction": 0,
+            "isRemainingToDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No of Days is required",
+            "data": null
+          }
+  - name: 400 noOfDays not a number
+    description: |-
+      Joi `saveDriverSalarySchema`. `src/modules/expenses/expenses.validation.ts:59-84`, `src/modules/expenses/expenses.controller.ts:306`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Save Driver Salary - 400 noOfDays not a number.yml
+    request:
+      url: "{{baseUrl}}/expense/saveSalary/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "driver": "{{driverUserId}}",
+            "salaryPerDay": 3000,
+            "noOfDays": "abc",
+            "totalAddition": 500,
+            "totalDeduction": 0,
+            "isRemainingToDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No of Days is invalid",
+            "data": null
+          }
+  - name: 400 totalAddition not a number
+    description: |-
+      Joi `saveDriverSalarySchema`. `src/modules/expenses/expenses.validation.ts:59-84`, `src/modules/expenses/expenses.controller.ts:306`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Save Driver Salary - 400 totalAddition not a number.yml
+    request:
+      url: "{{baseUrl}}/expense/saveSalary/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "driver": "{{driverUserId}}",
+            "salaryPerDay": 3000,
+            "noOfDays": 2,
+            "totalAddition": "abc",
+            "totalDeduction": 0,
+            "isRemainingToDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Total Addition is invalid",
+            "data": null
+          }
+  - name: 400 totalDeduction not a number
+    description: |-
+      Joi `saveDriverSalarySchema`. `src/modules/expenses/expenses.validation.ts:59-84`, `src/modules/expenses/expenses.controller.ts:306`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Save Driver Salary - 400 totalDeduction not a number.yml
+    request:
+      url: "{{baseUrl}}/expense/saveSalary/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "driver": "{{driverUserId}}",
+            "salaryPerDay": 3000,
+            "noOfDays": 2,
+            "totalAddition": 500,
+            "totalDeduction": "abc",
+            "isRemainingToDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Total Deduction is invalid",
+            "data": null
+          }
+  - name: 400 isRemainingToDriver not boolean
+    description: |-
+      Joi `saveDriverSalarySchema`. `src/modules/expenses/expenses.validation.ts:59-84`, `src/modules/expenses/expenses.controller.ts:306`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Save Driver Salary - 400 isRemainingToDriver not boolean.yml
+    request:
+      url: "{{baseUrl}}/expense/saveSalary/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "driver": "{{driverUserId}}",
+            "salaryPerDay": 3000,
+            "noOfDays": 2,
+            "totalAddition": 500,
+            "totalDeduction": 0,
+            "isRemainingToDriver": "maybe"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Is Remaining To Driver is invalid",
+            "data": null
+          }
+  - name: 400 trip not finished
+    description: |-
+      Salary can only be saved for FINISHED trips; `{{tripId}}` is still START here, so the (misleading) 'Trip not found!' is returned. `src/modules/expenses/expenses.controller.ts:315`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Save Driver Salary - 400 trip not finished.yml
+    request:
+      url: "{{baseUrl}}/expense/saveSalary/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "driver": "{{driverUserId}}",
+            "salaryPerDay": 3000,
+            "noOfDays": 2,
+            "totalAddition": 500,
+            "totalDeduction": 0,
+            "isRemainingToDriver": false
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip not found!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Expenses/Save Driver Salary - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/expense/saveSalary/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "driver": "{{driverUserId}}",
+            "salaryPerDay": 3000,
+            "noOfDays": 2,
+            "totalAddition": 500,
+            "totalDeduction": 0,
+            "isRemainingToDriver": false
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN, TRIPMANAGER only; `{{driverToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Expenses/Save Driver Salary - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/expense/saveSalary/{{tripId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "driver": "{{driverUserId}}",
+            "salaryPerDay": 3000,
+            "noOfDays": 2,
+            "totalAddition": 500,
+            "totalDeduction": 0,
+            "isRemainingToDriver": false
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid trip id
+    description: |-
+      `src/modules/expenses/expenses.controller.ts:310`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Expenses/Save Driver Salary - 404 invalid trip id.yml
+    request:
+      url: "{{baseUrl}}/expense/saveSalary/{{invalidId}}"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "driver": "{{driverUserId}}",
+            "salaryPerDay": 3000,
+            "noOfDays": 2,
+            "totalAddition": 500,
+            "totalDeduction": 0,
+            "isRemainingToDriver": false
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/expense/saveSalary/:tripId`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | Driver salary saved successfully! |
+  | 2 | 400 | 400 driver not in trip | Driver not found in trip! |
+  | 3 | 400 | 400 missing driver | Driver Id is required |
+  | 4 | 400 | 400 driver not a string | Driver Id is invalid |
+  | 5 | 400 | 400 missing salaryPerDay | Salary Per Day is required |
+  | 6 | 400 | 400 salaryPerDay not a number | Salary Per Day is invalid |
+  | 7 | 400 | 400 missing noOfDays | No of Days is required |
+  | 8 | 400 | 400 noOfDays not a number | No of Days is invalid |
+  | 9 | 400 | 400 totalAddition not a number | Total Addition is invalid |
+  | 10 | 400 | 400 totalDeduction not a number | Total Deduction is invalid |
+  | 11 | 400 | 400 isRemainingToDriver not boolean | Is Remaining To Driver is invalid |
+  | 12 | 400 | 400 trip not finished | Trip not found! |
+  | 13 | 401 | 401 no token | Authentication invalid! |
+  | 14 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 15 | 404 | 404 invalid trip id | No item found with ID " |
+
+  ## Main scenario notes
+
+  Precondition: `{{tripId}}` FINISHED and `{{driverUserId}}` listed in `trip.drivers`. Upserts the driver's salary entry
+  (re-running overwrites it). `isMonthEndDone` is not checked. `src/modules/expenses/expenses.controller.ts:299`

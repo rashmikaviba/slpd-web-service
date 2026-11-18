@@ -1,0 +1,625 @@
+info:
+  name: Update Hotel Activity Payment
+  type: http
+  seq: 9
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/trip/updateHotelActivityPayment/{{paymentTripId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "objectId": "{{payHotel1Id}}",
+        "paymentAmount": 25000,
+        "paymentDate": "{{tripStartDate}}",
+        "paymentRemark": "Paid by Bruno",
+        "paymentMode": 1,
+        "receiptImageUrl": "",
+        "type": 1
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        // body dates: today (UTC midnight) .. +3 days; list range: yesterday .. +7 days
+        const day0 = new Date();
+        day0.setUTCHours(0, 0, 0, 0);
+        const iso = (n) => new Date(day0.getTime() + n * 86400000).toISOString();
+        bru.setVar("tripStartDate", iso(0));
+        bru.setVar("tripDay2", iso(1));
+        bru.setVar("tripDay3", iso(2));
+        bru.setVar("tripEndDate", iso(3));
+        bru.setVar("listFrom", iso(-1).slice(0, 10));
+        bru.setVar("listTo", iso(7).slice(0, 10));
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Hotel payment updated successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 hotel paid
+    description: |-
+      Marks hotel[0] isPaymentDone = true with the payment fields (src/modules/trip/trip.controller.ts:1446-1469). This payment later blocks undo and hotel edits.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Update Hotel Activity Payment/Update Hotel Activity Payment - 200 hotel paid.yml
+    request:
+      url: "{{baseUrl}}/trip/updateHotelActivityPayment/{{paymentTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "objectId": "{{payHotel1Id}}",
+            "paymentAmount": 25000,
+            "paymentDate": "{{tripStartDate}}",
+            "paymentRemark": "Paid by Bruno",
+            "paymentMode": 1,
+            "receiptImageUrl": "",
+            "type": 1
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Hotel payment updated successfully!",
+            "data": null
+          }
+  - name: 200 activity paid
+    description: |-
+      Marks activity[0] as paid (src/modules/trip/trip.controller.ts:1470-1493).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Update Hotel Activity Payment/Update Hotel Activity Payment - 200 activity paid.yml
+    request:
+      url: "{{baseUrl}}/trip/updateHotelActivityPayment/{{paymentTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "objectId": "{{payActivity1Id}}",
+            "paymentAmount": 25000,
+            "paymentDate": "{{tripStartDate}}",
+            "paymentRemark": "Paid by Bruno",
+            "paymentMode": 1,
+            "receiptImageUrl": "",
+            "type": 2
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Activity payment updated successfully!",
+            "data": null
+          }
+  - name: 200 [KNOWN BUG] body without payment fields accepted
+    description: |-
+      [KNOWN BUG] No Joi validation (src/modules/trip/trip.controller.ts:1424, schema at trip.validation.ts:363 unused): paymentAmount/paymentDate/paymentMode are required by the schema but missing here, yet the hotel is marked paid and its payment fields are overwritten with undefined (Document/trip.md Known issue 4). Expected after fix: 400 "Payment Amount is required". Also shows an already-paid hotel can be paid again.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Update Hotel Activity Payment/Update Hotel Activity Payment - 200 [KNOWN BUG] body without payment fields accepted.yml
+    request:
+      url: "{{baseUrl}}/trip/updateHotelActivityPayment/{{paymentTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "objectId": "{{payHotel1Id}}",
+            "type": 1
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Hotel payment updated successfully!",
+            "data": null
+          }
+  - name: 400 [KNOWN BUG] empty body
+    description: |-
+      [KNOWN BUG] Empty body is not validated; falls through to the type check (src/modules/trip/trip.controller.ts:1494-1496). Expected after fix: 400 "Object Id is required".
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Update Hotel Activity Payment/Update Hotel Activity Payment - 400 [KNOWN BUG] empty body.yml
+    request:
+      url: "{{baseUrl}}/trip/updateHotelActivityPayment/{{paymentTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: "{}"
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid request type!",
+            "data": null
+          }
+  - name: 400 [KNOWN BUG] numeric string type rejected
+    description: |-
+      [KNOWN BUG] `body.type === 1` is strict and the unused Joi schema (which would convert "1") never runs (src/modules/trip/trip.controller.ts:1446, :1470, :1494).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Update Hotel Activity Payment/Update Hotel Activity Payment - 400 [KNOWN BUG] numeric string type rejected.yml
+    request:
+      url: "{{baseUrl}}/trip/updateHotelActivityPayment/{{paymentTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "objectId": "{{payHotel1Id}}",
+            "paymentAmount": 25000,
+            "paymentDate": "{{tripStartDate}}",
+            "paymentRemark": "Paid by Bruno",
+            "paymentMode": 1,
+            "receiptImageUrl": "",
+            "type": "1"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid request type!",
+            "data": null
+          }
+  - name: 400 invalid type
+    description: |-
+      type not 1/2 (src/modules/trip/trip.controller.ts:1494-1496).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Update Hotel Activity Payment/Update Hotel Activity Payment - 400 invalid type.yml
+    request:
+      url: "{{baseUrl}}/trip/updateHotelActivityPayment/{{paymentTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "objectId": "{{payHotel1Id}}",
+            "paymentAmount": 25000,
+            "paymentDate": "{{tripStartDate}}",
+            "paymentRemark": "Paid by Bruno",
+            "paymentMode": 1,
+            "receiptImageUrl": "",
+            "type": 3
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid request type!",
+            "data": null
+          }
+  - name: 400 hotel not found
+    description: |-
+      src/modules/trip/trip.controller.ts:1447-1452.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Update Hotel Activity Payment/Update Hotel Activity Payment - 400 hotel not found.yml
+    request:
+      url: "{{baseUrl}}/trip/updateHotelActivityPayment/{{paymentTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "objectId": "{{nonExistingId}}",
+            "paymentAmount": 25000,
+            "paymentDate": "{{tripStartDate}}",
+            "paymentRemark": "Paid by Bruno",
+            "paymentMode": 1,
+            "receiptImageUrl": "",
+            "type": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Hotel not found!",
+            "data": null
+          }
+  - name: 400 hotel not paid by company
+    description: |-
+      hotel[1] has isPaymentByCompany=false (src/modules/trip/trip.controller.ts:1453-1457).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Update Hotel Activity Payment/Update Hotel Activity Payment - 400 hotel not paid by company.yml
+    request:
+      url: "{{baseUrl}}/trip/updateHotelActivityPayment/{{paymentTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "objectId": "{{payHotel2Id}}",
+            "paymentAmount": 25000,
+            "paymentDate": "{{tripStartDate}}",
+            "paymentRemark": "Paid by Bruno",
+            "paymentMode": 1,
+            "receiptImageUrl": "",
+            "type": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Selected hotel is not paid by company!",
+            "data": null
+          }
+  - name: 400 activity not found
+    description: |-
+      src/modules/trip/trip.controller.ts:1471-1476.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Update Hotel Activity Payment/Update Hotel Activity Payment - 400 activity not found.yml
+    request:
+      url: "{{baseUrl}}/trip/updateHotelActivityPayment/{{paymentTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "objectId": "{{nonExistingId}}",
+            "paymentAmount": 25000,
+            "paymentDate": "{{tripStartDate}}",
+            "paymentRemark": "Paid by Bruno",
+            "paymentMode": 1,
+            "receiptImageUrl": "",
+            "type": 2
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Activity not found!",
+            "data": null
+          }
+  - name: 400 activity not paid by company
+    description: |-
+      activity[1] has isPaymentByCompany=false (src/modules/trip/trip.controller.ts:1477-1481).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Update Hotel Activity Payment/Update Hotel Activity Payment - 400 activity not paid by company.yml
+    request:
+      url: "{{baseUrl}}/trip/updateHotelActivityPayment/{{paymentTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "objectId": "{{payActivity2Id}}",
+            "paymentAmount": 25000,
+            "paymentDate": "{{tripStartDate}}",
+            "paymentRemark": "Paid by Bruno",
+            "paymentMode": 1,
+            "receiptImageUrl": "",
+            "type": 2
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Selected activity is not paid by company!",
+            "data": null
+          }
+  - name: 400 trip not found
+    description: |-
+      src/modules/trip/trip.controller.ts:1430-1438.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Update Hotel Activity Payment/Update Hotel Activity Payment - 400 trip not found.yml
+    request:
+      url: "{{baseUrl}}/trip/updateHotelActivityPayment/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "objectId": "{{payHotel1Id}}",
+            "paymentAmount": 25000,
+            "paymentDate": "{{tripStartDate}}",
+            "paymentRemark": "Paid by Bruno",
+            "paymentMode": 1,
+            "receiptImageUrl": "",
+            "type": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip not found!",
+            "data": null
+          }
+  - name: 400 month end done
+    description: |-
+      PRECONDITION (manual): set `monthEndStartedTripId` to a trip with isMonthEndDone=true (exists only after Month Audit). src/modules/trip/trip.controller.ts:1440-1442.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Update Hotel Activity Payment/Update Hotel Activity Payment - 400 month end done.yml
+    request:
+      url: "{{baseUrl}}/trip/updateHotelActivityPayment/{{monthEndStartedTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "objectId": "{{payHotel1Id}}",
+            "paymentAmount": 25000,
+            "paymentDate": "{{tripStartDate}}",
+            "paymentRemark": "Paid by Bruno",
+            "paymentMode": 1,
+            "receiptImageUrl": "",
+            "type": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Cannot update trip after month end!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → `authorize()` throws UnauthorizedError (src/middleware/auth.middleware.ts:24-26).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Trip/Update Hotel Activity Payment/Update Hotel Activity Payment - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/trip/updateHotelActivityPayment/{{paymentTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "objectId": "{{payHotel1Id}}",
+            "paymentAmount": 25000,
+            "paymentDate": "{{tripStartDate}}",
+            "paymentRemark": "Paid by Bruno",
+            "paymentMode": 1,
+            "receiptImageUrl": "",
+            "type": 1
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows TRIPMANAGER, SUPERADMIN, ADMIN only (src/modules/trip/trip.route.ts:93-101); `driverToken` is rejected by authorize() (src/middleware/auth.middleware.ts:66-74).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Update Hotel Activity Payment/Update Hotel Activity Payment - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/trip/updateHotelActivityPayment/{{paymentTripId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "objectId": "{{payHotel1Id}}",
+            "paymentAmount": 25000,
+            "paymentDate": "{{tripStartDate}}",
+            "paymentRemark": "Paid by Bruno",
+            "paymentMode": 1,
+            "receiptImageUrl": "",
+            "type": 1
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed ObjectId reaches `Trip.findOne({_id})` → Mongoose CastError → error middleware returns 404 (src/middleware/error.middleware.ts, CastError branch). Controller: src/modules/trip/trip.controller.ts:1430.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Update Hotel Activity Payment/Update Hotel Activity Payment - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/trip/updateHotelActivityPayment/{{invalidId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "objectId": "{{payHotel1Id}}",
+            "paymentAmount": 25000,
+            "paymentDate": "{{tripStartDate}}",
+            "paymentRemark": "Paid by Bruno",
+            "paymentMode": 1,
+            "receiptImageUrl": "",
+            "type": 1
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/trip/updateHotelActivityPayment/:id`**
+
+  This request runs the main scenario **200 hotel paid**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 hotel paid | Hotel payment updated successfully! |
+  | 2 | 200 | 200 activity paid | Activity payment updated successfully! |
+  | 3 | 200 | 200 [KNOWN BUG] body without payment fields accepted | Hotel payment updated successfully! |
+  | 4 | 400 | 400 [KNOWN BUG] empty body | Invalid request type! |
+  | 5 | 400 | 400 [KNOWN BUG] numeric string type rejected | Invalid request type! |
+  | 6 | 400 | 400 invalid type | Invalid request type! |
+  | 7 | 400 | 400 hotel not found | Hotel not found! |
+  | 8 | 400 | 400 hotel not paid by company | Selected hotel is not paid by company! |
+  | 9 | 400 | 400 activity not found | Activity not found! |
+  | 10 | 400 | 400 activity not paid by company | Selected activity is not paid by company! |
+  | 11 | 400 | 400 trip not found | Trip not found! |
+  | 12 | 400 | 400 month end done | Cannot update trip after month end! |
+  | 13 | 401 | 401 no token | Authentication invalid! |
+  | 14 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 15 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  Marks hotel[0] isPaymentDone = true with the payment fields (src/modules/trip/trip.controller.ts:1446-1469). This payment later blocks undo and hotel edits.

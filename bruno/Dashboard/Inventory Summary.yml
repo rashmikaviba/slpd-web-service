@@ -1,0 +1,236 @@
+info:
+  name: Inventory Summary
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/dashboard/inventorySummary"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        const data = res.body.data;
+        test("every row has the summary fields", function () {
+          data.forEach((p) => {
+            expect(p).to.include.all.keys("_id", "productName", "productShortCode", "inventory");
+            expect(Object.keys(p).filter((k) => !["_id", "productName", "productShortCode", "measureUnitDetails", "inventory"].includes(k))).to.eql([]);
+            expect(p.inventory).to.be.a("number");
+            if (p.measureUnitDetails !== undefined) {
+              expect(p.measureUnitDetails).to.include.all.keys("unitId", "code", "name", "isSaveWithSiUnit", "isSiUnit", "isAllowDecimal", "categoryId", "conversionToSi");
+            }
+          });
+        });
+        test("sorted by inventory ascending (lowest stock first)", function () {
+          for (let i = 1; i < data.length; i++) expect(data[i - 1].inventory).to.be.at.most(data[i].inventory);
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.data
+      operator: isArray
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 Super Admin
+    description: |-
+      ACTIVE products mapped to `{_id, productName, productShortCode, measureUnitDetails, inventory}` with inventory
+      converted from SI to the product unit, sorted ascending (dashboard.controller.ts:20-31, dashboard.util.ts:4).
+      `measureUnitDetails` is omitted when the product's unit id is not in measureUnitData. Empty array if no products.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Dashboard/Inventory Summary - 200 Super Admin.yml
+    request:
+      url: "{{baseUrl}}/dashboard/inventorySummary"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6659d0e1f2a3b4c5d6e7f001",
+                "productName": "Basmati Rice",
+                "productShortCode": "RICE-BSM",
+                "measureUnitDetails": {
+                  "unitId": 13,
+                  "code": "kg",
+                  "name": "Kilogram",
+                  "conversionToSi": 1000,
+                  "isSaveWithSiUnit": true,
+                  "isSiUnit": false,
+                  "isAllowDecimal": true,
+                  "categoryId": 2
+                },
+                "inventory": 12.5
+              },
+              {
+                "_id": "6659d0e1f2a3b4c5d6e7f002",
+                "productName": "Drinking Water 1.5L",
+                "productShortCode": "WTR-1500",
+                "measureUnitDetails": {
+                  "unitId": 4,
+                  "code": "btl",
+                  "name": "Bottle",
+                  "isSaveWithSiUnit": false,
+                  "isSiUnit": true,
+                  "isAllowDecimal": false,
+                  "categoryId": 1,
+                  "conversionToSi": 1
+                },
+                "inventory": 48
+              }
+            ]
+          }
+  - name: 200 Admin
+    description: |-
+      ADMIN (2) is the second allowed role (dashboard.route.ts:10). Same payload as Super Admin.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: Dashboard/Inventory Summary - 200 Admin.yml
+    request:
+      url: "{{baseUrl}}/dashboard/inventorySummary"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6659d0e1f2a3b4c5d6e7f001",
+                "productName": "Basmati Rice",
+                "productShortCode": "RICE-BSM",
+                "measureUnitDetails": {
+                  "unitId": 13,
+                  "code": "kg",
+                  "name": "Kilogram",
+                  "conversionToSi": 1000,
+                  "isSaveWithSiUnit": true,
+                  "isSiUnit": false,
+                  "isAllowDecimal": true,
+                  "categoryId": 2
+                },
+                "inventory": 12.5
+              },
+              {
+                "_id": "6659d0e1f2a3b4c5d6e7f002",
+                "productName": "Drinking Water 1.5L",
+                "productShortCode": "WTR-1500",
+                "measureUnitDetails": {
+                  "unitId": 4,
+                  "code": "btl",
+                  "name": "Bottle",
+                  "isSaveWithSiUnit": false,
+                  "isSiUnit": true,
+                  "isAllowDecimal": false,
+                  "categoryId": 1,
+                  "conversionToSi": 1
+                },
+                "inventory": 48
+              }
+            ]
+          }
+  - name: 401 no token
+    description: |-
+      auth.middleware.ts:25-26 — no `Authorization: Bearer` header → UnauthorizedError.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Dashboard/Inventory Summary - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/dashboard/inventorySummary"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 Finance Officer
+    description: |-
+      FINANCEOFFICER is not in [SUPERADMIN, ADMIN] (dashboard.route.ts:10). auth.middleware.ts:68-79 — role not in the route's roles array → ForbiddenError.
+
+      Auth: bearer {{financeOfficerToken}}
+
+      Source scenario: Dashboard/Inventory Summary - 403 Finance Officer.yml
+    request:
+      url: "{{baseUrl}}/dashboard/inventorySummary"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/dashboard/inventorySummary`**
+
+  This request runs the main scenario **200 Super Admin**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 Super Admin | (empty) |
+  | 2 | 200 | 200 Admin | (empty) |
+  | 3 | 401 | 401 no token | Authentication invalid! |
+  | 4 | 403 | 403 Finance Officer | You're unauthorized to access this resource! |
+
+  ## Main scenario notes
+
+  ACTIVE products mapped to `{_id, productName, productShortCode, measureUnitDetails, inventory}` with inventory
+  converted from SI to the product unit, sorted ascending (dashboard.controller.ts:20-31, dashboard.util.ts:4).
+  `measureUnitDetails` is omitted when the product's unit id is not in measureUnitData. Empty array if no products.

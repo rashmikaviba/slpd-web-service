@@ -1,0 +1,97 @@
+info:
+  name: Get Genders
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/common/gender"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("array of active genders", function () {
+          expect(res.body.data).to.be.an("array");
+          res.body.data.forEach((g) => expect(g.status).to.equal(1));
+        });
+        test("empty message", function () {
+          expect(res.body.message).to.equal("");
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 public
+    description: |-
+      Public (common.route.ts:14, no token sent). `commonService.findAllGendersByStatusIn([ACTIVE])`, cached `gender-[1]`
+      (common.controller.ts:11). Seed inserts 1 Male, 2 Female.
+      [KNOWN ISSUE] unauthenticated endpoint (Document/common.md › Known issues #6).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Common/Get Genders - 200 public.yml
+    request:
+      url: "{{baseUrl}}/common/gender"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6650a1b2c3d4e5f6a7b8e001",
+                "id": 1,
+                "name": "Male",
+                "status": 1,
+                "createdAt": "2026-01-05T04:15:00.000Z",
+                "updatedAt": "2026-01-05T04:15:00.000Z"
+              },
+              {
+                "_id": "6650a1b2c3d4e5f6a7b8e002",
+                "id": 2,
+                "name": "Female",
+                "status": 1,
+                "createdAt": "2026-01-05T04:15:00.000Z",
+                "updatedAt": "2026-01-05T04:15:00.000Z"
+              }
+            ]
+          }
+
+docs: |-
+  **GET `/api/v1/common/gender`**
+
+  This request runs the main scenario **200 public**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 public | (empty) |
+
+  ## Main scenario notes
+
+  Public (common.route.ts:14, no token sent). `commonService.findAllGendersByStatusIn([ACTIVE])`, cached `gender-[1]`
+  (common.controller.ts:11). Seed inserts 1 Male, 2 Female.
+  [KNOWN ISSUE] unauthenticated endpoint (Document/common.md › Known issues #6).

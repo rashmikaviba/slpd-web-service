@@ -1,0 +1,340 @@
+info:
+  name: Approve GRN
+  type: http
+  seq: 5
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/inventory/grn/approve/{{grnId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "remark": "Approved by Bruno"
+      }
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Good Receipt Note approved successfully!
+    - expression: res.body.data.status
+      operator: eq
+      value: "2"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "201"
+    description: |-
+      SUPERADMIN, ADMIN. PENDING -> APPROVED and adds 50000 g to `{{productId}}` stock with a GRN_APPROVED log.
+      This is the stock the POS folder sells. Responds 201. `src/modules/inventory/grn/grn.controller.ts:169`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Approve GRN - 201.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/approve/{{grnId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "Approved by Bruno"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Good Receipt Note approved successfully!",
+            "data": {
+              "_id": "6731f1a2b4c5d6e7f8a9b0d1",
+              "grnNumber": 24,
+              "grnNumberWithPrefix": "GRN-024",
+              "grnDate": "2026-11-18T08:31:00.120Z",
+              "grnRemarks": "Bruno GRN to approve",
+              "products": [
+                {
+                  "productId": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "enteredMeasureUnitId": 13,
+                  "actualMeasureUnitId": 13,
+                  "siConvertedQuantity": 50000,
+                  "quantity": 50,
+                  "remarks": "50 kg via Bruno",
+                  "_id": "6731f1a2b4c5d6e7f8a9b0d2"
+                }
+              ],
+              "status": 2,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "approvedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "rejectedBy": null,
+              "approvedDate": "2026-11-18T08:31:01.602Z",
+              "rejectedDate": null,
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:31:00.120Z",
+              "updatedAt": "2026-11-18T08:31:01.605Z",
+              "approvedRejectedRemarks": "Approved by Bruno"
+            }
+          }
+  - name: 400 remark not a string
+    description: |-
+      Joi `grnApproveRejectSchema`. `src/modules/inventory/grn/grn.controller.ts:177`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Approve GRN - 400 remark not a string.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/approve/{{pendingGrnId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": 5
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "GRN Remarks is invalid",
+            "data": null
+          }
+  - name: 400 remark too long
+    description: |-
+      Joi `grnApproveRejectSchema` string.max(500). `src/modules/inventory/grn/grn.controller.ts:177`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Approve GRN - 400 remark too long.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/approve/{{pendingGrnId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": "{{longText501}}"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "GRN Remarks should not be more than 500 characters",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Inventory/GRN/Approve GRN - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/approve/{{pendingGrnId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": ""
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN only; `{{financeOfficerToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{financeOfficerToken}}
+
+      Source scenario: Inventory/GRN/Approve GRN - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/approve/{{pendingGrnId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": ""
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 not found
+    description: |-
+      `src/modules/inventory/grn/grn.controller.ts:183`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Approve GRN - 404 not found.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/approve/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": ""
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pending Good Receipt Note not found for approval!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      `src/modules/inventory/grn/grn.controller.ts:180`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Approve GRN - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/approve/{{invalidId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": ""
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+  - name: 404 already approved
+    description: |-
+      APPROVED is terminal (no double stock-in). Precondition: `Approve GRN - 201`. `src/modules/inventory/grn/grn.controller.ts:183`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Approve GRN - 404 already approved.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn/approve/{{grnId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "remark": ""
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pending Good Receipt Note not found for approval!",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/inventory/grn/approve/:id`**
+
+  This request runs the main scenario **201**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 | Good Receipt Note approved successfully! |
+  | 2 | 400 | 400 remark not a string | GRN Remarks is invalid |
+  | 3 | 400 | 400 remark too long | GRN Remarks should not be more than 500 characters |
+  | 4 | 401 | 401 no token | Authentication invalid! |
+  | 5 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 6 | 404 | 404 not found | Pending Good Receipt Note not found for approval! |
+  | 7 | 404 | 404 invalid id | No item found with ID " |
+  | 8 | 404 | 404 already approved | Pending Good Receipt Note not found for approval! |
+
+  ## Main scenario notes
+
+  SUPERADMIN, ADMIN. PENDING -> APPROVED and adds 50000 g to `{{productId}}` stock with a GRN_APPROVED log.
+  This is the stock the POS folder sells. Responds 201. `src/modules/inventory/grn/grn.controller.ts:169`

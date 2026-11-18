@@ -1,0 +1,446 @@
+info:
+  name: Update Product
+  type: http
+  seq: 2
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/inventory/product/{{productId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "productName": "{{productName}}",
+        "productShortCode": "{{productShortCode}}",
+        "measureUnit": 13,
+        "isReturnableProduct": false,
+        "unitPrice": 300,
+        "description": "Updated by Bruno"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("price updated", function () {
+          expect(res.body.data.unitPrice).to.equal(300);
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Product updated successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      SUPERADMIN, ADMIN. Same name/code (duplicate check excludes self), price -> 300/kg. `measureUnit` is required but ignored on update. `src/modules/inventory/product/product.controller.ts:85`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Update Product - 200.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{productId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "{{productName}}",
+            "productShortCode": "{{productShortCode}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 300,
+            "description": "Updated by Bruno"
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product updated successfully!",
+            "data": {
+              "_id": "6731f0a2b4c5d6e7f8a9b0c1",
+              "productName": "Bruno Rice 1794990600000",
+              "productShortCode": "BR1794990600000",
+              "measureUnit": 13,
+              "isReturnableProduct": false,
+              "unitPrice": 300,
+              "description": "Updated by Bruno",
+              "inventory": 0,
+              "inventoryLogs": [],
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:30:00.412Z",
+              "updatedAt": "2026-11-18T08:30:04.880Z"
+            }
+          }
+  - name: 400 missing productName
+    description: |-
+      Same Joi schema as create. `src/modules/inventory/product/product.controller.ts:100`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Update Product - 400 missing productName.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{productId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "productShortCode": "BP{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product Name is required",
+            "data": null
+          }
+  - name: 400 missing measureUnit
+    description: |-
+      `measureUnit` is required by validation even though update ignores it (`src/modules/inventory/product/product.controller.ts:125-130`). `src/modules/inventory/product/product.controller.ts:100`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Update Product - 400 missing measureUnit.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{productId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "productShortCode": "BP{{$timestamp}}",
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Measure Unit is required",
+            "data": null
+          }
+  - name: 400 duplicate short code
+    description: |-
+      Updating `{{tempProductId}}` with the short code of `{{productId}}`. `src/modules/inventory/product/product.controller.ts:114`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Update Product - 400 duplicate short code.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{tempProductId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Temp Renamed {{$timestamp}}",
+            "productShortCode": "{{productShortCode}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product short code cannot be duplicate!",
+            "data": null
+          }
+  - name: 400 duplicate name
+    description: |-
+      Updating `{{tempProductId}}` with the name of `{{productId}}`. `src/modules/inventory/product/product.controller.ts:117`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Update Product - 400 duplicate name.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{tempProductId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "{{productName}}",
+            "productShortCode": "BT2{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product name cannot be duplicate!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Inventory/Product/Update Product - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{productId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "productShortCode": "BP{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN only; `{{driverToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Inventory/Product/Update Product - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{productId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "productShortCode": "BP{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 not found
+    description: |-
+      No ACTIVE/INACTIVE product with that id. `src/modules/inventory/product/product.controller.ts:106`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Update Product - 404 not found.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{nonExistingId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "productShortCode": "BP{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product not found for update!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Body is valid so the lookup runs with a malformed id. `src/modules/inventory/product/product.controller.ts:104`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Update Product - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{invalidId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "productShortCode": "BP{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+  - name: 404 deleted product
+    description: |-
+      Deleted products cannot be updated. Precondition: `Delete Product - 200 temp product`. `src/modules/inventory/product/product.controller.ts:106`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Update Product - 404 deleted product.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{tempProductId}}"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "productName": "Bruno Product {{$timestamp}}",
+            "productShortCode": "BP{{$timestamp}}",
+            "measureUnit": 13,
+            "isReturnableProduct": false,
+            "unitPrice": 250,
+            "description": "Created by Bruno"
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product not found for update!",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/inventory/product/:id`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | Product updated successfully! |
+  | 2 | 400 | 400 missing productName | Product Name is required |
+  | 3 | 400 | 400 missing measureUnit | Measure Unit is required |
+  | 4 | 400 | 400 duplicate short code | Product short code cannot be duplicate! |
+  | 5 | 400 | 400 duplicate name | Product name cannot be duplicate! |
+  | 6 | 401 | 401 no token | Authentication invalid! |
+  | 7 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 8 | 404 | 404 not found | Product not found for update! |
+  | 9 | 404 | 404 invalid id | No item found with ID " |
+  | 10 | 404 | 404 deleted product | Product not found for update! |
+
+  ## Main scenario notes
+
+  SUPERADMIN, ADMIN. Same name/code (duplicate check excludes self), price -> 300/kg. `measureUnit` is required but ignored on update. `src/modules/inventory/product/product.controller.ts:85`

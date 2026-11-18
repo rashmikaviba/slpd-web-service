@@ -1,0 +1,17 @@
+info:
+  name: Monthly Expenses
+  type: folder
+  seq: 16
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    Monthly expense headers and their expense lines (`src/modules/monthlyExpenses/`, Document/monthlyExpenses.md).
+    All routes: SUPERADMIN, ADMIN, TRIPMANAGER, FINANCEOFFICER.
+    There is no create-header endpoint (headers come from Month Audit). `Advance Search - 200 setup` searches all months and stores
+    `{{monthlyExpensesId}}` (the open header, isMonthEndDone=false) and `{{closedMonthlyExpensesId}}` (a closed one, if any).
+    Line ids: `{{monthlyExpenseLineId}}` (kept) and `{{monthlyExpenseLineToDeleteId}}` (deleted in Delete folder).
+    [KNOWN BUG] update and delete respond 201 instead of 200.
+  type: text/markdown

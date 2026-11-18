@@ -1,0 +1,254 @@
+info:
+  name: Cancel Trip
+  type: http
+  seq: 3
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/trip/{{canceledTripId}}"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Trip Canceled Successfully
+    - expression: res.body.data
+      operator: isNull
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 pending trip with POS
+    description: |-
+      [DESTRUCTIVE] PENDING → CANCELED (irreversible). ACTIVE POS lines are returned to inventory and the POS is marked DELETED in one transaction (src/modules/trip/trip.controller.ts:473-548).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Cancel Trip/Cancel Trip - 200 pending trip with POS.yml
+    request:
+      url: "{{baseUrl}}/trip/{{canceledTripId}}"
+      method: DELETE
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip Canceled Successfully",
+            "data": null
+          }
+  - name: 400 already canceled
+    description: |-
+      CANCELED not in [PENDING, START, FINISHED] (src/modules/trip/trip.controller.ts:456-464).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Cancel Trip/Cancel Trip - 400 already canceled.yml
+    request:
+      url: "{{baseUrl}}/trip/{{canceledTripId}}"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip not found!",
+            "data": null
+          }
+  - name: 400 started trip
+    description: |-
+      Main trip is START (src/modules/trip/trip.controller.ts:466-471).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Cancel Trip/Cancel Trip - 400 started trip.yml
+    request:
+      url: "{{baseUrl}}/trip/{{tripId}}"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Can't cancel started or finished trip!",
+            "data": null
+          }
+  - name: 400 finished trip
+    description: |-
+      src/modules/trip/trip.controller.ts:466-471.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Cancel Trip/Cancel Trip - 400 finished trip.yml
+    request:
+      url: "{{baseUrl}}/trip/{{finishedTripId}}"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Can't cancel started or finished trip!",
+            "data": null
+          }
+  - name: 400 not found
+    description: |-
+      src/modules/trip/trip.controller.ts:462-464.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Cancel Trip/Cancel Trip - 400 not found.yml
+    request:
+      url: "{{baseUrl}}/trip/{{nonExistingId}}"
+      method: DELETE
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip not found!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → `authorize()` throws UnauthorizedError (src/middleware/auth.middleware.ts:24-26).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Trip/Cancel Trip/Cancel Trip - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/trip/{{canceledTripId}}"
+      method: DELETE
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows TRIPMANAGER, SUPERADMIN, ADMIN, TRIPASSISTANT only (src/modules/trip/trip.route.ts:48-57); `driverToken` is rejected by authorize() (src/middleware/auth.middleware.ts:66-74).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Cancel Trip/Cancel Trip - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/trip/{{canceledTripId}}"
+      method: DELETE
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed ObjectId reaches `Trip.findOne({_id})` → Mongoose CastError → error middleware returns 404 (src/middleware/error.middleware.ts, CastError branch). Controller: src/modules/trip/trip.controller.ts:456.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Cancel Trip/Cancel Trip - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/trip/{{invalidId}}"
+      method: DELETE
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **DELETE `/api/v1/trip/:id`**
+
+  This request runs the main scenario **200 pending trip with POS**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 pending trip with POS | Trip Canceled Successfully |
+  | 2 | 400 | 400 already canceled | Trip not found! |
+  | 3 | 400 | 400 started trip | Can't cancel started or finished trip! |
+  | 4 | 400 | 400 finished trip | Can't cancel started or finished trip! |
+  | 5 | 400 | 400 not found | Trip not found! |
+  | 6 | 401 | 401 no token | Authentication invalid! |
+  | 7 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 8 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  [DESTRUCTIVE] PENDING → CANCELED (irreversible). ACTIVE POS lines are returned to inventory and the POS is marked DELETED in one transaction (src/modules/trip/trip.controller.ts:473-548).

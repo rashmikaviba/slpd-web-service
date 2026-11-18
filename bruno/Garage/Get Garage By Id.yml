@@ -1,0 +1,176 @@
+info:
+  name: Get Garage By Id
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: "{{baseUrl}}/garage/{{garageId}}"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.data._id
+      operator: eq
+      value: '"{{garageId}}"'
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      Raw document, no populate (garage.controller.ts:162-177).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Get Garage By Id/Get Garage By Id - 200.yml
+    request:
+      url: "{{baseUrl}}/garage/{{garageId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "_id": "6652a1b2c3d4e5f6a7b8c9d0",
+              "name": "Bruno Garage 1794990660",
+              "address": "12 Main Street",
+              "city": "Colombo",
+              "contactNumber1": "0771234567",
+              "contactNumber2": "0112345678",
+              "googleMapUrl": "https://maps.google.com/?q=6.9271,79.8612",
+              "specializations": [
+                {
+                  "id": 1,
+                  "name": "Engine",
+                  "_id": "6652b1b2c3d4e5f6a7b8c9d0"
+                },
+                {
+                  "id": 2,
+                  "name": "Brakes",
+                  "_id": "6652b1b2c3d4e5f6a7b8c9d1"
+                }
+              ],
+              "description": "Created by Bruno",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:35:00.000Z",
+              "updatedAt": "2026-11-18T08:35:00.000Z"
+            }
+          }
+  - name: 200 not found returns null
+    description: |-
+      [KNOWN BUG] No not-found error: 200 with `data: null` (garage.controller.ts:162-177, Document/garage.md › Known issues).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Get Garage By Id/Get Garage By Id - 200 not found returns null.yml
+    request:
+      url: "{{baseUrl}}/garage/{{nonExistingId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Garage/Get Garage By Id/Get Garage By Id - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/garage/{{garageId}}"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed id → CastError → 404 (error.middleware.ts:57-60).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Garage/Get Garage By Id/Get Garage By Id - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/garage/{{invalidId}}"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/garage/:id`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | (empty) |
+  | 2 | 200 | 200 not found returns null | (empty) |
+  | 3 | 401 | 401 no token | Authentication invalid! |
+  | 4 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  Raw document, no populate (garage.controller.ts:162-177).

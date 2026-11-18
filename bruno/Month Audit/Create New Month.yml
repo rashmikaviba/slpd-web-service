@@ -1,0 +1,237 @@
+info:
+  name: Create New Month
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/monthAudit/createNewMonth"
+  body:
+    type: json
+    data: |-
+      {
+        "month": {{nextMonth}},
+        "year": {{nextYear}}
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("message", function () {
+          expect(res.body.message).to.equal(`Month Audit successfully done and System date move to ${bru.getVar("nextMonth")}/${bru.getVar("nextYear")}!`);
+        });
+        test("month audit row returned", function () {
+          expect(res.body.data).to.have.property("batchId");
+          expect(res.body.data.batchId).to.be.at.least(1);
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 201 next month
+    description: |-
+      [DESTRUCTIVE] Closes month `{{workingMonth}}/{{workingYear}}` and opens `{{nextMonth}}/{{nextYear}}` in one
+      transaction (monthAudit.controller.ts:36-160): stamps `isMonthEndDone` + batchId on leaves/trips/expenses/POS/
+      internal trips/monthly expenses/maintenance, DELETES the old working info, creates the new one, a new
+      MonthlyExpenses header and a MonthAudit row, clears all caches. No undo endpoint. Run against a dev DB only.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Month Audit/Create New Month - 201 next month.yml
+    request:
+      url: "{{baseUrl}}/monthAudit/createNewMonth"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": {{nextMonth}},
+            "year": {{nextYear}}
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Month Audit successfully done and System date move to 12/2026!",
+            "data": {
+              "newWorkingDate": "2026-11-30T18:30:00.000Z",
+              "status": 1,
+              "batchId": 11,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "_id": "6650a1b2c3d4e5f6a7b8a011",
+              "createdAt": "2026-11-18T08:35:00.000Z",
+              "updatedAt": "2026-11-18T08:35:00.000Z"
+            }
+          }
+  - name: 400 [KNOWN BUG] empty body
+    description: |-
+      [KNOWN BUG] No validation (validation file unused, Document/monthAudit.md #4). The whole close runs inside the
+      transaction, then the new CompanyWorkingInfo `{ workingYear: undefined, workingMonth: undefined,
+      workingDate: Invalid Date }` fails Mongoose validation (first error = workingDate cast) → 400; the transaction is
+      aborted, so no data changes (monthAudit.controller.ts:106-114,146-148). Should be a 400 "Month is required".
+      Not covered on purpose: month 13 / past month — they are accepted and would really move the system date.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Month Audit/Create New Month - 400 [KNOWN BUG] empty body.yml
+    request:
+      url: "{{baseUrl}}/monthAudit/createNewMonth"
+      method: POST
+      body:
+        type: json
+        data: "{}"
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Cast to date failed for value \"Invalid Date\" (type Date) at path \"workingDate\"",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. monthAudit.route.ts:14-18.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Month Audit/Create New Month - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/monthAudit/createNewMonth"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": {{nextMonth}},
+            "year": {{nextYear}}
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 admin
+    description: |-
+      Route allows SUPERADMIN only; `{{adminToken}}` is rejected by auth.middleware.ts:73-77. monthAudit.route.ts:14-18.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: Month Audit/Create New Month - 403 admin.yml
+    request:
+      url: "{{baseUrl}}/monthAudit/createNewMonth"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "month": {{nextMonth}},
+            "year": {{nextYear}}
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 500 [KNOWN BUG] no working info
+    description: |-
+      [KNOWN BUG] [PRECONDITION] With no ACTIVE CompanyWorkingInfo, `lastCompanyInfo.workingMonth` is read (line 53)
+      before the `if (lastCompanyInfo)` guard (line 97) → TypeError → 500, so the very first month can never be opened
+      (Document/monthAudit.md #3). The body is deliberately empty: when working info DOES exist the close fails
+      validation and is rolled back (same as seq 4), so this request can never move the system date.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Month Audit/Create New Month - 500 [KNOWN BUG] no working info.yml
+    request:
+      url: "{{baseUrl}}/monthAudit/createNewMonth"
+      method: POST
+      body:
+        type: json
+        data: "{}"
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Cannot read properties of null (reading 'workingMonth')",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/monthAudit/createNewMonth`**
+
+  This request runs the main scenario **201 next month**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 next month | Month Audit successfully done and System date move to 12/2026! |
+  | 2 | 400 | 400 [KNOWN BUG] empty body | Cast to date failed for value "Invalid Date" (type Date) at path "workingDate" |
+  | 3 | 401 | 401 no token | Authentication invalid! |
+  | 4 | 403 | 403 admin | You're unauthorized to access this resource! |
+  | 5 | 500 | 500 [KNOWN BUG] no working info | Cannot read properties of null (reading 'workingMonth') |
+
+  ## Main scenario notes
+
+  [DESTRUCTIVE] Closes month `{{workingMonth}}/{{workingYear}}` and opens `{{nextMonth}}/{{nextYear}}` in one
+  transaction (monthAudit.controller.ts:36-160): stamps `isMonthEndDone` + batchId on leaves/trips/expenses/POS/
+  internal trips/monthly expenses/maintenance, DELETES the old working info, creates the new one, a new
+  MonthlyExpenses header and a MonthAudit row, clears all caches. No undo endpoint. Run against a dev DB only.

@@ -1,0 +1,606 @@
+info:
+  name: Monthly Expenses Report
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/report/monthlyExpensesReport?date={{reportDate}}"
+  params:
+    - name: date
+      value: "{{reportDate}}"
+      type: query
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        const d = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        // mid-month day avoids TZ edge cases (server builds month bounds in local time from a UTC-parsed date)
+        bru.setVar("reportDate", `${d.getFullYear()}-${pad(d.getMonth() + 1)}-15`);
+    - type: after-response
+      code: if (res.status === 200) bru.setVar("monthlyExpensesReportCount", res.body.data.length);
+    - type: tests
+      code: |-
+        const data = res.body.data;
+        const maint = ["Company Vehicle Maintenance", "Rental Vehicle Maintenance"];
+        test("every row has exactly the ExpensesReportResponseDto fields", function () {
+          data.forEach((r) => {
+            expect(r).to.have.all.keys("tripId", "confirmationNumber", "expenseId", "typeId", "typeName", "amount", "description", "date", "createdDate", "createdUser", "updatedDate", "updatedUser");
+            expect(r.amount).to.be.a("number");
+            expect(r.createdUser).to.be.a("string");
+            expect(r.updatedUser).to.be.a("string");
+          });
+        });
+        test("maintenance rows: typeId 0, no trip, description format", function () {
+          data.filter((r) => maint.includes(r.typeName)).forEach((r) => {
+            expect(r.typeId).to.equal(0);
+            expect(r.tripId).to.equal("");
+            expect(r.confirmationNumber).to.equal("");
+            expect(r.description).to.match(/^Vehicle : .*, Garage Name : .*, Maintenance Part : /);
+          });
+        });
+        test("rows ordered: trip expenses, then monthly expenses, then maintenance", function () {
+          const rank = (r) => (r.tripId !== "" ? 0 : maint.includes(r.typeName) ? 2 : 1);
+          for (let i = 1; i < data.length; i++) expect(rank(data[i - 1])).to.be.at.most(rank(data[i]));
+        });
+        test("[KNOWN BUG] monthly (company) expense rows have updatedUser 'undefined (undefined)'", function () {
+          data.filter((r) => r.tripId === "" && !maint.includes(r.typeName)).forEach((r) => {
+            expect(r.updatedUser).to.equal("undefined (undefined)");
+          });
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.data
+      operator: isArray
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 current month
+    description: |-
+      Flat ledger: ACTIVE trip expense items of trips ending this month, then ACTIVE items of the month's MonthlyExpenses
+      doc, then company-borne maintenance (report.controller.ts:80-173, report.util.ts:4/31).
+      [KNOWN BUG] Monthly expense rows always have `updatedUser: "undefined (undefined)"` because report.service.ts:39-45 populates
+      only `expenses.createdBy` (report.md › Known issues 2). That test is vacuous unless a MonthlyExpenses doc exists for
+      the current month (created by the Monthly Expenses module earlier in the run).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Monthly Expenses Report/Monthly Expenses Report - 200 current month.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyExpensesReport?date={{reportDate}}"
+      method: GET
+      params:
+        - name: date
+          value: "{{reportDate}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "tripId": "6651b2c3d4e5f6a7b8c9d001",
+                "confirmationNumber": "SLPD-2026-1104",
+                "expenseId": "6652c3d4e5f6a7b8c9d0f101",
+                "typeId": 1,
+                "typeName": "Fuel",
+                "amount": 18500,
+                "description": "Diesel refill at Dambulla",
+                "date": "2026-11-05T00:00:00.000Z",
+                "createdDate": "2026-11-05T09:20:00.000Z",
+                "createdUser": "driver.sunil (Sunil Jayasinghe)",
+                "updatedDate": "2026-11-05T09:20:00.000Z",
+                "updatedUser": "driver.sunil (Sunil Jayasinghe)"
+              },
+              {
+                "tripId": "",
+                "confirmationNumber": "",
+                "expenseId": "6655f6a7b8c9d0e1f2a3b001",
+                "typeId": "1",
+                "typeName": "Electricity",
+                "amount": 18750,
+                "description": "CEB bill - head office November",
+                "date": "2026-11-05T00:00:00.000Z",
+                "createdDate": "2026-11-06T04:00:00.000Z",
+                "createdUser": "nimali.fo (Nimali Fernando)",
+                "updatedDate": "2026-11-06T04:00:00.000Z",
+                "updatedUser": "undefined (undefined)"
+              },
+              {
+                "tripId": "",
+                "confirmationNumber": "",
+                "expenseId": "6657b8c9d0e1f2a3b4c5d001",
+                "typeId": 0,
+                "typeName": "Company Vehicle Maintenance",
+                "description": "Vehicle : WP CAB-4521, Garage Name : Lanka Auto Care, Maintenance Part : Brake Pads",
+                "amount": 12500,
+                "date": "2026-11-08T00:00:00.000Z",
+                "createdDate": "2026-11-08T07:30:00.000Z",
+                "createdUser": "nimali.fo (Nimali Fernando)",
+                "updatedDate": "2026-11-08T07:30:00.000Z",
+                "updatedUser": "nimali.fo (Nimali Fernando)"
+              },
+              {
+                "tripId": "",
+                "confirmationNumber": "",
+                "expenseId": "6657b8c9d0e1f2a3b4c5d002",
+                "typeId": 0,
+                "typeName": "Rental Vehicle Maintenance",
+                "description": "Vehicle : WP KX-7788, Garage Name : Lanka Auto Care, Maintenance Part : Wiper Blades",
+                "amount": 4200,
+                "date": "2026-11-12T00:00:00.000Z",
+                "createdDate": "2026-11-12T06:15:00.000Z",
+                "createdUser": "nimali.fo (Nimali Fernando)",
+                "updatedDate": "2026-11-12T06:15:00.000Z",
+                "updatedUser": "nimali.fo (Nimali Fernando)"
+              }
+            ]
+          }
+  - name: 200 Finance Officer
+    description: |-
+      FINANCEOFFICER is allowed (report.route.ts). Same payload as Super Admin.
+
+      Auth: bearer {{financeOfficerToken}}
+
+      Source scenario: Report/Monthly Expenses Report/Monthly Expenses Report - 200 Finance Officer.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyExpensesReport?date={{reportDate}}"
+      method: GET
+      params:
+        - name: date
+          value: "{{reportDate}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "tripId": "6651b2c3d4e5f6a7b8c9d001",
+                "confirmationNumber": "SLPD-2026-1104",
+                "expenseId": "6652c3d4e5f6a7b8c9d0f101",
+                "typeId": 1,
+                "typeName": "Fuel",
+                "amount": 18500,
+                "description": "Diesel refill at Dambulla",
+                "date": "2026-11-05T00:00:00.000Z",
+                "createdDate": "2026-11-05T09:20:00.000Z",
+                "createdUser": "driver.sunil (Sunil Jayasinghe)",
+                "updatedDate": "2026-11-05T09:20:00.000Z",
+                "updatedUser": "driver.sunil (Sunil Jayasinghe)"
+              },
+              {
+                "tripId": "",
+                "confirmationNumber": "",
+                "expenseId": "6655f6a7b8c9d0e1f2a3b001",
+                "typeId": "1",
+                "typeName": "Electricity",
+                "amount": 18750,
+                "description": "CEB bill - head office November",
+                "date": "2026-11-05T00:00:00.000Z",
+                "createdDate": "2026-11-06T04:00:00.000Z",
+                "createdUser": "nimali.fo (Nimali Fernando)",
+                "updatedDate": "2026-11-06T04:00:00.000Z",
+                "updatedUser": "undefined (undefined)"
+              },
+              {
+                "tripId": "",
+                "confirmationNumber": "",
+                "expenseId": "6657b8c9d0e1f2a3b4c5d001",
+                "typeId": 0,
+                "typeName": "Company Vehicle Maintenance",
+                "description": "Vehicle : WP CAB-4521, Garage Name : Lanka Auto Care, Maintenance Part : Brake Pads",
+                "amount": 12500,
+                "date": "2026-11-08T00:00:00.000Z",
+                "createdDate": "2026-11-08T07:30:00.000Z",
+                "createdUser": "nimali.fo (Nimali Fernando)",
+                "updatedDate": "2026-11-08T07:30:00.000Z",
+                "updatedUser": "nimali.fo (Nimali Fernando)"
+              },
+              {
+                "tripId": "",
+                "confirmationNumber": "",
+                "expenseId": "6657b8c9d0e1f2a3b4c5d002",
+                "typeId": 0,
+                "typeName": "Rental Vehicle Maintenance",
+                "description": "Vehicle : WP KX-7788, Garage Name : Lanka Auto Care, Maintenance Part : Wiper Blades",
+                "amount": 4200,
+                "date": "2026-11-12T00:00:00.000Z",
+                "createdDate": "2026-11-12T06:15:00.000Z",
+                "createdUser": "nimali.fo (Nimali Fernando)",
+                "updatedDate": "2026-11-12T06:15:00.000Z",
+                "updatedUser": "nimali.fo (Nimali Fernando)"
+              }
+            ]
+          }
+  - name: 200 Trip Manager
+    description: |-
+      TRIPMANAGER is allowed (report.route.ts). Same payload as Super Admin.
+
+      Auth: bearer {{tripManagerToken}}
+
+      Source scenario: Report/Monthly Expenses Report/Monthly Expenses Report - 200 Trip Manager.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyExpensesReport?date={{reportDate}}"
+      method: GET
+      params:
+        - name: date
+          value: "{{reportDate}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "tripId": "6651b2c3d4e5f6a7b8c9d001",
+                "confirmationNumber": "SLPD-2026-1104",
+                "expenseId": "6652c3d4e5f6a7b8c9d0f101",
+                "typeId": 1,
+                "typeName": "Fuel",
+                "amount": 18500,
+                "description": "Diesel refill at Dambulla",
+                "date": "2026-11-05T00:00:00.000Z",
+                "createdDate": "2026-11-05T09:20:00.000Z",
+                "createdUser": "driver.sunil (Sunil Jayasinghe)",
+                "updatedDate": "2026-11-05T09:20:00.000Z",
+                "updatedUser": "driver.sunil (Sunil Jayasinghe)"
+              },
+              {
+                "tripId": "",
+                "confirmationNumber": "",
+                "expenseId": "6655f6a7b8c9d0e1f2a3b001",
+                "typeId": "1",
+                "typeName": "Electricity",
+                "amount": 18750,
+                "description": "CEB bill - head office November",
+                "date": "2026-11-05T00:00:00.000Z",
+                "createdDate": "2026-11-06T04:00:00.000Z",
+                "createdUser": "nimali.fo (Nimali Fernando)",
+                "updatedDate": "2026-11-06T04:00:00.000Z",
+                "updatedUser": "undefined (undefined)"
+              },
+              {
+                "tripId": "",
+                "confirmationNumber": "",
+                "expenseId": "6657b8c9d0e1f2a3b4c5d001",
+                "typeId": 0,
+                "typeName": "Company Vehicle Maintenance",
+                "description": "Vehicle : WP CAB-4521, Garage Name : Lanka Auto Care, Maintenance Part : Brake Pads",
+                "amount": 12500,
+                "date": "2026-11-08T00:00:00.000Z",
+                "createdDate": "2026-11-08T07:30:00.000Z",
+                "createdUser": "nimali.fo (Nimali Fernando)",
+                "updatedDate": "2026-11-08T07:30:00.000Z",
+                "updatedUser": "nimali.fo (Nimali Fernando)"
+              },
+              {
+                "tripId": "",
+                "confirmationNumber": "",
+                "expenseId": "6657b8c9d0e1f2a3b4c5d002",
+                "typeId": 0,
+                "typeName": "Rental Vehicle Maintenance",
+                "description": "Vehicle : WP KX-7788, Garage Name : Lanka Auto Care, Maintenance Part : Wiper Blades",
+                "amount": 4200,
+                "date": "2026-11-12T00:00:00.000Z",
+                "createdDate": "2026-11-12T06:15:00.000Z",
+                "createdUser": "nimali.fo (Nimali Fernando)",
+                "updatedDate": "2026-11-12T06:15:00.000Z",
+                "updatedUser": "nimali.fo (Nimali Fernando)"
+              }
+            ]
+          }
+  - name: 200 no date defaults to current month
+    description: |-
+      `date` omitted → `selectedDate = new Date()` (current month). Compared against the 'current month' request run just before.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Monthly Expenses Report/Monthly Expenses Report - 200 no date defaults to current month.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyExpensesReport"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "tripId": "6651b2c3d4e5f6a7b8c9d001",
+                "confirmationNumber": "SLPD-2026-1104",
+                "expenseId": "6652c3d4e5f6a7b8c9d0f101",
+                "typeId": 1,
+                "typeName": "Fuel",
+                "amount": 18500,
+                "description": "Diesel refill at Dambulla",
+                "date": "2026-11-05T00:00:00.000Z",
+                "createdDate": "2026-11-05T09:20:00.000Z",
+                "createdUser": "driver.sunil (Sunil Jayasinghe)",
+                "updatedDate": "2026-11-05T09:20:00.000Z",
+                "updatedUser": "driver.sunil (Sunil Jayasinghe)"
+              },
+              {
+                "tripId": "",
+                "confirmationNumber": "",
+                "expenseId": "6655f6a7b8c9d0e1f2a3b001",
+                "typeId": "1",
+                "typeName": "Electricity",
+                "amount": 18750,
+                "description": "CEB bill - head office November",
+                "date": "2026-11-05T00:00:00.000Z",
+                "createdDate": "2026-11-06T04:00:00.000Z",
+                "createdUser": "nimali.fo (Nimali Fernando)",
+                "updatedDate": "2026-11-06T04:00:00.000Z",
+                "updatedUser": "undefined (undefined)"
+              },
+              {
+                "tripId": "",
+                "confirmationNumber": "",
+                "expenseId": "6657b8c9d0e1f2a3b4c5d001",
+                "typeId": 0,
+                "typeName": "Company Vehicle Maintenance",
+                "description": "Vehicle : WP CAB-4521, Garage Name : Lanka Auto Care, Maintenance Part : Brake Pads",
+                "amount": 12500,
+                "date": "2026-11-08T00:00:00.000Z",
+                "createdDate": "2026-11-08T07:30:00.000Z",
+                "createdUser": "nimali.fo (Nimali Fernando)",
+                "updatedDate": "2026-11-08T07:30:00.000Z",
+                "updatedUser": "nimali.fo (Nimali Fernando)"
+              },
+              {
+                "tripId": "",
+                "confirmationNumber": "",
+                "expenseId": "6657b8c9d0e1f2a3b4c5d002",
+                "typeId": 0,
+                "typeName": "Rental Vehicle Maintenance",
+                "description": "Vehicle : WP KX-7788, Garage Name : Lanka Auto Care, Maintenance Part : Wiper Blades",
+                "amount": 4200,
+                "date": "2026-11-12T00:00:00.000Z",
+                "createdDate": "2026-11-12T06:15:00.000Z",
+                "createdUser": "nimali.fo (Nimali Fernando)",
+                "updatedDate": "2026-11-12T06:15:00.000Z",
+                "updatedUser": "nimali.fo (Nimali Fernando)"
+              }
+            ]
+          }
+  - name: 200 month with no data
+    description: |-
+      A month with no trips/expenses returns 200 and `[]` (no 404).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Monthly Expenses Report/Monthly Expenses Report - 200 month with no data.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyExpensesReport?date=1990-01-15"
+      method: GET
+      params:
+        - name: date
+          value: 1990-01-15
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": []
+          }
+  - name: 401 no token
+    description: |-
+      auth.middleware.ts:25-26 — no `Authorization: Bearer` header → UnauthorizedError.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Report/Monthly Expenses Report/Monthly Expenses Report - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyExpensesReport"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 Driver
+    description: |-
+      DRIVER is not in [SUPERADMIN, ADMIN, FINANCEOFFICER, TRIPMANAGER] (report.route.ts). auth.middleware.ts:68-79 — role not in the route's roles array → ForbiddenError.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Report/Monthly Expenses Report/Monthly Expenses Report - 403 Driver.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyExpensesReport"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 403 Driver Assistant
+    description: |-
+      DRIVER ASSISTANT is not in [SUPERADMIN, ADMIN, FINANCEOFFICER, TRIPMANAGER] (report.route.ts). auth.middleware.ts:68-79 — role not in the route's roles array → ForbiddenError.
+
+      Auth: bearer {{driverAssistantToken}}
+
+      Source scenario: Report/Monthly Expenses Report/Monthly Expenses Report - 403 Driver Assistant.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyExpensesReport"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 403 Trip Assistant
+    description: |-
+      TRIP ASSISTANT is not in [SUPERADMIN, ADMIN, FINANCEOFFICER, TRIPMANAGER] (report.route.ts). auth.middleware.ts:68-79 — role not in the route's roles array → ForbiddenError.
+
+      Auth: bearer {{tripAssistantToken}}
+
+      Source scenario: Report/Monthly Expenses Report/Monthly Expenses Report - 403 Trip Assistant.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyExpensesReport"
+      method: GET
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid date
+    description: |-
+      `new Date("not-a-date")` → Invalid Date month bounds → Mongoose CastError in report.service.ts:7-15
+      (findAllTripsByDateAndStatusIn) → error.middleware.ts:56-60 → 404 `No item found with ID "Invalid Date"!`.
+      No 400 validation exists for `date` (report.md › Known issues 11). Note: report.md says 500; verified the cast
+      error is a `CastError`, which the middleware maps to 404.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Report/Monthly Expenses Report/Monthly Expenses Report - 404 invalid date.yml
+    request:
+      url: "{{baseUrl}}/report/monthlyExpensesReport?date=not-a-date"
+      method: GET
+      params:
+        - name: date
+          value: not-a-date
+          type: query
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"Invalid Date\"!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/report/monthlyExpensesReport`**
+
+  This request runs the main scenario **200 current month**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 current month | (empty) |
+  | 2 | 200 | 200 Finance Officer | (empty) |
+  | 3 | 200 | 200 Trip Manager | (empty) |
+  | 4 | 200 | 200 no date defaults to current month | (empty) |
+  | 5 | 200 | 200 month with no data | (empty) |
+  | 6 | 401 | 401 no token | Authentication invalid! |
+  | 7 | 403 | 403 Driver | You're unauthorized to access this resource! |
+  | 8 | 403 | 403 Driver Assistant | You're unauthorized to access this resource! |
+  | 9 | 403 | 403 Trip Assistant | You're unauthorized to access this resource! |
+  | 10 | 404 | 404 invalid date | No item found with ID "Invalid Date"! |
+
+  ## Main scenario notes
+
+  Flat ledger: ACTIVE trip expense items of trips ending this month, then ACTIVE items of the month's MonthlyExpenses
+  doc, then company-borne maintenance (report.controller.ts:80-173, report.util.ts:4/31).
+  [KNOWN BUG] Monthly expense rows always have `updatedUser: "undefined (undefined)"` because report.service.ts:39-45 populates
+  only `expenses.createdBy` (report.md › Known issues 2). That test is vacuous unless a MonthlyExpenses doc exists for
+  the current month (created by the Monthly Expenses module earlier in the run).

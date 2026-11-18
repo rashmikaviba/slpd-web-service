@@ -1,0 +1,257 @@
+info:
+  name: Get All Vehicle Maintenances
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: "{{baseUrl}}/vehicleMaintenance/?startDate={{vmMonthStart}}&endDate={{vmMonthEnd}}"
+  params:
+    - name: startDate
+      value: "{{vmMonthStart}}"
+      type: query
+    - name: endDate
+      value: "{{vmMonthEnd}}"
+      type: query
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("contains created record", function () {
+          expect(res.body.data.map((x) => x.id)).to.include(bru.getVar("vehicleMaintenanceId"));
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.data
+      operator: isArray
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 working month
+    description: |-
+      ACTIVE records in the date range as VehicleMaintenanceResponseDto[] (`id`, not `_id`) (vehicleMaintenance.controller.ts:217-237). Any authenticated role.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Get All Vehicle Maintenances/Get All Vehicle Maintenances - 200 working month.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/?startDate={{vmMonthStart}}&endDate={{vmMonthEnd}}"
+      method: GET
+      params:
+        - name: startDate
+          value: "{{vmMonthStart}}"
+          type: query
+        - name: endDate
+          value: "{{vmMonthEnd}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "id": "6653a1b2c3d4e5f6a7b8c9d0",
+                "vehicleId": "6651a1b2c3d4e5f6a7b8c9d0",
+                "vehicleNumber": "BRU-1794990600000",
+                "maintenancePart": "Engine oil change",
+                "isCompanyVehicle": true,
+                "isRentalVehicle": false,
+                "isFreelanceVehicle": false,
+                "garageId": "6652a1b2c3d4e5f6a7b8c9d0",
+                "garageName": "Bruno Garage 1794990660",
+                "maintenanceDate": "2026-11-15T00:00:00.000Z",
+                "cost": 12500,
+                "note": "Bruno test maintenance",
+                "billImageUrls": [
+                  "https://example.com/bills/bruno-1.png"
+                ],
+                "isMonthEndDone": false,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "createdUser": "superadmin",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "updatedUser": "superadmin",
+                "createdAt": "2026-11-18T08:40:00.000Z",
+                "updatedAt": "2026-11-18T08:40:00.000Z"
+              },
+              {
+                "id": "6653a1b2c3d4e5f6a7b8c9d1",
+                "vehicleId": "6651a1b2c3d4e5f6a7b8c9d0",
+                "vehicleNumber": "BRU-1794990600000",
+                "maintenancePart": "Brake pads",
+                "isCompanyVehicle": true,
+                "isRentalVehicle": false,
+                "isFreelanceVehicle": false,
+                "garageId": "6652a1b2c3d4e5f6a7b8c9d0",
+                "garageName": "Bruno Garage 1794990660",
+                "maintenanceDate": "2026-11-15T00:00:00.000Z",
+                "cost": 4800,
+                "note": null,
+                "billImageUrls": null,
+                "isMonthEndDone": false,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "createdUser": "superadmin",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "updatedUser": "superadmin",
+                "createdAt": "2026-11-18T08:40:01.000Z",
+                "updatedAt": "2026-11-18T08:40:01.000Z"
+              }
+            ]
+          }
+  - name: 200 closed month lookup
+    description: |-
+      Setup for month-end cases: records before the working month that month-end already closed. Stores the first one as
+      `{{closedVehicleMaintenanceId}}`. If the DB has no closed record, the `… month end done` requests cannot pass.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Get All Vehicle Maintenances/Get All Vehicle Maintenances - 200 closed month lookup.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/?startDate=2000-01-01&endDate={{vmBeforeMonthEnd}}"
+      method: GET
+      params:
+        - name: startDate
+          value: 2000-01-01
+          type: query
+        - name: endDate
+          value: "{{vmBeforeMonthEnd}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "id": "6653a1b2c3d4e5f6a7b8c9cf",
+                "vehicleId": "6651a1b2c3d4e5f6a7b8c9cf",
+                "vehicleNumber": "WP CAB-4521",
+                "maintenancePart": "Tyre rotation",
+                "isCompanyVehicle": true,
+                "isRentalVehicle": false,
+                "isFreelanceVehicle": false,
+                "garageId": "6652a1b2c3d4e5f6a7b8c9cf",
+                "garageName": "Lanka Auto Care",
+                "maintenanceDate": "2026-10-20T00:00:00.000Z",
+                "cost": 6500,
+                "note": "Monthly service",
+                "billImageUrls": [
+                  "https://example.com/bills/oct-1.png"
+                ],
+                "isMonthEndDone": true,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "createdUser": "superadmin",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                "updatedUser": "superadmin",
+                "createdAt": "2026-10-20T05:15:00.000Z",
+                "updatedAt": "2026-10-20T05:15:00.000Z"
+              }
+            ]
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Vehicle Maintenance/Get All Vehicle Maintenances/Get All Vehicle Maintenances - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/?startDate={{vmMonthStart}}&endDate={{vmMonthEnd}}"
+      method: GET
+      params:
+        - name: startDate
+          value: "{{vmMonthStart}}"
+          type: query
+        - name: endDate
+          value: "{{vmMonthEnd}}"
+          type: query
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 without dates
+    description: |-
+      [KNOWN BUG] No query validation: missing startDate/endDate → `Invalid Date` → CastError on `maintenanceDate` → 404
+      (vehicleMaintenance.service.ts:32-40, Document/vehicleMaintenance.md › Known issues).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle Maintenance/Get All Vehicle Maintenances/Get All Vehicle Maintenances - 404 without dates.yml
+    request:
+      url: "{{baseUrl}}/vehicleMaintenance/"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"Invalid Date\"!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/vehicleMaintenance`**
+
+  This request runs the main scenario **200 working month**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 working month | (empty) |
+  | 2 | 200 | 200 closed month lookup | (empty) |
+  | 3 | 401 | 401 no token | Authentication invalid! |
+  | 4 | 404 | 404 without dates | No item found with ID "Invalid Date"! |
+
+  ## Main scenario notes
+
+  ACTIVE records in the date range as VehicleMaintenanceResponseDto[] (`id`, not `_id`) (vehicleMaintenance.controller.ts:217-237). Any authenticated role.

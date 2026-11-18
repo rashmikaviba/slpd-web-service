@@ -1,0 +1,45 @@
+variables:
+  - name: baseUrl
+    value: http://localhost:9060/api/v1
+  - name: serverUrl
+    value: http://localhost:9060
+  - name: superAdminUserName
+    value: superadmin
+  - name: adminUserName
+    value: admin
+  - name: driverUserName
+    value: driver
+  - name: financeOfficerUserName
+    value: finance
+  - name: tripManagerUserName
+    value: tripmanager
+  - name: driverAssistantUserName
+    value: driverassistant
+  - name: tripAssistantUserName
+    value: tripassistant
+  - name: blockedUserName
+    value: blockeduser
+  - name: nonExistingId
+    value: "000000000000000000000000"
+  - name: invalidId
+    value: not-an-object-id
+  - name: malformedToken
+    value: abc.def.ghi
+  - name: expiredToken
+    value: paste-an-expired-jwt-here
+  - secret: true
+    name: superAdminPassword
+  - secret: true
+    name: adminPassword
+  - secret: true
+    name: driverPassword
+  - secret: true
+    name: financeOfficerPassword
+  - secret: true
+    name: tripManagerPassword
+  - secret: true
+    name: driverAssistantPassword
+  - secret: true
+    name: tripAssistantPassword
+  - secret: true
+    name: blockedUserPassword

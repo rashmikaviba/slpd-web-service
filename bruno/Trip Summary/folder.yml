@@ -1,0 +1,21 @@
+info:
+  name: Trip Summary
+  type: folder
+  seq: 12
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    # Trip Summary module (Document/tripSummary.md)
+
+    Daily driving log per trip. Run after the Trip folder, which leaves:
+    - `{{tripId}}` in START (drivers and office roles may write),
+    - `{{finishedTripId}}` in FINISHED (office roles only; drivers get "already finished"),
+    - `{{canceledTripId}}` CANCELED (→ "No trip found!").
+
+    Runtime vars set here: `tripSummaryId` (admin, START trip), `driverTripSummaryId` (driver, START trip), `finishedTripSummaryId` (FINISHED trip), `deleteTripSummaryId`.
+    Manual vars for month-end cases: `monthEndStartedTripId` (trip with isMonthEndDone=true) and `monthEndTripSummaryId` (ACTIVE summary on such a trip) — they only exist after Month Audit closed a month; unset → the request returns 404 instead.
+    All business errors are BadRequestError (400).
+  type: text/markdown

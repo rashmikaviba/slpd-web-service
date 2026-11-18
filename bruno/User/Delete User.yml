@@ -1,0 +1,202 @@
+info:
+  name: Delete User
+  type: http
+  seq: 9
+
+http:
+  method: DELETE
+  url: "{{baseUrl}}/user/{{deleteUserId}}"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: User deleted successfully!
+    - expression: res.body.data
+      operator: isNull
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 throwaway user
+    description: |-
+      [DESTRUCTIVE] Soft-deletes `{{deleteUserId}}` (User + Auth status DELETED) in a transaction (user.controller.ts:435-478).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Delete User/Delete User - 200 throwaway user.yml
+    request:
+      url: "{{baseUrl}}/user/{{deleteUserId}}"
+      method: DELETE
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "User deleted successfully!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. user.router.ts:72-76.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: User/Delete User/Delete User - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/user/{{createdUserId}}"
+      method: DELETE
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 admin
+    description: |-
+      Route allows SUPERADMIN only; `{{adminToken}}` is rejected by auth.middleware.ts:73-77. user.router.ts:72-76.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: User/Delete User/Delete User - 403 admin.yml
+    request:
+      url: "{{baseUrl}}/user/{{createdUserId}}"
+      method: DELETE
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 already deleted
+    description: |-
+      Auth/User no longer ACTIVE (user.controller.ts:439-442).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Delete User/Delete User - 404 already deleted.yml
+    request:
+      url: "{{baseUrl}}/user/{{deleteUserId}}"
+      method: DELETE
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "User not found!",
+            "data": null
+          }
+  - name: 404 not found
+    description: |-
+      user.controller.ts:439-442.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Delete User/Delete User - 404 not found.yml
+    request:
+      url: "{{baseUrl}}/user/{{nonExistingId}}"
+      method: DELETE
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "User not found!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      `Auth.findOne({ user: "not-an-object-id" })` → CastError → 404.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: User/Delete User/Delete User - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/user/{{invalidId}}"
+      method: DELETE
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **DELETE `/api/v1/user/:id`**
+
+  This request runs the main scenario **200 throwaway user**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 throwaway user | User deleted successfully! |
+  | 2 | 401 | 401 no token | Authentication invalid! |
+  | 3 | 403 | 403 admin | You're unauthorized to access this resource! |
+  | 4 | 404 | 404 already deleted | User not found! |
+  | 5 | 404 | 404 not found | User not found! |
+  | 6 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  [DESTRUCTIVE] Soft-deletes `{{deleteUserId}}` (User + Auth status DELETED) in a transaction (user.controller.ts:435-478).

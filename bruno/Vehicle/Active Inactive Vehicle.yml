@@ -1,0 +1,344 @@
+info:
+  name: Active Inactive Vehicle
+  type: http
+  seq: 6
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/vehicle/activeInactive/{{vehicleToDeleteId}}?status=2"
+  params:
+    - name: status
+      value: "2"
+      type: query
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Vehicle inactivated successfully!
+    - expression: res.body.data
+      operator: isUndefined
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 inactivate
+    description: |-
+      [KNOWN BUG] `data` is the `updateVehicle` function reference, dropped by JSON serialisation → `data` absent (vehicle.controller.ts:322).
+      Throwaway vehicle → INACTIVE. SUPERADMIN only.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Active Inactive Vehicle/Active Inactive Vehicle - 200 inactivate.yml
+    request:
+      url: "{{baseUrl}}/vehicle/activeInactive/{{vehicleToDeleteId}}?status=2"
+      method: PUT
+      params:
+        - name: status
+          value: "2"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle inactivated successfully!"
+          }
+  - name: 200 activate
+    description: |-
+      [KNOWN BUG] `data` absent (function reference) (vehicle.controller.ts:322). Throwaway vehicle back to ACTIVE.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Active Inactive Vehicle/Active Inactive Vehicle - 200 activate.yml
+    request:
+      url: "{{baseUrl}}/vehicle/activeInactive/{{vehicleToDeleteId}}?status=1"
+      method: PUT
+      params:
+        - name: status
+          value: "1"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle activated successfully!"
+          }
+  - name: 400 invalid status
+    description: |-
+      status must loosely equal 1 or 2 (vehicle.controller.ts:288-293).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Active Inactive Vehicle/Active Inactive Vehicle - 400 invalid status.yml
+    request:
+      url: "{{baseUrl}}/vehicle/activeInactive/{{vehicleToDeleteId}}?status=3"
+      method: PUT
+      params:
+        - name: status
+          value: "3"
+          type: query
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid status value!",
+            "data": null
+          }
+  - name: 400 missing status
+    description: |-
+      No `status` query (vehicle.controller.ts:288-293).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Active Inactive Vehicle/Active Inactive Vehicle - 400 missing status.yml
+    request:
+      url: "{{baseUrl}}/vehicle/activeInactive/{{vehicleToDeleteId}}"
+      method: PUT
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid status value!",
+            "data": null
+          }
+  - name: 400 not found
+    description: |-
+      vehicle.controller.ts:295-302.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Active Inactive Vehicle/Active Inactive Vehicle - 400 not found.yml
+    request:
+      url: "{{baseUrl}}/vehicle/activeInactive/{{nonExistingId}}?status=1"
+      method: PUT
+      params:
+        - name: status
+          value: "1"
+          type: query
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle not found!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Vehicle/Active Inactive Vehicle/Active Inactive Vehicle - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/vehicle/activeInactive/{{vehicleToDeleteId}}?status=1"
+      method: PUT
+      params:
+        - name: status
+          value: "1"
+          type: query
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 admin role
+    description: |-
+      SUPERADMIN only (vehicle.route.ts:53-57).
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: Vehicle/Active Inactive Vehicle/Active Inactive Vehicle - 403 admin role.yml
+    request:
+      url: "{{baseUrl}}/vehicle/activeInactive/{{vehicleToDeleteId}}?status=1"
+      method: PUT
+      params:
+        - name: status
+          value: "1"
+          type: query
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed id → CastError → 404.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Vehicle/Active Inactive Vehicle/Active Inactive Vehicle - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/vehicle/activeInactive/{{invalidId}}?status=1"
+      method: PUT
+      params:
+        - name: status
+          value: "1"
+          type: query
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+  - name: Vehicle Active Inactive - 200 setup inactivate vehicle (Trip setup)
+    description: |-
+      Setup (SUPERADMIN): temporarily inactivate `{{vehicleId}}` (vehicle.controller.ts:283-327). Re-activated two requests later — if the run stops in between, run "Vehicle Active Inactive - 200 setup reactivate vehicle" manually.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Mark Place As Reached/Vehicle Active Inactive - 200 setup inactivate vehicle.yml
+    request:
+      url: "{{baseUrl}}/vehicle/activeInactive/{{vehicleId}}?status=2"
+      method: PUT
+      params:
+        - name: status
+          value: "2"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle inactivated successfully!"
+          }
+  - name: Vehicle Active Inactive - 200 setup reactivate vehicle (Trip setup)
+    description: |-
+      Setup: restore `{{vehicleId}}` to ACTIVE.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Mark Place As Reached/Vehicle Active Inactive - 200 setup reactivate vehicle.yml
+    request:
+      url: "{{baseUrl}}/vehicle/activeInactive/{{vehicleId}}?status=1"
+      method: PUT
+      params:
+        - name: status
+          value: "1"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Vehicle activated successfully!"
+          }
+
+docs: |-
+  **PUT `/api/v1/vehicle/activeInactive/:id`**
+
+  This request runs the main scenario **200 inactivate**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 inactivate | Vehicle inactivated successfully! |
+  | 2 | 200 | 200 activate | Vehicle activated successfully! |
+  | 3 | 400 | 400 invalid status | Invalid status value! |
+  | 4 | 400 | 400 missing status | Invalid status value! |
+  | 5 | 400 | 400 not found | Vehicle not found! |
+  | 6 | 401 | 401 no token | Authentication invalid! |
+  | 7 | 403 | 403 admin role | You're unauthorized to access this resource! |
+  | 8 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+  | 9 | 200 | Vehicle Active Inactive - 200 setup inactivate vehicle (Trip setup) | Vehicle inactivated successfully! |
+  | 10 | 200 | Vehicle Active Inactive - 200 setup reactivate vehicle (Trip setup) | Vehicle activated successfully! |
+
+  ## Main scenario notes
+
+  [KNOWN BUG] `data` is the `updateVehicle` function reference, dropped by JSON serialisation → `data` absent (vehicle.controller.ts:322).
+  Throwaway vehicle → INACTIVE. SUPERADMIN only.

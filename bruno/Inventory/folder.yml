@@ -1,0 +1,16 @@
+info:
+  name: Inventory
+  type: folder
+  seq: 10
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    Product master + GRN (goods receipt). See `Document/inventory.md`.
+
+    Run order: **Product** first (creates `{{productId}}` — kg product used by GRN and POS — and `{{tempProductId}}`,
+    which gets toggled and finally soft-deleted), then **GRN** (approving a GRN adds 50 kg of stock to `{{productId}}`,
+    which the POS folder later sells).
+  type: text/markdown

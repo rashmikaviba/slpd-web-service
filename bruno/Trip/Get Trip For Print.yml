@@ -1,0 +1,667 @@
+info:
+  name: Get Trip For Print
+  type: http
+  seq: 13
+
+http:
+  method: GET
+  url: "{{baseUrl}}/trip/tripForPrint/{{undoTripId}}"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.data.expenses
+      operator: isNull
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 with expenses
+    description: |-
+      Main trip is START → Expenses header exists → mapped TripExpensesResponseDto (src/modules/trip/trip.controller.ts:1283-1317).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Get Trip For Print/Get Trip For Print - 200 with expenses.yml
+    request:
+      url: "{{baseUrl}}/trip/tripForPrint/{{tripId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "startDate": "2026-11-18T00:00:00.000Z",
+              "endDate": "2026-11-21T00:00:00.000Z",
+              "tripConfirmedNumber": "BRUNO-MAIN-1794990601118",
+              "isPaymentCollected": false,
+              "dateCount": 4,
+              "requestedVehicle": "Van",
+              "totalCost": 1500,
+              "totalCostLocalCurrency": 450000,
+              "estimatedExpense": 60000,
+              "specialRequirement": "Child seat",
+              "paymentMode": "Cash",
+              "passengers": [
+                {
+                  "name": "John Doe",
+                  "nationality": "British",
+                  "age": 35,
+                  "gender": "Male",
+                  "_id": "6651b2c3d4e5f6a7b8c9e126"
+                }
+              ],
+              "arrivalInfo": {
+                "arrivalDate": "2026-11-18T00:00:00.000Z",
+                "arrivalTime": "2026-11-18T00:00:00.000Z",
+                "arrivalFlightNumber": "UL504"
+              },
+              "departureInfo": {
+                "departureDate": "2026-11-21T00:00:00.000Z",
+                "departureTime": "2026-11-21T00:00:00.000Z",
+                "departureFlightNumber": "UL503"
+              },
+              "pickUpInfo": {
+                "pickupDate": "2026-11-18T00:00:00.000Z",
+                "pickupTime": "2026-11-18T00:00:00.000Z",
+                "pickupCity": "Colombo",
+                "pickupAddress": "BIA Arrival Lounge"
+              },
+              "dropOffInfo": {
+                "dropOffDate": "2026-11-21T00:00:00.000Z",
+                "dropOffTime": "2026-11-21T00:00:00.000Z",
+                "dropOffCity": "Colombo",
+                "dropOffAddress": "BIA Departure"
+              },
+              "activities": [],
+              "places": [
+                {
+                  "description": "Kandy",
+                  "dates": [
+                    "2026-11-18T00:00:00.000Z"
+                  ],
+                  "isReached": true,
+                  "index": 1,
+                  "reachedDate": "2026-11-18T08:30:14.512Z",
+                  "calcDistance": 10,
+                  "startMilage": 45230,
+                  "endMilage": 45240,
+                  "location": {
+                    "lat": 7.2906,
+                    "lng": 80.6337
+                  },
+                  "reachedBy": "6650a1b2c3d4e5f6a7b8c002",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "_id": "6651b2c3d4e5f6a7b8c9e101"
+                },
+                {
+                  "description": "Ella",
+                  "dates": [
+                    "2026-11-19T00:00:00.000Z"
+                  ],
+                  "isReached": false,
+                  "index": 2,
+                  "reachedDate": null,
+                  "calcDistance": 0,
+                  "startMilage": 0,
+                  "endMilage": 0,
+                  "location": null,
+                  "reachedBy": null,
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "_id": "6651b2c3d4e5f6a7b8c9e102"
+                },
+                {
+                  "description": "Galle",
+                  "dates": [
+                    "2026-11-20T00:00:00.000Z"
+                  ],
+                  "isReached": false,
+                  "index": 3,
+                  "reachedDate": null,
+                  "calcDistance": 0,
+                  "startMilage": 0,
+                  "endMilage": 0,
+                  "location": null,
+                  "reachedBy": null,
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "_id": "6651b2c3d4e5f6a7b8c9e103"
+                }
+              ],
+              "hotels": [],
+              "email": "guest@example.com",
+              "phoneNumber": "+94770000000",
+              "contactPerson": "Bruno Updated",
+              "drivers": [
+                {
+                  "driver": "6650a1b2c3d4e5f6a7b8c002",
+                  "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "isActive": true,
+                  "_id": "6651b2c3d4e5f6a7b8c9e124"
+                }
+              ],
+              "vehicles": [
+                {
+                  "vehicle": "6650a1b2c3d4e5f6a7b8d001",
+                  "isActive": true,
+                  "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "_id": "6651b2c3d4e5f6a7b8c9e125"
+                }
+              ],
+              "checkListAnswers": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1,
+                "8": 1,
+                "9": 1,
+                "10": 1,
+                "11": 1,
+                "12": 1,
+                "13": 1,
+                "14": 1,
+                "umbrellaCount": 2,
+                "isTermsConditionsChecked1": true,
+                "isTermsConditionsChecked2": true,
+                "vehicleDamageImages": []
+              },
+              "checkListCheckBy": "6650a1b2c3d4e5f6a7b8c002",
+              "status": 3,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "startedBy": "6650a1b2c3d4e5f6a7b8c002",
+              "endedBy": null,
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "_id": "6651b2c3d4e5f6a7b8c9d001",
+              "createdAt": "2026-11-18T08:30:01.125Z",
+              "updatedAt": "2026-11-18T08:30:20.347Z",
+              "expenses": {
+                "_id": "6652c3d4e5f6a7b8c9d0f001",
+                "tripId": "6651b2c3d4e5f6a7b8c9d001",
+                "expenses": [
+                  {
+                    "typeId": 1,
+                    "typeName": "Fuel",
+                    "amount": 8500,
+                    "description": "Diesel - Kandy",
+                    "date": "2026-11-18T00:00:00.000Z",
+                    "status": 1,
+                    "createdBy": "6650a1b2c3d4e5f6a7b8c002",
+                    "updatedBy": "6650a1b2c3d4e5f6a7b8c002",
+                    "_id": "6651b2c3d4e5f6a7b8c9e130",
+                    "createdAt": "2026-11-18T09:10:00.000Z",
+                    "updatedAt": "2026-11-18T09:10:00.000Z"
+                  }
+                ],
+                "driverSalaries": [],
+                "isMonthEndDone": false,
+                "tripExpensesAmount": 60000,
+                "totalTripExpensesAmount": 8500,
+                "remainingTripExpensesAmount": 51500
+              }
+            }
+          }
+  - name: 200 driver without expenses
+    description: |-
+      DRIVER not in roleArr → raw trip without expenses (src/modules/trip/trip.controller.ts:1277-1283).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Trip/Get Trip For Print/Get Trip For Print - 200 driver without expenses.yml
+    request:
+      url: "{{baseUrl}}/trip/tripForPrint/{{tripId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "startDate": "2026-11-18T00:00:00.000Z",
+              "endDate": "2026-11-21T00:00:00.000Z",
+              "tripConfirmedNumber": "BRUNO-MAIN-1794990601118",
+              "isPaymentCollected": false,
+              "dateCount": 4,
+              "requestedVehicle": "Van",
+              "totalCost": 1500,
+              "totalCostLocalCurrency": 450000,
+              "estimatedExpense": 60000,
+              "specialRequirement": "Child seat",
+              "paymentMode": "Cash",
+              "passengers": [
+                {
+                  "name": "John Doe",
+                  "nationality": "British",
+                  "age": 35,
+                  "gender": "Male",
+                  "_id": "6651b2c3d4e5f6a7b8c9e126"
+                }
+              ],
+              "arrivalInfo": {
+                "arrivalDate": "2026-11-18T00:00:00.000Z",
+                "arrivalTime": "2026-11-18T00:00:00.000Z",
+                "arrivalFlightNumber": "UL504"
+              },
+              "departureInfo": {
+                "departureDate": "2026-11-21T00:00:00.000Z",
+                "departureTime": "2026-11-21T00:00:00.000Z",
+                "departureFlightNumber": "UL503"
+              },
+              "pickUpInfo": {
+                "pickupDate": "2026-11-18T00:00:00.000Z",
+                "pickupTime": "2026-11-18T00:00:00.000Z",
+                "pickupCity": "Colombo",
+                "pickupAddress": "BIA Arrival Lounge"
+              },
+              "dropOffInfo": {
+                "dropOffDate": "2026-11-21T00:00:00.000Z",
+                "dropOffTime": "2026-11-21T00:00:00.000Z",
+                "dropOffCity": "Colombo",
+                "dropOffAddress": "BIA Departure"
+              },
+              "activities": [],
+              "places": [
+                {
+                  "description": "Kandy",
+                  "dates": [
+                    "2026-11-18T00:00:00.000Z"
+                  ],
+                  "isReached": true,
+                  "index": 1,
+                  "reachedDate": "2026-11-18T08:30:14.512Z",
+                  "calcDistance": 10,
+                  "startMilage": 45230,
+                  "endMilage": 45240,
+                  "location": {
+                    "lat": 7.2906,
+                    "lng": 80.6337
+                  },
+                  "reachedBy": "6650a1b2c3d4e5f6a7b8c002",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "_id": "6651b2c3d4e5f6a7b8c9e101"
+                },
+                {
+                  "description": "Ella",
+                  "dates": [
+                    "2026-11-19T00:00:00.000Z"
+                  ],
+                  "isReached": false,
+                  "index": 2,
+                  "reachedDate": null,
+                  "calcDistance": 0,
+                  "startMilage": 0,
+                  "endMilage": 0,
+                  "location": null,
+                  "reachedBy": null,
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "_id": "6651b2c3d4e5f6a7b8c9e102"
+                },
+                {
+                  "description": "Galle",
+                  "dates": [
+                    "2026-11-20T00:00:00.000Z"
+                  ],
+                  "isReached": false,
+                  "index": 3,
+                  "reachedDate": null,
+                  "calcDistance": 0,
+                  "startMilage": 0,
+                  "endMilage": 0,
+                  "location": null,
+                  "reachedBy": null,
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "_id": "6651b2c3d4e5f6a7b8c9e103"
+                }
+              ],
+              "hotels": [],
+              "email": "guest@example.com",
+              "phoneNumber": "+94770000000",
+              "contactPerson": "Bruno Updated",
+              "drivers": [
+                {
+                  "driver": "6650a1b2c3d4e5f6a7b8c002",
+                  "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "isActive": true,
+                  "_id": "6651b2c3d4e5f6a7b8c9e124"
+                }
+              ],
+              "vehicles": [
+                {
+                  "vehicle": "6650a1b2c3d4e5f6a7b8d001",
+                  "isActive": true,
+                  "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "_id": "6651b2c3d4e5f6a7b8c9e125"
+                }
+              ],
+              "checkListAnswers": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1,
+                "8": 1,
+                "9": 1,
+                "10": 1,
+                "11": 1,
+                "12": 1,
+                "13": 1,
+                "14": 1,
+                "umbrellaCount": 2,
+                "isTermsConditionsChecked1": true,
+                "isTermsConditionsChecked2": true,
+                "vehicleDamageImages": []
+              },
+              "checkListCheckBy": "6650a1b2c3d4e5f6a7b8c002",
+              "status": 3,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "startedBy": "6650a1b2c3d4e5f6a7b8c002",
+              "endedBy": null,
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "_id": "6651b2c3d4e5f6a7b8c9d001",
+              "createdAt": "2026-11-18T08:30:01.125Z",
+              "updatedAt": "2026-11-18T08:30:20.347Z"
+            }
+          }
+  - name: 200 [KNOWN BUG] unknown trip returns null
+    description: |-
+      [KNOWN BUG] No not-found check → 200 with data null (src/modules/trip/trip.controller.ts:1283, :1319; Document/trip.md Known issue 16).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Get Trip For Print/Get Trip For Print - 200 [KNOWN BUG] unknown trip returns null.yml
+    request:
+      url: "{{baseUrl}}/trip/tripForPrint/{{nonExistingId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": null
+          }
+  - name: 200 [KNOWN BUG] expenses gone after undo
+    description: |-
+      [KNOWN BUG] Verification: no ACTIVE Expenses header remains for the trip (src/modules/trip/trip.controller.ts:1286-1316).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Undo/Get Trip For Print - 200 [KNOWN BUG] expenses gone after undo.yml
+    request:
+      url: "{{baseUrl}}/trip/tripForPrint/{{undoTripId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "startDate": "2026-11-18T00:00:00.000Z",
+              "endDate": "2026-11-21T00:00:00.000Z",
+              "tripConfirmedNumber": "BRUNO-UNDO-1794990601947",
+              "isPaymentCollected": false,
+              "dateCount": 4,
+              "requestedVehicle": "Van",
+              "totalCost": 1500,
+              "totalCostLocalCurrency": 450000,
+              "estimatedExpense": 60000,
+              "specialRequirement": "Child seat",
+              "paymentMode": "Cash",
+              "passengers": [
+                {
+                  "name": "John Doe",
+                  "nationality": "British",
+                  "age": 35,
+                  "gender": "Male",
+                  "_id": "6651b2c3d4e5f6a7b8c9e10c"
+                }
+              ],
+              "arrivalInfo": {
+                "arrivalDate": "2026-11-18T00:00:00.000Z",
+                "arrivalTime": "2026-11-18T00:00:00.000Z",
+                "arrivalFlightNumber": "UL504"
+              },
+              "departureInfo": {
+                "departureDate": "2026-11-21T00:00:00.000Z",
+                "departureTime": "2026-11-21T00:00:00.000Z",
+                "departureFlightNumber": "UL503"
+              },
+              "pickUpInfo": {
+                "pickupDate": "2026-11-18T00:00:00.000Z",
+                "pickupTime": "2026-11-18T00:00:00.000Z",
+                "pickupCity": "Colombo",
+                "pickupAddress": "BIA Arrival Lounge"
+              },
+              "dropOffInfo": {
+                "dropOffDate": "2026-11-21T00:00:00.000Z",
+                "dropOffTime": "2026-11-21T00:00:00.000Z",
+                "dropOffCity": "Colombo",
+                "dropOffAddress": "BIA Departure"
+              },
+              "activities": [],
+              "places": [
+                {
+                  "description": "Kandy",
+                  "dates": [
+                    "2026-11-18T00:00:00.000Z"
+                  ],
+                  "isReached": false,
+                  "index": 1,
+                  "reachedDate": null,
+                  "calcDistance": 0,
+                  "startMilage": 0,
+                  "endMilage": 0,
+                  "location": null,
+                  "reachedBy": null,
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "_id": "6651b2c3d4e5f6a7b8c9e10d"
+                },
+                {
+                  "description": "Ella",
+                  "dates": [
+                    "2026-11-19T00:00:00.000Z"
+                  ],
+                  "isReached": false,
+                  "index": 2,
+                  "reachedDate": null,
+                  "calcDistance": 0,
+                  "startMilage": 0,
+                  "endMilage": 0,
+                  "location": null,
+                  "reachedBy": null,
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "_id": "6651b2c3d4e5f6a7b8c9e10e"
+                },
+                {
+                  "description": "Galle",
+                  "dates": [
+                    "2026-11-20T00:00:00.000Z"
+                  ],
+                  "isReached": false,
+                  "index": 3,
+                  "reachedDate": null,
+                  "calcDistance": 0,
+                  "startMilage": 0,
+                  "endMilage": 0,
+                  "location": null,
+                  "reachedBy": null,
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "_id": "6651b2c3d4e5f6a7b8c9e10f"
+                }
+              ],
+              "hotels": [],
+              "email": "guest@example.com",
+              "phoneNumber": "+94770000000",
+              "contactPerson": "Bruno Tester",
+              "drivers": [
+                {
+                  "driver": "6650a1b2c3d4e5f6a7b8c002",
+                  "driverAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "isActive": true,
+                  "_id": "6651b2c3d4e5f6a7b8c9e12e"
+                }
+              ],
+              "vehicles": [
+                {
+                  "vehicle": "6650a1b2c3d4e5f6a7b8d001",
+                  "isActive": true,
+                  "vehicleAssignedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "_id": "6651b2c3d4e5f6a7b8c9e12f"
+                }
+              ],
+              "checkListAnswers": {
+                "1": 1,
+                "2": 1,
+                "3": 1,
+                "4": 1,
+                "5": 1,
+                "6": 1,
+                "7": 1,
+                "8": 1,
+                "9": 1,
+                "10": 1,
+                "11": 1,
+                "12": 1,
+                "13": 1,
+                "14": 1,
+                "umbrellaCount": 2,
+                "isTermsConditionsChecked1": true,
+                "isTermsConditionsChecked2": true,
+                "vehicleDamageImages": []
+              },
+              "checkListCheckBy": "6650a1b2c3d4e5f6a7b8c002",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "startedBy": null,
+              "endedBy": null,
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "_id": "6651b2c3d4e5f6a7b8c9d004",
+              "createdAt": "2026-11-18T08:30:01.953Z",
+              "updatedAt": "2026-11-18T08:30:16.771Z",
+              "expenses": null
+            }
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → `authorize()` throws UnauthorizedError (src/middleware/auth.middleware.ts:24-26).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Trip/Get Trip For Print/Get Trip For Print - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/trip/tripForPrint/{{tripId}}"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed ObjectId reaches `Trip.findOne({_id})` → Mongoose CastError → error middleware returns 404 (src/middleware/error.middleware.ts, CastError branch). Controller: src/modules/trip/trip.controller.ts:1271.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Get Trip For Print/Get Trip For Print - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/trip/tripForPrint/{{invalidId}}"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/trip/tripForPrint/:id`**
+
+  This request runs the main scenario **200 [KNOWN BUG] expenses gone after undo**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 with expenses | (empty) |
+  | 2 | 200 | 200 driver without expenses | (empty) |
+  | 3 | 200 | 200 [KNOWN BUG] unknown trip returns null | (empty) |
+  | 4 | 200 | 200 [KNOWN BUG] expenses gone after undo | (empty) |
+  | 5 | 401 | 401 no token | Authentication invalid! |
+  | 6 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  [KNOWN BUG] Verification: no ACTIVE Expenses header remains for the trip (src/modules/trip/trip.controller.ts:1286-1316).

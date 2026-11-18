@@ -1,0 +1,17 @@
+info:
+  name: Month Audit
+  type: folder
+  seq: 20
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    /api/v1/monthAudit/* — month-end close (monthAudit.route.ts, monthAudit.controller.ts). See Document/monthAudit.md.
+    Runs LAST in the collection: `Create New Month - 201` closes the current working month (stamps trips, expenses,
+    POS, internal trips, monthly expenses, maintenance and leaves with `isMonthEndDone`) and opens the next one.
+
+    [PRECONDITION] requests (400 `No active company information found!`, 500 null working info) only pass on a DB
+    without an ACTIVE CompanyWorkingInfo; they fail in a normal run and are kept to document the error paths.
+  type: text/markdown

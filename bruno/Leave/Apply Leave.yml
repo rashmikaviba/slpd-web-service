@@ -1,0 +1,872 @@
+info:
+  name: Apply Leave
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/leave/apply"
+  body:
+    type: json
+    data: |-
+      {
+        "startDate": "{{leaveFrom1}}",
+        "endDate": "{{leaveTo1}}",
+        "dateCount": 2,
+        "reason": "Bruno test leave"
+      }
+  auth:
+    type: bearer
+    token: "{{driverToken}}"
+
+runtime:
+  scripts:
+    - type: before-request
+      code: |-
+        // random far-future year so reruns never overlap and month-end never selects these leaves
+        const year = 2100 + Math.floor(Math.random() * 800);
+        const day = (n) => new Date(Date.UTC(year, 0, 1 + n)).toISOString().slice(0, 10);
+        bru.setVar("leaveYear", year);
+        [10, 20, 30, 40, 50, 60].forEach((n, i) => {
+          bru.setVar("leaveFrom" + (i + 1), day(n));
+          bru.setVar("leaveTo" + (i + 1), day(n + 1));
+        });
+    - type: after-response
+      code: if (res.status === 201) bru.setVar("leaveId", res.body.data._id);
+    - type: tests
+      code: |-
+        test("pending leave of the driver", function () {
+          expect(res.body.data.status).to.equal(1);
+          expect(res.body.data.appliedUser).to.equal(bru.getVar("driverUserId"));
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Leave applied successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 201 driver
+    description: |-
+      Driver leave, no entitlement check (leave.controller.ts:45-54,82-101). Sets `{{leaveYear}}`, date slots and `{{leaveId}}`.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 201 driver.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom1}}",
+            "endDate": "{{leaveTo1}}",
+            "dateCount": 2,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave applied successfully!",
+            "data": {
+              "startDate": "2437-01-11T00:00:00.000Z",
+              "endDate": "2437-01-12T00:00:00.000Z",
+              "dateCount": 2,
+              "reason": "Bruno test leave",
+              "status": 1,
+              "appliedUser": "6650a1b2c3d4e5f6a7b8c003",
+              "approveBy": null,
+              "rejectBy": null,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c003",
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c003",
+              "_id": "6650a1b2c3d4e5f6a7b8f001",
+              "createdAt": "2026-11-18T08:31:00.120Z",
+              "updatedAt": "2026-11-18T08:31:00.120Z"
+            }
+          }
+  - name: 201 driver second leave
+    description: |-
+      Second driver leave (slot 2), used by Update overlap and Cancel. Sets `{{cancelLeaveId}}`.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 201 driver second leave.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom2}}",
+            "endDate": "{{leaveTo2}}",
+            "dateCount": 2,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave applied successfully!",
+            "data": {
+              "startDate": "2437-01-21T00:00:00.000Z",
+              "endDate": "2437-01-22T00:00:00.000Z",
+              "dateCount": 2,
+              "reason": "Bruno test leave",
+              "status": 1,
+              "appliedUser": "6650a1b2c3d4e5f6a7b8c003",
+              "approveBy": null,
+              "rejectBy": null,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c003",
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c003",
+              "_id": "6650a1b2c3d4e5f6a7b8f002",
+              "createdAt": "2026-11-18T08:31:00.410Z",
+              "updatedAt": "2026-11-18T08:31:00.410Z"
+            }
+          }
+  - name: 201 admin full entitlement
+    description: |-
+      ADMIN, `dateCount = leaveCount`: 0 approved + L > L is false → allowed (leave.controller.ts:104-140).
+      Sets `{{adminLeaveId}}`. Precondition: `{{adminLeaveCount}}` >= 1.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 201 admin full entitlement.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom3}}",
+            "endDate": "{{leaveTo3}}",
+            "dateCount": {{adminLeaveCount}},
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave applied successfully!",
+            "data": {
+              "startDate": "2437-01-31T00:00:00.000Z",
+              "endDate": "2437-02-01T00:00:00.000Z",
+              "dateCount": 14,
+              "reason": "Bruno test leave",
+              "status": 1,
+              "appliedUser": "6650a1b2c3d4e5f6a7b8c002",
+              "approveBy": null,
+              "rejectBy": null,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c002",
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c002",
+              "_id": "6650a1b2c3d4e5f6a7b8f003",
+              "createdAt": "2026-11-18T08:31:00.705Z",
+              "updatedAt": "2026-11-18T08:31:00.705Z"
+            }
+          }
+  - name: 201 admin second full-entitlement leave
+    description: |-
+      Also allowed: only APPROVED days are counted, PENDING ones are not (Document/leave.md #5), so the admin now has
+      2×L pending days. Sets `{{adminLeaveId2}}`, used by Approve "exceeded" and Cancel.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 201 admin second full-entitlement leave.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom4}}",
+            "endDate": "{{leaveTo4}}",
+            "dateCount": {{adminLeaveCount}},
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave applied successfully!",
+            "data": {
+              "startDate": "2437-02-10T00:00:00.000Z",
+              "endDate": "2437-02-11T00:00:00.000Z",
+              "dateCount": 14,
+              "reason": "Bruno test leave",
+              "status": 1,
+              "appliedUser": "6650a1b2c3d4e5f6a7b8c002",
+              "approveBy": null,
+              "rejectBy": null,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c002",
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c002",
+              "_id": "6650a1b2c3d4e5f6a7b8f004",
+              "createdAt": "2026-11-18T08:31:00.998Z",
+              "updatedAt": "2026-11-18T08:31:00.998Z"
+            }
+          }
+  - name: 400 overlapping dates
+    description: |-
+      Same dates as `{{leaveId}}` (PENDING) → overlap (leave.controller.ts:29-38, leave.service.ts:6-24).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 400 overlapping dates.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom1}}",
+            "endDate": "{{leaveTo1}}",
+            "dateCount": 2,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Leave is already applied for the given dates.",
+            "data": null
+          }
+  - name: 400 admin exceeded leave limit
+    description: |-
+      `0 + (L+1) > L` → `BadRequestError` (leave.controller.ts:120-127). Precondition: admin `leaveCount` set.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 400 admin exceeded leave limit.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom6}}",
+            "endDate": "{{leaveTo6}}",
+            "dateCount": {{adminOverLimitCount}},
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You have exceeded the leave limit for 2437 year!",
+            "data": null
+          }
+  - name: 400 missing startDate
+    description: |-
+      Joi `leaveSchema` (leave.validation.ts:3-23) → `BadRequestError(error.message)` (leave.controller.ts:23-26).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 400 missing startDate.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "endDate": "{{leaveTo1}}",
+            "dateCount": 2,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Start Date is required!",
+            "data": null
+          }
+  - name: 400 invalid startDate
+    description: |-
+      Joi `leaveSchema` (leave.validation.ts:3-23) → `BadRequestError(error.message)` (leave.controller.ts:23-26).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 400 invalid startDate.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "not-a-date",
+            "endDate": "{{leaveTo1}}",
+            "dateCount": 2,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Start Date is invalid!",
+            "data": null
+          }
+  - name: 400 missing endDate
+    description: |-
+      Joi `leaveSchema` (leave.validation.ts:3-23) → `BadRequestError(error.message)` (leave.controller.ts:23-26).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 400 missing endDate.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom1}}",
+            "dateCount": 2,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "End Date is required",
+            "data": null
+          }
+  - name: 400 invalid endDate
+    description: |-
+      Joi `leaveSchema` (leave.validation.ts:3-23) → `BadRequestError(error.message)` (leave.controller.ts:23-26).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 400 invalid endDate.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom1}}",
+            "endDate": "not-a-date",
+            "dateCount": 2,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "End Date is invalid",
+            "data": null
+          }
+  - name: 400 missing dateCount
+    description: |-
+      Joi `leaveSchema` (leave.validation.ts:3-23) → `BadRequestError(error.message)` (leave.controller.ts:23-26).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 400 missing dateCount.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom1}}",
+            "endDate": "{{leaveTo1}}",
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Date Count is required",
+            "data": null
+          }
+  - name: 400 non-numeric dateCount
+    description: |-
+      Joi `leaveSchema` (leave.validation.ts:3-23) → `BadRequestError(error.message)` (leave.controller.ts:23-26).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 400 non-numeric dateCount.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom1}}",
+            "endDate": "{{leaveTo1}}",
+            "dateCount": "abc",
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Date Count is invalid",
+            "data": null
+          }
+  - name: 400 dateCount 0
+    description: |-
+      Joi `leaveSchema` (leave.validation.ts:3-23) → `BadRequestError(error.message)` (leave.controller.ts:23-26).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 400 dateCount 0.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom1}}",
+            "endDate": "{{leaveTo1}}",
+            "dateCount": 0,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Date Count cannot be less than 1",
+            "data": null
+          }
+  - name: 400 missing reason
+    description: |-
+      Joi `leaveSchema` (leave.validation.ts:3-23) → `BadRequestError(error.message)` (leave.controller.ts:23-26).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 400 missing reason.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom1}}",
+            "endDate": "{{leaveTo1}}",
+            "dateCount": 2
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Reason is required",
+            "data": null
+          }
+  - name: 400 empty reason
+    description: |-
+      Joi `leaveSchema` (leave.validation.ts:3-23) → `BadRequestError(error.message)` (leave.controller.ts:23-26). Joi default message (no custom text for this rule).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 400 empty reason.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom1}}",
+            "endDate": "{{leaveTo1}}",
+            "dateCount": 2,
+            "reason": ""
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"reason\" is not allowed to be empty",
+            "data": null
+          }
+  - name: 400 reason too long
+    description: |-
+      Joi `leaveSchema` (leave.validation.ts:3-23) → `BadRequestError(error.message)` (leave.controller.ts:23-26).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 400 reason too long.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom1}}",
+            "endDate": "{{leaveTo1}}",
+            "dateCount": 2,
+            "reason": "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Reason cannot be more than 500 characters",
+            "data": null
+          }
+  - name: 400 non-string reason
+    description: |-
+      Joi `leaveSchema` (leave.validation.ts:3-23) → `BadRequestError(error.message)` (leave.controller.ts:23-26).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 400 non-string reason.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom1}}",
+            "endDate": "{{leaveTo1}}",
+            "dateCount": 2,
+            "reason": 12345
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Reason is invalid",
+            "data": null
+          }
+  - name: 400 unknown field
+    description: |-
+      Joi `leaveSchema` (leave.validation.ts:3-23) → `BadRequestError(error.message)` (leave.controller.ts:23-26). Joi default message (no custom text for this rule).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 400 unknown field.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom1}}",
+            "endDate": "{{leaveTo1}}",
+            "dateCount": 2,
+            "reason": "Bruno test leave",
+            "foo": "bar"
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"foo\" is not allowed",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. leave.route.ts:19-28.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom5}}",
+            "endDate": "{{leaveTo5}}",
+            "dateCount": 2,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 superAdmin
+    description: |-
+      Route allows DRIVER, ADMIN, TRIPMANAGER, FINANCEOFFICER only; `{{superAdminToken}}` is rejected by auth.middleware.ts:73-77. SUPERADMIN cannot apply for leave (leave.route.ts:19-28).
+
+      Auth: bearer {{superAdminToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 403 superAdmin.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom5}}",
+            "endDate": "{{leaveTo5}}",
+            "dateCount": 2,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 403 driverAssistant
+    description: |-
+      Route allows DRIVER, ADMIN, TRIPMANAGER, FINANCEOFFICER only; `{{driverAssistantToken}}` is rejected by auth.middleware.ts:73-77. leave.route.ts:19-28.
+
+      Auth: bearer {{driverAssistantToken}}
+
+      Source scenario: Leave/Apply Leave/Apply Leave - 403 driverAssistant.yml
+    request:
+      url: "{{baseUrl}}/leave/apply"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "startDate": "{{leaveFrom5}}",
+            "endDate": "{{leaveTo5}}",
+            "dateCount": 2,
+            "reason": "Bruno test leave"
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/leave/apply`**
+
+  This request runs the main scenario **201 driver**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 driver | Leave applied successfully! |
+  | 2 | 201 | 201 driver second leave | Leave applied successfully! |
+  | 3 | 201 | 201 admin full entitlement | Leave applied successfully! |
+  | 4 | 201 | 201 admin second full-entitlement leave | Leave applied successfully! |
+  | 5 | 400 | 400 overlapping dates | Leave is already applied for the given dates. |
+  | 6 | 400 | 400 admin exceeded leave limit | You have exceeded the leave limit for 2437 year! |
+  | 7 | 400 | 400 missing startDate | Start Date is required! |
+  | 8 | 400 | 400 invalid startDate | Start Date is invalid! |
+  | 9 | 400 | 400 missing endDate | End Date is required |
+  | 10 | 400 | 400 invalid endDate | End Date is invalid |
+  | 11 | 400 | 400 missing dateCount | Date Count is required |
+  | 12 | 400 | 400 non-numeric dateCount | Date Count is invalid |
+  | 13 | 400 | 400 dateCount 0 | Date Count cannot be less than 1 |
+  | 14 | 400 | 400 missing reason | Reason is required |
+  | 15 | 400 | 400 empty reason | "reason" is not allowed to be empty |
+  | 16 | 400 | 400 reason too long | Reason cannot be more than 500 characters |
+  | 17 | 400 | 400 non-string reason | Reason is invalid |
+  | 18 | 400 | 400 unknown field | "foo" is not allowed |
+  | 19 | 401 | 401 no token | Authentication invalid! |
+  | 20 | 403 | 403 superAdmin | You're unauthorized to access this resource! |
+  | 21 | 403 | 403 driverAssistant | You're unauthorized to access this resource! |
+
+  ## Main scenario notes
+
+  Driver leave, no entitlement check (leave.controller.ts:45-54,82-101). Sets `{{leaveYear}}`, date slots and `{{leaveId}}`.

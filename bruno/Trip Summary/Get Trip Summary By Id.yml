@@ -1,0 +1,193 @@
+info:
+  name: Get Trip Summary By Id
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: "{{baseUrl}}/tripSummary/{{deleteTripSummaryId}}"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.data
+      operator: isNull
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 summary
+    description: |-
+      Populated tripId replaced by the trip _id (src/modules/tripSummary/tripSummary.controller.ts:183-188). Model field names (startingTime/endingTime).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Get Trip Summary By Id/Get Trip Summary By Id - 200 summary.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/{{tripSummaryId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "tripId": "6651b2c3d4e5f6a7b8c9d001",
+              "date": "2026-11-18T00:00:00.000Z",
+              "startingTime": "2026-11-18T08:00:00.000Z",
+              "endingTime": "2026-11-18T17:00:00.000Z",
+              "startingKm": 1000,
+              "endingKm": 1080,
+              "totalKm": 80,
+              "fuel": 12,
+              "description": "Kandy to Ella",
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "_id": "6653d4e5f6a7b8c9d0e1a001",
+              "createdAt": "2026-11-18T08:31:00.214Z",
+              "updatedAt": "2026-11-18T08:31:00.214Z"
+            }
+          }
+  - name: 200 [KNOWN BUG] unknown id returns null
+    description: |-
+      [KNOWN BUG] No not-found check → 200 with data null (src/modules/tripSummary/tripSummary.controller.ts:177-190; Document/tripSummary.md Known issue 7).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Get Trip Summary By Id/Get Trip Summary By Id - 200 [KNOWN BUG] unknown id returns null.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/{{nonExistingId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": null
+          }
+  - name: 200 deleted summary returns null
+    description: |-
+      Verification: soft-deleted summaries are hidden (and returned as null, Known issue 7).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Delete Trip Summary/Get Trip Summary By Id - 200 deleted summary returns null.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/{{deleteTripSummaryId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → UnauthorizedError (src/middleware/auth.middleware.ts:24-26).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Trip Summary/Get Trip Summary By Id/Get Trip Summary By Id - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/{{tripSummaryId}}"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed ObjectId reaches findOne → CastError → 404 (error.middleware.ts CastError branch). tripSummary.service.ts:13-18 (src/modules/tripSummary/tripSummary.controller.ts:177).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip Summary/Get Trip Summary By Id/Get Trip Summary By Id - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/tripSummary/{{invalidId}}"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/tripSummary/:id`**
+
+  This request runs the main scenario **200 deleted summary returns null**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 summary | (empty) |
+  | 2 | 200 | 200 [KNOWN BUG] unknown id returns null | (empty) |
+  | 3 | 200 | 200 deleted summary returns null | (empty) |
+  | 4 | 401 | 401 no token | Authentication invalid! |
+  | 5 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  Verification: soft-deleted summaries are hidden (and returned as null, Known issue 7).

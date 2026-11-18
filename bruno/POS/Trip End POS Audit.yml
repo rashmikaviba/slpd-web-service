@@ -1,0 +1,1093 @@
+info:
+  name: Trip End POS Audit
+  type: http
+  seq: 3
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/pos/tripEndAudit"
+  body:
+    type: json
+    data: |-
+      {
+        "tripId": "{{tripId}}",
+        "auditRecords": [
+          {
+            "id": "{{posProductId}}",
+            "returnQuantity": 0.5,
+            "returnUnitOfMeasure": 13,
+            "isReturned": true,
+            "notReturnedReason": "partly consumed"
+          }
+        ]
+      }
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Trip end pos audit done successfully!
+    - expression: res.body.data.isTripEndAuditDone
+      operator: eq
+      value: "true"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "200"
+    description: |-
+      Audits only the 2 kg line: 0.5 kg returned -> +500 g stock (POS_TRANSACTION_RETURN log), `isTripEndAuditDone = true`.
+      The negative line is intentionally left un-audited (allowed: not every line must be audited). No trip-status check. `src/modules/pos/pos.controller.ts:268`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 200.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "auditRecords": [
+              {
+                "id": "{{posProductId}}",
+                "returnQuantity": 0.5,
+                "returnUnitOfMeasure": 13,
+                "isReturned": true,
+                "notReturnedReason": "partly consumed"
+              }
+            ]
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip end pos audit done successfully!",
+            "data": {
+              "_id": "6731f5a2b4c5d6e7f8a9b201",
+              "tripId": {
+                "_id": "6731e5a2b4c5d6e7f8a9b0a1",
+                "tripConfirmedNumber": "BRUNO-MAIN-1794990790000",
+                "status": 3
+              },
+              "products": [
+                {
+                  "product": {
+                    "_id": "6731f0a2b4c5d6e7f8a9b0c1",
+                    "productName": "Bruno Rice 1794990600000",
+                    "isReturnableProduct": false
+                  },
+                  "isReturnableProduct": false,
+                  "unitPrice": 300,
+                  "productUnitOfMeasure": 13,
+                  "enteredUnitOfMeasure": 13,
+                  "enteredQuantity": 2,
+                  "quantityWithSiUnitOfMeasure": 2000,
+                  "status": 1,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "createdAt": "2026-11-18T08:45:00.210Z",
+                  "updatedAt": "2026-11-18T08:45:00.210Z",
+                  "_id": "6731f5a2b4c5d6e7f8a9b202"
+                },
+                {
+                  "product": {
+                    "_id": "6731f0a2b4c5d6e7f8a9b0c1",
+                    "productName": "Bruno Rice 1794990600000",
+                    "isReturnableProduct": false
+                  },
+                  "isReturnableProduct": false,
+                  "unitPrice": 300,
+                  "productUnitOfMeasure": 13,
+                  "enteredUnitOfMeasure": 13,
+                  "enteredQuantity": -1,
+                  "quantityWithSiUnitOfMeasure": -1000,
+                  "status": 1,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "createdAt": "2026-11-18T08:45:04.050Z",
+                  "updatedAt": "2026-11-18T08:45:04.050Z",
+                  "_id": "6731f5a2b4c5d6e7f8a9b204"
+                }
+              ],
+              "totalAmount": 300,
+              "isTripEndAuditDone": true,
+              "endAuditProducts": [
+                {
+                  "product": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "transactionId": "6731f5a2b4c5d6e7f8a9b202",
+                  "isReturnableProduct": false,
+                  "isReturned": true,
+                  "notReturnedReson": "",
+                  "returnedquantity": 0.5,
+                  "returnedUnitOfMeasure": 13,
+                  "returnedQuantityWithSiUnitOfMeasure": 500,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "createdAt": "2026-11-18T08:45:06.700Z",
+                  "_id": "6731f5a2b4c5d6e7f8a9b2b1"
+                }
+              ],
+              "totalAfterAudit": 0,
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:45:00.210Z",
+              "updatedAt": "2026-11-18T08:45:06.730Z"
+            }
+          }
+  - name: 200 re-run accepted
+    description: |-
+      [KNOWN BUG] No guard against a second audit (`src/modules/pos/pos.controller.ts:268-486`): it replaces `endAuditProducts` and adds the 500 g return to stock **again**.
+      Expected: 400 once `isTripEndAuditDone` is true.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 200 re-run accepted.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "auditRecords": [
+              {
+                "id": "{{posProductId}}",
+                "returnQuantity": 0.5,
+                "returnUnitOfMeasure": 13,
+                "isReturned": true,
+                "notReturnedReason": "partly consumed"
+              }
+            ]
+          }
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Trip end pos audit done successfully!",
+            "data": {
+              "_id": "6731f5a2b4c5d6e7f8a9b201",
+              "tripId": {
+                "_id": "6731e5a2b4c5d6e7f8a9b0a1",
+                "tripConfirmedNumber": "BRUNO-MAIN-1794990790000",
+                "status": 3
+              },
+              "products": [
+                {
+                  "product": {
+                    "_id": "6731f0a2b4c5d6e7f8a9b0c1",
+                    "productName": "Bruno Rice 1794990600000",
+                    "isReturnableProduct": false
+                  },
+                  "isReturnableProduct": false,
+                  "unitPrice": 300,
+                  "productUnitOfMeasure": 13,
+                  "enteredUnitOfMeasure": 13,
+                  "enteredQuantity": 2,
+                  "quantityWithSiUnitOfMeasure": 2000,
+                  "status": 1,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "createdAt": "2026-11-18T08:45:00.210Z",
+                  "updatedAt": "2026-11-18T08:45:00.210Z",
+                  "_id": "6731f5a2b4c5d6e7f8a9b202"
+                },
+                {
+                  "product": {
+                    "_id": "6731f0a2b4c5d6e7f8a9b0c1",
+                    "productName": "Bruno Rice 1794990600000",
+                    "isReturnableProduct": false
+                  },
+                  "isReturnableProduct": false,
+                  "unitPrice": 300,
+                  "productUnitOfMeasure": 13,
+                  "enteredUnitOfMeasure": 13,
+                  "enteredQuantity": -1,
+                  "quantityWithSiUnitOfMeasure": -1000,
+                  "status": 1,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "createdAt": "2026-11-18T08:45:04.050Z",
+                  "updatedAt": "2026-11-18T08:45:04.050Z",
+                  "_id": "6731f5a2b4c5d6e7f8a9b204"
+                }
+              ],
+              "totalAmount": 300,
+              "isTripEndAuditDone": true,
+              "endAuditProducts": [
+                {
+                  "product": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "transactionId": "6731f5a2b4c5d6e7f8a9b202",
+                  "isReturnableProduct": false,
+                  "isReturned": true,
+                  "notReturnedReson": "",
+                  "returnedquantity": 0.5,
+                  "returnedUnitOfMeasure": 13,
+                  "returnedQuantityWithSiUnitOfMeasure": 500,
+                  "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "createdAt": "2026-11-18T08:45:07.880Z",
+                  "_id": "6731f5a2b4c5d6e7f8a9b2b2"
+                }
+              ],
+              "totalAfterAudit": 0,
+              "isMonthEndDone": false,
+              "batchId": 0,
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:45:00.210Z",
+              "updatedAt": "2026-11-18T08:45:07.900Z"
+            }
+          }
+  - name: 400 missing tripId
+    description: |-
+      Joi `tripEndAuditShema`. `src/modules/pos/pos.validation.ts:20-48`, `src/modules/pos/pos.controller.ts:275`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 400 missing tripId.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "auditRecords": [
+              {
+                "id": "{{posProductId}}",
+                "returnQuantity": 0.5,
+                "returnUnitOfMeasure": 13,
+                "isReturned": true,
+                "notReturnedReason": "partly consumed"
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "tripId is required",
+            "data": null
+          }
+  - name: 400 tripId not a string
+    description: |-
+      Joi `tripEndAuditShema`. `src/modules/pos/pos.validation.ts:20-48`, `src/modules/pos/pos.controller.ts:275`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 400 tripId not a string.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": 5,
+            "auditRecords": [
+              {
+                "id": "{{posProductId}}",
+                "returnQuantity": 0.5,
+                "returnUnitOfMeasure": 13,
+                "isReturned": true,
+                "notReturnedReason": "partly consumed"
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "tripId is invalid",
+            "data": null
+          }
+  - name: 400 record missing id
+    description: |-
+      Joi `tripEndAuditShema`. `src/modules/pos/pos.validation.ts:20-48`, `src/modules/pos/pos.controller.ts:275`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 400 record missing id.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "auditRecords": [
+              {
+                "returnQuantity": 0.5,
+                "returnUnitOfMeasure": 13,
+                "isReturned": true,
+                "notReturnedReason": "partly consumed"
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "id is required",
+            "data": null
+          }
+  - name: 400 record id not a string
+    description: |-
+      Joi `tripEndAuditShema`. `src/modules/pos/pos.validation.ts:20-48`, `src/modules/pos/pos.controller.ts:275`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 400 record id not a string.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "auditRecords": [
+              {
+                "id": 5,
+                "returnQuantity": 0.5,
+                "returnUnitOfMeasure": 13,
+                "isReturned": true,
+                "notReturnedReason": "partly consumed"
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "id is invalid",
+            "data": null
+          }
+  - name: 400 record missing returnQuantity
+    description: |-
+      Joi `tripEndAuditShema`. `src/modules/pos/pos.validation.ts:20-48`, `src/modules/pos/pos.controller.ts:275`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 400 record missing returnQuantity.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "auditRecords": [
+              {
+                "id": "{{posProductId}}",
+                "returnUnitOfMeasure": 13,
+                "isReturned": true,
+                "notReturnedReason": "partly consumed"
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "returnQuantity is required",
+            "data": null
+          }
+  - name: 400 record returnQuantity not a number
+    description: |-
+      Joi `tripEndAuditShema`. `src/modules/pos/pos.validation.ts:20-48`, `src/modules/pos/pos.controller.ts:275`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 400 record returnQuantity not a number.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "auditRecords": [
+              {
+                "id": "{{posProductId}}",
+                "returnQuantity": "abc",
+                "returnUnitOfMeasure": 13,
+                "isReturned": true,
+                "notReturnedReason": "partly consumed"
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "returnQuantity is invalid",
+            "data": null
+          }
+  - name: 400 record missing returnUnitOfMeasure
+    description: |-
+      Joi `tripEndAuditShema`. `src/modules/pos/pos.validation.ts:20-48`, `src/modules/pos/pos.controller.ts:275`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 400 record missing returnUnitOfMeasure.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "auditRecords": [
+              {
+                "id": "{{posProductId}}",
+                "returnQuantity": 0.5,
+                "isReturned": true,
+                "notReturnedReason": "partly consumed"
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "returnUnitOfMeasure is required",
+            "data": null
+          }
+  - name: 400 record returnUnitOfMeasure not a number
+    description: |-
+      Joi `tripEndAuditShema`. `src/modules/pos/pos.validation.ts:20-48`, `src/modules/pos/pos.controller.ts:275`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 400 record returnUnitOfMeasure not a number.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "auditRecords": [
+              {
+                "id": "{{posProductId}}",
+                "returnQuantity": 0.5,
+                "returnUnitOfMeasure": "abc",
+                "isReturned": true,
+                "notReturnedReason": "partly consumed"
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "returnUnitOfMeasure is invalid",
+            "data": null
+          }
+  - name: 400 record missing isReturned
+    description: |-
+      Joi `tripEndAuditShema`. `src/modules/pos/pos.validation.ts:20-48`, `src/modules/pos/pos.controller.ts:275`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 400 record missing isReturned.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "auditRecords": [
+              {
+                "id": "{{posProductId}}",
+                "returnQuantity": 0.5,
+                "returnUnitOfMeasure": 13,
+                "notReturnedReason": "partly consumed"
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "isReturned is required",
+            "data": null
+          }
+  - name: 400 record isReturned not boolean
+    description: |-
+      Joi `tripEndAuditShema`. `src/modules/pos/pos.validation.ts:20-48`, `src/modules/pos/pos.controller.ts:275`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 400 record isReturned not boolean.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "auditRecords": [
+              {
+                "id": "{{posProductId}}",
+                "returnQuantity": 0.5,
+                "returnUnitOfMeasure": 13,
+                "isReturned": "maybe",
+                "notReturnedReason": "partly consumed"
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "isReturned is invalid",
+            "data": null
+          }
+  - name: 400 record notReturnedReason not a string
+    description: |-
+      Joi `tripEndAuditShema`. `src/modules/pos/pos.validation.ts:20-48`, `src/modules/pos/pos.controller.ts:275`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 400 record notReturnedReason not a string.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "auditRecords": [
+              {
+                "id": "{{posProductId}}",
+                "returnQuantity": 0.5,
+                "returnUnitOfMeasure": 13,
+                "isReturned": true,
+                "notReturnedReason": 5
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "notReturnedReason is invalid",
+            "data": null
+          }
+  - name: 400 unknown field
+    description: |-
+      Joi `tripEndAuditShema`. `src/modules/pos/pos.validation.ts:20-48`, `src/modules/pos/pos.controller.ts:275`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 400 unknown field.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "auditRecords": [
+              {
+                "id": "{{posProductId}}",
+                "returnQuantity": 0.5,
+                "returnUnitOfMeasure": 13,
+                "isReturned": true,
+                "notReturnedReason": "partly consumed"
+              }
+            ],
+            "foo": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"foo\" is not allowed",
+            "data": null
+          }
+  - name: 400 no POS for trip
+    description: |-
+      `src/modules/pos/pos.controller.ts:283`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 400 no POS for trip.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{nonExistingId}}",
+            "auditRecords": [
+              {
+                "id": "{{posProductId}}",
+                "returnQuantity": 0.5,
+                "returnUnitOfMeasure": 13,
+                "isReturned": true,
+                "notReturnedReason": "partly consumed"
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pos transaction not found for given trip!",
+            "data": null
+          }
+  - name: 400 line not found
+    description: |-
+      Record id is not an ACTIVE line of this trip's POS. `src/modules/pos/pos.controller.ts:299`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 400 line not found.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "auditRecords": [
+              {
+                "id": "{{nonExistingId}}",
+                "returnQuantity": 0.5,
+                "returnUnitOfMeasure": 13,
+                "isReturned": true,
+                "notReturnedReason": "partly consumed"
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Pos transaction not found for given trip!",
+            "data": null
+          }
+  - name: 400 return more than issued
+    description: |-
+      3 kg returned > 2 kg issued on `{{posProductId}}`. Needs `{{productName}}` from the Product folder. `src/modules/pos/pos.controller.ts:330`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 400 return more than issued.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "auditRecords": [
+              {
+                "id": "{{posProductId}}",
+                "returnQuantity": 3,
+                "returnUnitOfMeasure": 13,
+                "isReturned": true,
+                "notReturnedReason": "partly consumed"
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Return quantity is more than available quantity for product \"",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: POS/Trip End POS Audit - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "auditRecords": [
+              {
+                "id": "{{posProductId}}",
+                "returnQuantity": 0.5,
+                "returnUnitOfMeasure": 13,
+                "isReturned": true,
+                "notReturnedReason": "partly consumed"
+              }
+            ]
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN, TRIPMANAGER, FINANCEOFFICER only; `{{driverToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: POS/Trip End POS Audit - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "auditRecords": [
+              {
+                "id": "{{posProductId}}",
+                "returnQuantity": 0.5,
+                "returnUnitOfMeasure": 13,
+                "isReturned": true,
+                "notReturnedReason": "partly consumed"
+              }
+            ]
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 invalid trip id
+    description: |-
+      `src/modules/pos/pos.controller.ts:278`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 404 invalid trip id.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{invalidId}}",
+            "auditRecords": [
+              {
+                "id": "{{posProductId}}",
+                "returnQuantity": 0.5,
+                "returnUnitOfMeasure": 13,
+                "isReturned": true,
+                "notReturnedReason": "partly consumed"
+              }
+            ]
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+  - name: 500 empty auditRecords
+    description: |-
+      Zero records -> no audit entries -> `InternalServerError` (`src/modules/pos/pos.controller.ts:476`). A trip whose lines were all voided can only send this,
+      so it can never be audited and Trip refuses to finish it (Known issues: deadlock).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 500 empty auditRecords.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}",
+            "auditRecords": []
+          }
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Something went wrong while end trip pos audit!",
+            "data": null
+          }
+  - name: 500 auditRecords omitted
+    description: |-
+      [KNOWN BUG] `auditRecords` not required in Joi; `for…of undefined` throws a TypeError (`src/modules/pos/pos.controller.ts:294`) -> 500 (raw message not asserted). Expected: 400.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Trip End POS Audit - 500 auditRecords omitted.yml
+    request:
+      url: "{{baseUrl}}/pos/tripEndAudit"
+      method: PUT
+      body:
+        type: json
+        data: |-
+          {
+            "tripId": "{{tripId}}"
+          }
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "auditRecords is not iterable",
+            "data": null
+          }
+
+docs: |-
+  **PUT `/api/v1/pos/tripEndAudit`**
+
+  This request runs the main scenario **200**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 | Trip end pos audit done successfully! |
+  | 2 | 200 | 200 re-run accepted | Trip end pos audit done successfully! |
+  | 3 | 400 | 400 missing tripId | tripId is required |
+  | 4 | 400 | 400 tripId not a string | tripId is invalid |
+  | 5 | 400 | 400 record missing id | id is required |
+  | 6 | 400 | 400 record id not a string | id is invalid |
+  | 7 | 400 | 400 record missing returnQuantity | returnQuantity is required |
+  | 8 | 400 | 400 record returnQuantity not a number | returnQuantity is invalid |
+  | 9 | 400 | 400 record missing returnUnitOfMeasure | returnUnitOfMeasure is required |
+  | 10 | 400 | 400 record returnUnitOfMeasure not a number | returnUnitOfMeasure is invalid |
+  | 11 | 400 | 400 record missing isReturned | isReturned is required |
+  | 12 | 400 | 400 record isReturned not boolean | isReturned is invalid |
+  | 13 | 400 | 400 record notReturnedReason not a string | notReturnedReason is invalid |
+  | 14 | 400 | 400 unknown field | "foo" is not allowed |
+  | 15 | 400 | 400 no POS for trip | Pos transaction not found for given trip! |
+  | 16 | 400 | 400 line not found | Pos transaction not found for given trip! |
+  | 17 | 400 | 400 return more than issued | Return quantity is more than available quantity for product " |
+  | 18 | 401 | 401 no token | Authentication invalid! |
+  | 19 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 20 | 404 | 404 invalid trip id | No item found with ID " |
+  | 21 | 500 | 500 empty auditRecords | Something went wrong while end trip pos audit! |
+  | 22 | 500 | 500 auditRecords omitted | auditRecords is not iterable |
+
+  ## Main scenario notes
+
+  Audits only the 2 kg line: 0.5 kg returned -> +500 g stock (POS_TRANSACTION_RETURN log), `isTripEndAuditDone = true`.
+  The negative line is intentionally left un-audited (allowed: not every line must be audited). No trip-status check. `src/modules/pos/pos.controller.ts:268`

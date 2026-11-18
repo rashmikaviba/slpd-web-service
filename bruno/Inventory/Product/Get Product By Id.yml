@@ -1,0 +1,480 @@
+info:
+  name: Get Product By Id
+  type: http
+  seq: 4
+
+http:
+  method: GET
+  url: "{{baseUrl}}/inventory/product/{{productId}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("stock includes GRN qty and a GRN_APPROVED log", function () {
+          expect(res.body.data.inventory).to.be.at.least(50000);
+          expect(res.body.data.inventoryLogs.some((l) => l.inventoryLogType === 1)).to.equal(true);
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 stock after GRN approval
+    description: |-
+      Helper check: product stock (SI grams) was increased by the approved GRN. Precondition: `Approve GRN - 201`.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Get Product By Id - 200 stock after GRN approval.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{productId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "_id": "6731f0a2b4c5d6e7f8a9b0c1",
+              "productName": "Bruno Rice 1794990600000",
+              "productShortCode": "BR1794990600000",
+              "measureUnit": 13,
+              "isReturnableProduct": false,
+              "unitPrice": 300,
+              "description": "Updated by Bruno",
+              "inventory": 50000,
+              "inventoryLogs": [
+                {
+                  "inventoryLogType": 1,
+                  "inventoryLogDate": "2026-11-18T08:31:01.640Z",
+                  "inventoryLogQuantity": 50000,
+                  "beforeTransactionInventory": 0,
+                  "afterTransactionInventory": 50000,
+                  "inventoryLogProductId": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "inventoryLogCreatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "message": "Inventory updated: 50000g added for product \"Bruno Rice 1794990600000\" via approved GRN GRN-024.",
+                  "_id": "6731f1a2b4c5d6e7f8a9b0e1"
+                }
+              ],
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:30:00.412Z",
+              "updatedAt": "2026-11-18T08:31:01.650Z"
+            }
+          }
+  - name: "200"
+    description: |-
+      Any role. Returns the raw document (stock in SI units, incl. `inventoryLogs`). `src/modules/inventory/product/product.controller.ts:152`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Get Product By Id - 200.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{productId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "_id": "6731f0a2b4c5d6e7f8a9b0c1",
+              "productName": "Bruno Rice 1794990600000",
+              "productShortCode": "BR1794990600000",
+              "measureUnit": 13,
+              "isReturnableProduct": false,
+              "unitPrice": 250,
+              "description": "Bruno main product (kg)",
+              "inventory": 0,
+              "inventoryLogs": [],
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:30:00.412Z",
+              "updatedAt": "2026-11-18T08:30:00.412Z"
+            }
+          }
+  - name: 200 null for unknown id
+    description: |-
+      Not-found is **not** a 404: handler returns 200 with `data: null` (`src/modules/inventory/product/product.controller.ts:152-159`, see Known issues).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Get Product By Id - 200 null for unknown id.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{nonExistingId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Inventory/Product/Get Product By Id - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{productId}}"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      `src/modules/inventory/product/product.controller.ts:156`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/Product/Get Product By Id - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{invalidId}}"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+  - name: Get Product - 200 setup read measure unit (Trip setup)
+    description: |-
+      Setup: product measure unit for the POS line.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Cancel Trip/Get Product - 200 setup read measure unit.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{productId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "_id": "6650a1b2c3d4e5f6a7b8e001",
+              "productName": "Mineral Water 1.5L",
+              "productShortCode": "MW15",
+              "measureUnit": 4,
+              "isReturnableProduct": false,
+              "unitPrice": 150,
+              "description": "Bottled water for guests",
+              "inventory": 47,
+              "inventoryLogs": [
+                {
+                  "inventoryLogType": 1,
+                  "inventoryLogDate": "2026-11-10T05:00:00.000Z",
+                  "inventoryLogQuantity": 48,
+                  "beforeTransactionInventory": 0,
+                  "afterTransactionInventory": 48,
+                  "inventoryLogProductId": "6650a1b2c3d4e5f6a7b8e001",
+                  "inventoryLogCreatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "message": "Inventory updated: 48btl added for product \"Mineral Water 1.5L\" via approved GRN GRN-0012.",
+                  "_id": "6650a1b2c3d4e5f6a7b8e101"
+                },
+                {
+                  "inventoryLogType": 2,
+                  "inventoryLogDate": "2026-11-17T08:31:00.000Z",
+                  "inventoryLogQuantity": 1,
+                  "beforeTransactionInventory": 48,
+                  "afterTransactionInventory": 47,
+                  "inventoryLogProductId": "6650a1b2c3d4e5f6a7b8e001",
+                  "inventoryLogCreatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "message": "Inventory updated: 1btl removed from product \"Mineral Water 1.5L\" via POS transaction to trip \"BRUNO-UNDO-1794904201310\".",
+                  "_id": "6650a1b2c3d4e5f6a7b8e102"
+                }
+              ],
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "createdAt": "2026-11-01T04:00:00.000Z",
+              "updatedAt": "2026-11-17T08:31:00.000Z"
+            }
+          }
+  - name: 200 stock before negative sale (POS setup)
+    description: |-
+      Helper: snapshots `{{productId}}` stock (grams) into `{{posStockBefore}}` for the next bug check.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Get Product By Id - 200 stock before negative sale.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{productId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "_id": "6731f0a2b4c5d6e7f8a9b0c1",
+              "productName": "Bruno Rice 1794990600000",
+              "productShortCode": "BR1794990600000",
+              "measureUnit": 13,
+              "isReturnableProduct": false,
+              "unitPrice": 300,
+              "description": "Updated by Bruno",
+              "inventory": 47000,
+              "inventoryLogs": [
+                {
+                  "inventoryLogType": 1,
+                  "inventoryLogDate": "2026-11-18T08:31:01.640Z",
+                  "inventoryLogQuantity": 50000,
+                  "beforeTransactionInventory": 0,
+                  "afterTransactionInventory": 50000,
+                  "inventoryLogProductId": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "inventoryLogCreatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "message": "Inventory updated: 50000g added for product \"Bruno Rice 1794990600000\" via approved GRN GRN-024.",
+                  "_id": "6731f1a2b4c5d6e7f8a9b0e1"
+                },
+                {
+                  "inventoryLogType": 2,
+                  "inventoryLogDate": "2026-11-18T08:45:02.980Z",
+                  "inventoryLogQuantity": 500,
+                  "beforeTransactionInventory": 46500,
+                  "afterTransactionInventory": 47000,
+                  "inventoryLogProductId": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "inventoryLogCreatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "message": "Inventory updated: 500g added to product \"Bruno Rice 1794990600000\" via voiding POS transaction in trip \"BRUNO-MAIN-1794990790000\".",
+                  "_id": "6731f5a2b4c5d6e7f8a9b2a3"
+                }
+              ],
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:30:00.412Z",
+              "updatedAt": "2026-11-18T08:45:02.990Z"
+            }
+          }
+  - name: "Get Product - 200 setup read measure unit (Trip setup) #2"
+    description: |-
+      Setup: GET /inventory/product/:id → `productMeasureUnit` (needs `{{productId}}` from Inventory).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Finish/Get Product - 200 setup read measure unit.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{productId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "_id": "6650a1b2c3d4e5f6a7b8e001",
+              "productName": "Mineral Water 1.5L",
+              "productShortCode": "MW15",
+              "measureUnit": 4,
+              "isReturnableProduct": false,
+              "unitPrice": 150,
+              "description": "Bottled water for guests",
+              "inventory": 47,
+              "inventoryLogs": [
+                {
+                  "inventoryLogType": 1,
+                  "inventoryLogDate": "2026-11-10T05:00:00.000Z",
+                  "inventoryLogQuantity": 48,
+                  "beforeTransactionInventory": 0,
+                  "afterTransactionInventory": 48,
+                  "inventoryLogProductId": "6650a1b2c3d4e5f6a7b8e001",
+                  "inventoryLogCreatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "message": "Inventory updated: 48btl added for product \"Mineral Water 1.5L\" via approved GRN GRN-0012.",
+                  "_id": "6650a1b2c3d4e5f6a7b8e101"
+                },
+                {
+                  "inventoryLogType": 2,
+                  "inventoryLogDate": "2026-11-17T08:31:00.000Z",
+                  "inventoryLogQuantity": 1,
+                  "beforeTransactionInventory": 48,
+                  "afterTransactionInventory": 47,
+                  "inventoryLogProductId": "6650a1b2c3d4e5f6a7b8e001",
+                  "inventoryLogCreatedBy": "6650a1b2c3d4e5f6a7b8c001",
+                  "message": "Inventory updated: 1btl removed from product \"Mineral Water 1.5L\" via POS transaction to trip \"BRUNO-UNDO-1794904201310\".",
+                  "_id": "6650a1b2c3d4e5f6a7b8e102"
+                }
+              ],
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c001",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c001",
+              "createdAt": "2026-11-01T04:00:00.000Z",
+              "updatedAt": "2026-11-17T08:31:00.000Z"
+            }
+          }
+  - name: 200 stock increased by negative sale (POS setup)
+    description: |-
+      [KNOWN BUG] Confirms the previous negative POS line added 1000 g to stock. Precondition: the two previous requests.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: POS/Get Product By Id - 200 stock increased by negative sale.yml
+    request:
+      url: "{{baseUrl}}/inventory/product/{{productId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "_id": "6731f0a2b4c5d6e7f8a9b0c1",
+              "productName": "Bruno Rice 1794990600000",
+              "productShortCode": "BR1794990600000",
+              "measureUnit": 13,
+              "isReturnableProduct": false,
+              "unitPrice": 300,
+              "description": "Updated by Bruno",
+              "inventory": 48000,
+              "inventoryLogs": [
+                {
+                  "inventoryLogType": 1,
+                  "inventoryLogDate": "2026-11-18T08:31:01.640Z",
+                  "inventoryLogQuantity": 50000,
+                  "beforeTransactionInventory": 0,
+                  "afterTransactionInventory": 50000,
+                  "inventoryLogProductId": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "inventoryLogCreatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "message": "Inventory updated: 50000g added for product \"Bruno Rice 1794990600000\" via approved GRN GRN-024.",
+                  "_id": "6731f1a2b4c5d6e7f8a9b0e1"
+                },
+                {
+                  "inventoryLogType": 2,
+                  "inventoryLogDate": "2026-11-18T08:45:04.120Z",
+                  "inventoryLogQuantity": -1000,
+                  "beforeTransactionInventory": 47000,
+                  "afterTransactionInventory": 48000,
+                  "inventoryLogProductId": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "inventoryLogCreatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+                  "message": "Inventory updated: -1000g removed from product \"Bruno Rice 1794990600000\" via POS transaction to trip \"BRUNO-MAIN-1794990790000\".",
+                  "_id": "6731f5a2b4c5d6e7f8a9b2a4"
+                }
+              ],
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:30:00.412Z",
+              "updatedAt": "2026-11-18T08:45:04.130Z"
+            }
+          }
+
+docs: |-
+  **GET `/api/v1/inventory/product/:id`**
+
+  This request runs the main scenario **200 stock after GRN approval**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 stock after GRN approval | (empty) |
+  | 2 | 200 | 200 | (empty) |
+  | 3 | 200 | 200 null for unknown id | (empty) |
+  | 4 | 401 | 401 no token | Authentication invalid! |
+  | 5 | 404 | 404 invalid id | No item found with ID " |
+  | 6 | 200 | Get Product - 200 setup read measure unit (Trip setup) | (empty) |
+  | 7 | 200 | 200 stock before negative sale (POS setup) | (empty) |
+  | 8 | 200 | Get Product - 200 setup read measure unit (Trip setup) #2 | (empty) |
+  | 9 | 200 | 200 stock increased by negative sale (POS setup) | (empty) |
+
+  ## Main scenario notes
+
+  Helper check: product stock (SI grams) was increased by the approved GRN. Precondition: `Approve GRN - 201`.

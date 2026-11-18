@@ -1,0 +1,15 @@
+info:
+  name: Common
+  type: folder
+  seq: 2
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    /api/v1/common/* — master/reference data (common.route.ts). See Document/common.md.
+    `gender` and `role` are public (no authorize middleware); `data` and `measureUnits` use `authorize([])`
+    (any authenticated role, so no 403 cases). No validation and no thrown errors in common.controller.ts —
+    the only error path is the auth middleware (401).
+  type: text/markdown

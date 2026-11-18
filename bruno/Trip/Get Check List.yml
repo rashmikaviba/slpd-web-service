@@ -1,0 +1,266 @@
+info:
+  name: Get Check List
+  type: http
+  seq: 8
+
+http:
+  method: GET
+  url: "{{baseUrl}}/trip/checkList/{{undoTripId}}"
+  auth: inherit
+
+runtime:
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.data.isTermsConditionsChecked1
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 main trip
+    description: |-
+      Returns the stored answers object.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Get Check List/Get Check List - 200 main trip.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{tripId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "1": 1,
+              "2": 1,
+              "3": 1,
+              "4": 1,
+              "5": 1,
+              "6": 1,
+              "7": 1,
+              "8": 1,
+              "9": 1,
+              "10": 1,
+              "11": 1,
+              "12": 1,
+              "13": 1,
+              "14": 1,
+              "umbrellaCount": 2,
+              "isTermsConditionsChecked1": true,
+              "isTermsConditionsChecked2": true,
+              "vehicleDamageImages": []
+            }
+          }
+  - name: 200 [KNOWN BUG] admin undo keeps checklist
+    description: |-
+      [KNOWN BUG] Office undo does not clear checkListAnswers/checkListCheckBy, unlike the driver undo (src/modules/trip/trip.controller.ts:1021-1023 vs :915-916; Document/trip.md Known issue 9). Expected after fix: 400 "Checklist not completed yet!".
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Undo/Get Check List - 200 [KNOWN BUG] admin undo keeps checklist.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{undoTripId}}"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "1": 1,
+              "2": 1,
+              "3": 1,
+              "4": 1,
+              "5": 1,
+              "6": 1,
+              "7": 1,
+              "8": 1,
+              "9": 1,
+              "10": 1,
+              "11": 1,
+              "12": 1,
+              "13": 1,
+              "14": 1,
+              "umbrellaCount": 2,
+              "isTermsConditionsChecked1": true,
+              "isTermsConditionsChecked2": true,
+              "vehicleDamageImages": []
+            }
+          }
+  - name: 400 cleared by driver undo
+    description: |-
+      Verification: driver undo nulls checkListAnswers (src/modules/trip/trip.controller.ts:915-916).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Change Trip Status - Undo/Get Check List - 400 cleared by driver undo.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{undoTripId}}"
+      method: GET
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Checklist not completed yet!",
+            "data": null
+          }
+  - name: 400 checklist not completed
+    description: |-
+      `finishedTripId` never gets a checklist (src/modules/trip/trip.controller.ts:1117-1119).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Get Check List/Get Check List - 400 checklist not completed.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{finishedTripId}}"
+      method: GET
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Checklist not completed yet!",
+            "data": null
+          }
+  - name: 400 trip not found
+    description: |-
+      src/modules/trip/trip.controller.ts:1113-1115.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Get Check List/Get Check List - 400 trip not found.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{nonExistingId}}"
+      method: GET
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Invalid trip!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → `authorize()` throws UnauthorizedError (src/middleware/auth.middleware.ts:24-26).
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Trip/Get Check List/Get Check List - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{tripId}}"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 invalid id
+    description: |-
+      Malformed ObjectId reaches `Trip.findOne({_id})` → Mongoose CastError → error middleware returns 404 (src/middleware/error.middleware.ts, CastError branch). Controller: src/modules/trip/trip.controller.ts:1106.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Trip/Get Check List/Get Check List - 404 invalid id.yml
+    request:
+      url: "{{baseUrl}}/trip/checkList/{{invalidId}}"
+      method: GET
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"not-an-object-id\"!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/trip/checkList/:id`**
+
+  This request runs the main scenario **200 [KNOWN BUG] admin undo keeps checklist**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 main trip | (empty) |
+  | 2 | 200 | 200 [KNOWN BUG] admin undo keeps checklist | (empty) |
+  | 3 | 400 | 400 cleared by driver undo | Checklist not completed yet! |
+  | 4 | 400 | 400 checklist not completed | Checklist not completed yet! |
+  | 5 | 400 | 400 trip not found | Invalid trip! |
+  | 6 | 401 | 401 no token | Authentication invalid! |
+  | 7 | 404 | 404 invalid id | No item found with ID "not-an-object-id"! |
+
+  ## Main scenario notes
+
+  [KNOWN BUG] Office undo does not clear checkListAnswers/checkListCheckBy, unlike the driver undo (src/modules/trip/trip.controller.ts:1021-1023 vs :915-916; Document/trip.md Known issue 9). Expected after fix: 400 "Checklist not completed yet!".

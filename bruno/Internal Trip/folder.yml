@@ -1,0 +1,18 @@
+info:
+  name: Internal Trip
+  type: folder
+  seq: 9
+
+request:
+  auth: inherit
+
+docs:
+  content: |-
+    Internal (non-customer) vehicle trips (`src/modules/internalTrip/`, Document/internalTrip.md).
+    All routes: SUPERADMIN, ADMIN, TRIPMANAGER, FINANCEOFFICER.
+    Internal trips move the vehicle odometer and block date ranges, so this folder creates its OWN vehicle
+    (`Setup / Create Vehicle - 201 internal trip vehicle setup` → `{{internalTripVehicleId}}`, initialMileage 1000) and uses
+    dates in 2090 — `{{vehicleId}}` is not touched. Driver = `{{driverUserId}}` (Auth / Login).
+    Mileage flow on the setup vehicle: 1000 → 1100 (create with meterReading) → 1200 (update applies reading) → 1100 (delete).
+    `{{internalTripOrphanId}}` is an internal trip on a non-existent vehicle (known bug); it cannot be deleted and stays in the DB.
+  type: text/markdown

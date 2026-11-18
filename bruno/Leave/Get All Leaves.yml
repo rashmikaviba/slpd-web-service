@@ -1,0 +1,289 @@
+info:
+  name: Get All Leaves
+  type: http
+  seq: 3
+
+http:
+  method: GET
+  url: "{{baseUrl}}/leave?year={{leaveYear}}"
+  params:
+    - name: year
+      value: "{{leaveYear}}"
+      type: query
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("contains driver and admin leaves", function () {
+          const ids = res.body.data.map((l) => l._id);
+          expect(ids).to.include(bru.getVar("leaveId"));
+          expect(ids).to.include(bru.getVar("adminLeaveId"));
+        });
+        test("admin leaves carry availableLeaveCount", function () {
+          const l = res.body.data.find((x) => x._id === bru.getVar("adminLeaveId"));
+          expect(l.availableLeaveCount).to.equal(Number(bru.getVar("adminLeaveCount")));
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 super admin sees all
+    description: |-
+      SUPERADMIN: everyone's leaves of the year; ADMIN/FO/TM applicants get `availableLeaveCount` (leave.controller.ts:339-386).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Get All Leaves/Get All Leaves - 200 super admin sees all.yml
+    request:
+      url: "{{baseUrl}}/leave?year={{leaveYear}}"
+      method: GET
+      params:
+        - name: year
+          value: "{{leaveYear}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6650a1b2c3d4e5f6a7b8f003",
+                "startDate": "2437-01-31T00:00:00.000Z",
+                "endDate": "2437-02-01T00:00:00.000Z",
+                "dateCount": 14,
+                "reason": "Bruno test leave",
+                "status": 1,
+                "statusName": "PENDING",
+                "appliedUser": "6650a1b2c3d4e5f6a7b8c002",
+                "appliedUserName": "Nadeesha Fernando",
+                "appliedUserRole": "Admin",
+                "availableLeaveCount": 14,
+                "approveBy": null,
+                "approvedUser": "",
+                "approveDate": null,
+                "approveRemark": "",
+                "rejectBy": null,
+                "rejectedUser": "",
+                "rejectDate": null,
+                "rejectReason": "",
+                "isMonthEndDone": false,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c002",
+                "createdUser": "Nadeesha Fernando",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c002",
+                "updatedUser": "Nadeesha Fernando",
+                "createdAt": "2026-11-18T08:31:00.705Z",
+                "updatedAt": "2026-11-18T08:31:00.705Z"
+              },
+              {
+                "_id": "6650a1b2c3d4e5f6a7b8f001",
+                "startDate": "2437-01-11T00:00:00.000Z",
+                "endDate": "2437-01-12T00:00:00.000Z",
+                "dateCount": 2,
+                "reason": "Bruno test leave (updated)",
+                "status": 1,
+                "statusName": "PENDING",
+                "appliedUser": "6650a1b2c3d4e5f6a7b8c003",
+                "appliedUserName": "Ruwan Bandara",
+                "appliedUserRole": "Driver",
+                "availableLeaveCount": "",
+                "approveBy": null,
+                "approvedUser": "",
+                "approveDate": null,
+                "approveRemark": "",
+                "rejectBy": null,
+                "rejectedUser": "",
+                "rejectDate": null,
+                "rejectReason": "",
+                "isMonthEndDone": false,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c003",
+                "createdUser": "Ruwan Bandara",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c003",
+                "updatedUser": "Ruwan Bandara",
+                "createdAt": "2026-11-18T08:31:00.120Z",
+                "updatedAt": "2026-11-18T08:31:01.340Z"
+              }
+            ]
+          }
+  - name: 200 driver sees own
+    description: |-
+      DRIVER: own leaves only (leave.controller.ts:310-323).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Get All Leaves/Get All Leaves - 200 driver sees own.yml
+    request:
+      url: "{{baseUrl}}/leave?year={{leaveYear}}"
+      method: GET
+      params:
+        - name: year
+          value: "{{leaveYear}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": [
+              {
+                "_id": "6650a1b2c3d4e5f6a7b8f002",
+                "startDate": "2437-01-21T00:00:00.000Z",
+                "endDate": "2437-01-22T00:00:00.000Z",
+                "dateCount": 2,
+                "reason": "Bruno test leave",
+                "status": 1,
+                "statusName": "PENDING",
+                "appliedUser": "6650a1b2c3d4e5f6a7b8c003",
+                "appliedUserName": "Ruwan Bandara",
+                "appliedUserRole": "Driver",
+                "availableLeaveCount": "",
+                "approveBy": null,
+                "approvedUser": "",
+                "approveDate": null,
+                "approveRemark": "",
+                "rejectBy": null,
+                "rejectedUser": "",
+                "rejectDate": null,
+                "rejectReason": "",
+                "isMonthEndDone": false,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c003",
+                "createdUser": "Ruwan Bandara",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c003",
+                "updatedUser": "Ruwan Bandara",
+                "createdAt": "2026-11-18T08:31:00.410Z",
+                "updatedAt": "2026-11-18T08:31:00.410Z"
+              },
+              {
+                "_id": "6650a1b2c3d4e5f6a7b8f001",
+                "startDate": "2437-01-11T00:00:00.000Z",
+                "endDate": "2437-01-12T00:00:00.000Z",
+                "dateCount": 2,
+                "reason": "Bruno test leave (updated)",
+                "status": 1,
+                "statusName": "PENDING",
+                "appliedUser": "6650a1b2c3d4e5f6a7b8c003",
+                "appliedUserName": "Ruwan Bandara",
+                "appliedUserRole": "Driver",
+                "availableLeaveCount": "",
+                "approveBy": null,
+                "approvedUser": "",
+                "approveDate": null,
+                "approveRemark": "",
+                "rejectBy": null,
+                "rejectedUser": "",
+                "rejectDate": null,
+                "rejectReason": "",
+                "isMonthEndDone": false,
+                "createdBy": "6650a1b2c3d4e5f6a7b8c003",
+                "createdUser": "Ruwan Bandara",
+                "updatedBy": "6650a1b2c3d4e5f6a7b8c003",
+                "updatedUser": "Ruwan Bandara",
+                "createdAt": "2026-11-18T08:31:00.120Z",
+                "updatedAt": "2026-11-18T08:31:01.340Z"
+              }
+            ]
+          }
+  - name: 200 driver assistant empty
+    description: |-
+      DRIVERASSISTANT / TRIPASSISTANT fall to `default` → `[]` (leave.controller.ts:387-389).
+
+      Auth: bearer {{driverAssistantToken}}
+
+      Source scenario: Leave/Get All Leaves/Get All Leaves - 200 driver assistant empty.yml
+    request:
+      url: "{{baseUrl}}/leave?year={{leaveYear}}"
+      method: GET
+      params:
+        - name: year
+          value: "{{leaveYear}}"
+          type: query
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": []
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. leave.route.ts:36-40.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Leave/Get All Leaves/Get All Leaves - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/leave"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/leave`**
+
+  This request runs the main scenario **200 super admin sees all**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 super admin sees all | (empty) |
+  | 2 | 200 | 200 driver sees own | (empty) |
+  | 3 | 200 | 200 driver assistant empty | (empty) |
+  | 4 | 401 | 401 no token | Authentication invalid! |
+
+  ## Main scenario notes
+
+  SUPERADMIN: everyone's leaves of the year; ADMIN/FO/TM applicants get `availableLeaveCount` (leave.controller.ts:339-386).

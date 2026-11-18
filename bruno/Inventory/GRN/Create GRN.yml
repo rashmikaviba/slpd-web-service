@@ -1,0 +1,1073 @@
+info:
+  name: Create GRN
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/inventory/grn"
+  body:
+    type: json
+    data: |-
+      {
+        "grnRemarks": "Bruno GRN to approve",
+        "products": [
+          {
+            "_id": "new",
+            "productId": "{{productId}}",
+            "enteredMeasureUnitId": 13,
+            "quantity": 50,
+            "remarks": "50 kg via Bruno"
+          }
+        ]
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: if (res.status === 201) bru.setVar("grnId", res.body.data._id);
+    - type: tests
+      code: |-
+        test("pending, SI converted", function () {
+          expect(res.body.data.status).to.equal(1);
+          expect(res.body.data.products[0].siConvertedQuantity).to.equal(50000);
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "201"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: eq
+      value: Good Receipt Note saved successfully!
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: "201"
+    description: |-
+      50 kg of `{{productId}}` -> `siConvertedQuantity` 50000 g. Each line needs a dummy `_id` string (ignored).
+      Roles: SUPERADMIN, ADMIN, FINANCEOFFICER, TRIPMANAGER. Stores `{{grnId}}`. Stock unchanged until approval. `src/modules/inventory/grn/grn.controller.ts:23`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 201.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN to approve",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 50,
+                "remarks": "50 kg via Bruno"
+              }
+            ]
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Good Receipt Note saved successfully!",
+            "data": {
+              "_id": "6731f1a2b4c5d6e7f8a9b0d1",
+              "grnNumber": 24,
+              "grnNumberWithPrefix": "GRN-024",
+              "grnDate": "2026-11-18T08:31:00.120Z",
+              "grnRemarks": "Bruno GRN to approve",
+              "products": [
+                {
+                  "productId": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "enteredMeasureUnitId": 13,
+                  "actualMeasureUnitId": 13,
+                  "siConvertedQuantity": 50000,
+                  "quantity": 50,
+                  "remarks": "50 kg via Bruno",
+                  "_id": "6731f1a2b4c5d6e7f8a9b0d2"
+                }
+              ],
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "approvedBy": null,
+              "rejectedBy": null,
+              "approvedDate": null,
+              "rejectedDate": null,
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:31:00.120Z",
+              "updatedAt": "2026-11-18T08:31:00.120Z"
+            }
+          }
+  - name: 201 to reject
+    description: |-
+      Second GRN, stored as `{{rejectGrnId}}`.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 201 to reject.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN to reject",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Good Receipt Note saved successfully!",
+            "data": {
+              "_id": "6731f1a2b4c5d6e7f8a9b0d3",
+              "grnNumber": 25,
+              "grnNumberWithPrefix": "GRN-025",
+              "grnDate": "2026-11-18T08:31:02.300Z",
+              "grnRemarks": "Bruno GRN to reject",
+              "products": [
+                {
+                  "productId": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "enteredMeasureUnitId": 13,
+                  "actualMeasureUnitId": 13,
+                  "siConvertedQuantity": 5000,
+                  "quantity": 5,
+                  "remarks": "",
+                  "_id": "6731f1a2b4c5d6e7f8a9b0d4"
+                }
+              ],
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "approvedBy": null,
+              "rejectedBy": null,
+              "approvedDate": null,
+              "rejectedDate": null,
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:31:02.300Z",
+              "updatedAt": "2026-11-18T08:31:02.300Z"
+            }
+          }
+  - name: 201 stays pending
+    description: |-
+      Third GRN, stored as `{{pendingGrnId}}`; used by the update error cases and cancelled at the end of the folder.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 201 stays pending.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN pending",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 201
+      statusText: Created
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Good Receipt Note saved successfully!",
+            "data": {
+              "_id": "6731f1a2b4c5d6e7f8a9b0d5",
+              "grnNumber": 26,
+              "grnNumberWithPrefix": "GRN-026",
+              "grnDate": "2026-11-18T08:31:03.410Z",
+              "grnRemarks": "Bruno GRN pending",
+              "products": [
+                {
+                  "productId": "6731f0a2b4c5d6e7f8a9b0c1",
+                  "enteredMeasureUnitId": 13,
+                  "actualMeasureUnitId": 13,
+                  "siConvertedQuantity": 5000,
+                  "quantity": 5,
+                  "remarks": "",
+                  "_id": "6731f1a2b4c5d6e7f8a9b0d6"
+                }
+              ],
+              "status": 1,
+              "createdBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "approvedBy": null,
+              "rejectedBy": null,
+              "approvedDate": null,
+              "rejectedDate": null,
+              "updatedBy": "6650a1b2c3d4e5f6a7b8c9d0",
+              "createdAt": "2026-11-18T08:31:03.410Z",
+              "updatedAt": "2026-11-18T08:31:03.410Z"
+            }
+          }
+  - name: 400 grnRemarks too long
+    description: |-
+      Joi `grnSaveSchema` (string.max). `src/modules/inventory/grn/grn.validation.ts`, `src/modules/inventory/grn/grn.controller.ts:30`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 400 grnRemarks too long.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "{{longText501}}",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "GRN Remarks should not be more than 500 characters",
+            "data": null
+          }
+  - name: 400 grnRemarks not a string
+    description: |-
+      Joi `grnSaveSchema` (string.base). `src/modules/inventory/grn/grn.validation.ts`, `src/modules/inventory/grn/grn.controller.ts:30`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 400 grnRemarks not a string.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": 123,
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "GRN Remarks is invalid",
+            "data": null
+          }
+  - name: 400 line missing _id
+    description: |-
+      Joi `grnSaveSchema` (products[]._id any.required). `src/modules/inventory/grn/grn.validation.ts`, `src/modules/inventory/grn/grn.controller.ts:30`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 400 line missing _id.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Id is required",
+            "data": null
+          }
+  - name: 400 line _id not a string
+    description: |-
+      Joi `grnSaveSchema` (products[]._id string.base). `src/modules/inventory/grn/grn.validation.ts`, `src/modules/inventory/grn/grn.controller.ts:30`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 400 line _id not a string.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": 1,
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Id is invalid",
+            "data": null
+          }
+  - name: 400 line missing productId
+    description: |-
+      Joi `grnSaveSchema` (products[].productId any.required). `src/modules/inventory/grn/grn.validation.ts`, `src/modules/inventory/grn/grn.controller.ts:30`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 400 line missing productId.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product is required",
+            "data": null
+          }
+  - name: 400 line productId not a string
+    description: |-
+      Joi `grnSaveSchema` (string.base). `src/modules/inventory/grn/grn.validation.ts`, `src/modules/inventory/grn/grn.controller.ts:30`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 400 line productId not a string.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": 1,
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Product is invalid",
+            "data": null
+          }
+  - name: 400 line missing enteredMeasureUnitId
+    description: |-
+      Joi `grnSaveSchema` (any.required). `src/modules/inventory/grn/grn.validation.ts`, `src/modules/inventory/grn/grn.controller.ts:30`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 400 line missing enteredMeasureUnitId.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Unit is required",
+            "data": null
+          }
+  - name: 400 line enteredMeasureUnitId not a number
+    description: |-
+      Joi `grnSaveSchema` (number.base). `src/modules/inventory/grn/grn.validation.ts`, `src/modules/inventory/grn/grn.controller.ts:30`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 400 line enteredMeasureUnitId not a number.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": "abc",
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Unit is invalid",
+            "data": null
+          }
+  - name: 400 line missing quantity
+    description: |-
+      Joi `grnSaveSchema` (any.required). `src/modules/inventory/grn/grn.validation.ts`, `src/modules/inventory/grn/grn.controller.ts:30`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 400 line missing quantity.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Quantity is required",
+            "data": null
+          }
+  - name: 400 line quantity not a number
+    description: |-
+      Joi `grnSaveSchema` (number.base). `src/modules/inventory/grn/grn.validation.ts`, `src/modules/inventory/grn/grn.controller.ts:30`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 400 line quantity not a number.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": "abc",
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Quantity is invalid",
+            "data": null
+          }
+  - name: 400 line remarks too long
+    description: |-
+      Joi `grnSaveSchema` (string.max). `src/modules/inventory/grn/grn.validation.ts`, `src/modules/inventory/grn/grn.controller.ts:30`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 400 line remarks too long.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": "{{longText501}}"
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Remarks should not be more than 500 characters",
+            "data": null
+          }
+  - name: 400 line remarks not a string
+    description: |-
+      Joi `grnSaveSchema` (string.base). `src/modules/inventory/grn/grn.validation.ts`, `src/modules/inventory/grn/grn.controller.ts:30`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 400 line remarks not a string.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": 5
+              }
+            ]
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Remarks is invalid",
+            "data": null
+          }
+  - name: 400 unknown field
+    description: |-
+      Unknown keys rejected. `src/modules/inventory/grn/grn.controller.ts:30`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 400 unknown field.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ],
+            "foo": 1
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "\"foo\" is not allowed",
+            "data": null
+          }
+  - name: 400 empty products
+    description: |-
+      `src/modules/inventory/grn/grn.controller.ts:59`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 400 empty products.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "empty",
+            "products": []
+          }
+    response:
+      status: 400
+      statusText: Bad Request
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Please add at least one product to proceed!",
+            "data": null
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header -> `authorize()` rejects before the handler.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Inventory/GRN/Create GRN - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 403 wrong role
+    description: |-
+      Route allows SUPERADMIN, ADMIN, FINANCEOFFICER, TRIPMANAGER only; `{{driverToken}}` is rejected by `auth.middleware.ts` role check.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Inventory/GRN/Create GRN - 403 wrong role.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{productId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 403
+      statusText: Forbidden
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "You're unauthorized to access this resource!",
+            "data": null
+          }
+  - name: 404 product not found
+    description: |-
+      `src/modules/inventory/grn/grn.controller.ts:54`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 404 product not found.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{nonExistingId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Selected product not found!",
+            "data": null
+          }
+  - name: 404 deleted product
+    description: |-
+      Only ACTIVE products allowed. Precondition: Product folder soft-deleted `{{tempProductId}}`. `src/modules/inventory/grn/grn.controller.ts:54`
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 404 deleted product.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{tempProductId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Selected product not found!",
+            "data": null
+          }
+  - name: 404 invalid product id
+    description: |-
+      `src/modules/inventory/grn/grn.controller.ts:40`
+
+      Malformed ObjectId reaches a Mongoose query -> `CastError` -> `error.middleware.ts` returns 404 `No item found with ID "<value>"!` (asserted in tests because of the quotes).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 404 invalid product id.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "Bruno GRN",
+            "products": [
+              {
+                "_id": "new",
+                "productId": "{{invalidId}}",
+                "enteredMeasureUnitId": 13,
+                "quantity": 5,
+                "remarks": ""
+              }
+            ]
+          }
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"",
+            "data": null
+          }
+  - name: 500 products omitted
+    description: |-
+      [KNOWN BUG] `products` is not required in Joi (`src/modules/inventory/grn/grn.validation.ts:9`); `products.length` on undefined throws a TypeError -> 500. Should be 400.
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Inventory/GRN/Create GRN - 500 products omitted.yml
+    request:
+      url: "{{baseUrl}}/inventory/grn"
+      method: POST
+      body:
+        type: json
+        data: |-
+          {
+            "grnRemarks": "no products"
+          }
+    response:
+      status: 500
+      statusText: Internal Server Error
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Cannot read properties of undefined (reading 'length')",
+            "data": null
+          }
+
+docs: |-
+  **POST `/api/v1/inventory/grn`**
+
+  This request runs the main scenario **201**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 201 | 201 | Good Receipt Note saved successfully! |
+  | 2 | 201 | 201 to reject | Good Receipt Note saved successfully! |
+  | 3 | 201 | 201 stays pending | Good Receipt Note saved successfully! |
+  | 4 | 400 | 400 grnRemarks too long | GRN Remarks should not be more than 500 characters |
+  | 5 | 400 | 400 grnRemarks not a string | GRN Remarks is invalid |
+  | 6 | 400 | 400 line missing _id | Id is required |
+  | 7 | 400 | 400 line _id not a string | Id is invalid |
+  | 8 | 400 | 400 line missing productId | Product is required |
+  | 9 | 400 | 400 line productId not a string | Product is invalid |
+  | 10 | 400 | 400 line missing enteredMeasureUnitId | Unit is required |
+  | 11 | 400 | 400 line enteredMeasureUnitId not a number | Unit is invalid |
+  | 12 | 400 | 400 line missing quantity | Quantity is required |
+  | 13 | 400 | 400 line quantity not a number | Quantity is invalid |
+  | 14 | 400 | 400 line remarks too long | Remarks should not be more than 500 characters |
+  | 15 | 400 | 400 line remarks not a string | Remarks is invalid |
+  | 16 | 400 | 400 unknown field | "foo" is not allowed |
+  | 17 | 400 | 400 empty products | Please add at least one product to proceed! |
+  | 18 | 401 | 401 no token | Authentication invalid! |
+  | 19 | 403 | 403 wrong role | You're unauthorized to access this resource! |
+  | 20 | 404 | 404 product not found | Selected product not found! |
+  | 21 | 404 | 404 deleted product | Selected product not found! |
+  | 22 | 404 | 404 invalid product id | No item found with ID " |
+  | 23 | 500 | 500 products omitted | Cannot read properties of undefined (reading 'length') |
+
+  ## Main scenario notes
+
+  50 kg of `{{productId}}` -> `siConvertedQuantity` 50000 g. Each line needs a dummy `_id` string (ignored).
+  Roles: SUPERADMIN, ADMIN, FINANCEOFFICER, TRIPMANAGER. Stores `{{grnId}}`. Stock unchanged until approval. `src/modules/inventory/grn/grn.controller.ts:23`

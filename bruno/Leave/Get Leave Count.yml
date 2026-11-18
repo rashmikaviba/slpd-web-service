@@ -1,0 +1,210 @@
+info:
+  name: Get Leave Count
+  type: http
+  seq: 2
+
+http:
+  method: GET
+  url: "{{baseUrl}}/leave/leaveCount"
+  auth:
+    type: bearer
+    token: "{{adminToken}}"
+
+runtime:
+  scripts:
+    - type: after-response
+      code: if (res.status === 200) bru.setVar("adminLeaveCount", res.body.data.yearlyEligibleLeaveCount);
+    - type: tests
+      code: |-
+        test("admin has a yearly entitlement (precondition for limit cases)", function () {
+          expect(res.body.data.yearlyEligibleLeaveCount).to.be.a("number").and.to.be.at.least(1);
+        });
+        test("remaining = entitlement - approved", function () {
+          expect(res.body.data.remainingLeaveCount).to.be.at.most(res.body.data.yearlyEligibleLeaveCount);
+        });
+  assertions:
+    - expression: res.status
+      operator: eq
+      value: "200"
+    - expression: res.body.isSuccessful
+      operator: eq
+      value: "true"
+    - expression: res.body.message
+      operator: isEmpty
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: true
+
+examples:
+  - name: 200 admin
+    description: |-
+      ADMIN branch: approved/rejected/pending sums + `leaveCount` and remaining (leave.controller.ts:623-654). Stores `{{adminLeaveCount}}` for the Apply/Update/Approve limit cases.
+
+      Auth: bearer {{adminToken}}
+
+      Source scenario: Leave/Get Leave Count/Get Leave Count - 200 admin.yml
+    request:
+      url: "{{baseUrl}}/leave/leaveCount"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "approveLeaveCount": 2,
+              "rejectLeaveCount": 0,
+              "pendingLeaveCount": 0,
+              "remainingLeaveCount": 12,
+              "yearlyEligibleLeaveCount": 14
+            }
+          }
+  - name: 200 driver
+    description: |-
+      DRIVER branch: only the three sums; remaining/eligible stay 0 (leave.controller.ts:656-675).
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Get Leave Count/Get Leave Count - 200 driver.yml
+    request:
+      url: "{{baseUrl}}/leave/leaveCount"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "approveLeaveCount": 3,
+              "rejectLeaveCount": 1,
+              "pendingLeaveCount": 0,
+              "remainingLeaveCount": 0,
+              "yearlyEligibleLeaveCount": 0
+            }
+          }
+  - name: 200 super admin all zero
+    description: |-
+      SUPERADMIN falls to `default` → all 0 (leave.controller.ts:618-620,703-713).
+
+      Auth: collection default ({{superAdminToken}})
+
+      Source scenario: Leave/Get Leave Count/Get Leave Count - 200 super admin all zero.yml
+    request:
+      url: "{{baseUrl}}/leave/leaveCount"
+      method: GET
+    response:
+      status: 200
+      statusText: OK
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": true,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "",
+            "data": {
+              "approveLeaveCount": 0,
+              "rejectLeaveCount": 0,
+              "pendingLeaveCount": 0,
+              "remainingLeaveCount": 0,
+              "yearlyEligibleLeaveCount": 0
+            }
+          }
+  - name: 401 no token
+    description: |-
+      No Authorization header → auth.middleware.ts:24-26 `UnauthorizedError`. leave.route.ts:30-34.
+
+      Auth: none (no Authorization header)
+
+      Source scenario: Leave/Get Leave Count/Get Leave Count - 401 no token.yml
+    request:
+      url: "{{baseUrl}}/leave/leaveCount"
+      method: GET
+    response:
+      status: 401
+      statusText: Unauthorized
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "Authentication invalid!",
+            "data": null
+          }
+  - name: 404 [KNOWN BUG] non-numeric year
+    description: |-
+      [KNOWN BUG] (not in Document/leave.md) `Number("abc")` = NaN → `new Date(NaN, 0, 1)` = Invalid Date in the
+      `startDate $gte` filter → CastError → error.middleware.ts:56-60 → 404 `No item found with ID "Invalid Date"!`
+      (leave.controller.ts:588, leave.service.ts:147-148). Should be a 400 validation error.
+
+      Auth: bearer {{driverToken}}
+
+      Source scenario: Leave/Get Leave Count/Get Leave Count - 404 [KNOWN BUG] non-numeric year.yml
+    request:
+      url: "{{baseUrl}}/leave/leaveCount?year=abc"
+      method: GET
+      params:
+        - name: year
+          value: abc
+          type: query
+    response:
+      status: 404
+      statusText: Not Found
+      headers:
+        - name: Content-Type
+          value: application/json; charset=utf-8
+      body:
+        type: json
+        data: |-
+          {
+            "isSuccessful": false,
+            "timeStamp": "2026-11-18T08:30:00.000Z",
+            "message": "No item found with ID \"Invalid Date\"!",
+            "data": null
+          }
+
+docs: |-
+  **GET `/api/v1/leave/leaveCount`**
+
+  This request runs the main scenario **200 admin**. Every other scenario (success and error) is saved as an example — open the Examples tab, pick one, and its request body/params are shown with the expected response.
+
+  ## Scenarios
+
+  | # | Status | Scenario (example) | Message |
+  |---|---|---|---|
+  | 1 | 200 | 200 admin | (empty) |
+  | 2 | 200 | 200 driver | (empty) |
+  | 3 | 200 | 200 super admin all zero | (empty) |
+  | 4 | 401 | 401 no token | Authentication invalid! |
+  | 5 | 404 | 404 [KNOWN BUG] non-numeric year | No item found with ID "Invalid Date"! |
+
+  ## Main scenario notes
+
+  ADMIN branch: approved/rejected/pending sums + `leaveCount` and remaining (leave.controller.ts:623-654). Stores `{{adminLeaveCount}}` for the Apply/Update/Approve limit cases.
